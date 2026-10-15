@@ -1,0 +1,1201 @@
+Fecha_Hora,Correo_Usuario,Modulo,Operacion,Estado,Detalles_Error
+2026-10-07 11:03:39,SuperAdmin,Sistema,Limpieza_Granular,EXITO,"Limpieza ejecutada: {""auditoria"": ""Bitácora de auditoría vaciada."", ""historial_integrantes"": ""Historial de integrantes vaciado."", ""papelera"": ""Papelera de reciclaje vaciada por completo."", ""usuarios_prueba"": ""Usuarios y progresos de prueba eliminados (SuperAdmin protegido intacto)."", ""vacuum"": ""Base de datos compactada y desfragmentada al 100%.""}"
+2026-10-07 11:17:07,alejandro.mejia-a@uniminuto.edu.co,Autenticacion,Validacion_Credenciales,FALLO,Usuario no registrado
+2026-10-07 11:18:11,david.alfonso-m@uniminuto.edu.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: Corporación Universitaria Minuto de Dios - Modo: flexible
+2026-10-07 11:18:12,sebastian.arevalo-m@uniminuto.edu.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: Corporación Universitaria Minuto de Dios - Modo: flexible
+2026-10-07 11:18:12,luis.castillo-h@uniminuto.edu.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: Corporación Universitaria Minuto de Dios - Modo: flexible
+2026-10-07 11:18:12,jose.lemus-d@uniminuto.edu.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: Corporación Universitaria Minuto de Dios - Modo: flexible
+2026-10-07 11:18:12,alejandro.mejia-a@uniminuto.edu.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: Corporación Universitaria Minuto de Dios - Modo: flexible
+2026-10-07 11:18:12,cristian.mendez-o@uniminuto.edu.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: Corporación Universitaria Minuto de Dios - Modo: flexible
+2026-10-07 11:18:12,juan.narciso-p@uniminuto.edu.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: Corporación Universitaria Minuto de Dios - Modo: flexible
+2026-10-07 11:18:12,diego.nino-n@uniminuto.edu.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: Corporación Universitaria Minuto de Dios - Modo: flexible
+2026-10-07 11:18:12,liseth.perez-m@uniminuto.edu.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: Corporación Universitaria Minuto de Dios - Modo: flexible
+2026-10-07 11:18:12,andres.prada-o@uniminuto.edu.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: Corporación Universitaria Minuto de Dios - Modo: flexible
+2026-10-07 11:18:12,diana.ramirez-n@uniminuto.edu.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: Corporación Universitaria Minuto de Dios - Modo: flexible
+2026-10-07 11:18:12,cristian.rozo-c@uniminuto.edu.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: Corporación Universitaria Minuto de Dios - Modo: flexible
+2026-10-07 11:18:12,juan.rozo-p@uniminuto.edu.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: Corporación Universitaria Minuto de Dios - Modo: flexible
+2026-10-07 11:18:12,jose.toro-g@uniminuto.edu.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: Corporación Universitaria Minuto de Dios - Modo: flexible
+2026-10-07 11:18:12,christian.torres-r@uniminuto.edu.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: Corporación Universitaria Minuto de Dios - Modo: flexible
+2026-10-07 11:18:12,juan.urrego-r@uniminuto.edu.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: Corporación Universitaria Minuto de Dios - Modo: flexible
+2026-10-07 11:18:21,alejandro.mejia-a@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-07 11:18:22,alejandro.mejia-a@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz
+2026-10-07 11:18:25,SuperAdmin,Usuarios,Modificar_Usuario,EXITO,Usuario #1441: Alejandro Mejia Arevalo (Mentor)
+2026-10-07 11:18:54,Administrador,Usuarios,Eliminar_Usuario_Con_Respaldo,EXITO,Usuario respaldado en papelera: Alejandro Mejia Arevalo (alejandro.mejia-a@uniminuto.edu.co) - Org: Corporación Universitaria Minuto de Dios
+2026-10-07 11:19:04,alejandro.mejia-a@uniminuto.edu.co,Autenticacion,Validacion_Credenciales,FALLO,Usuario no registrado
+2026-10-07 11:19:37,SuperAdmin,Usuarios,Crear_Integrante_Manual,EXITO,Usuario 'alejito' (Mentor) creado en 'Corporación Universitaria Minuto de Dios'. Clave inicial: 123456
+2026-10-07 11:19:44,alejandro.mejia-a@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-07 11:19:46,alejandro.mejia-a@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Mentor
+2026-10-07 11:21:00,alejito,Tutorias,Crear_Quiz_Mentor,EXITO,Quiz 'Como convertirse en rappi' creado para aprendices
+2026-10-07 11:22:40,SuperAdmin,Usuarios,Modificar_Usuario,EXITO,Usuario #1453: alejito (Administrador)
+2026-10-07 11:23:06,alejandro.mejia-a@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-07 11:23:07,alejandro.mejia-a@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Administrador
+2026-10-07 11:25:17,Diego Alexander Niño Niño,Personalizacion,Actualizar_Tema_Decorativo,EXITO,Tema decorativo 'pascua' aplicado
+2026-10-07 18:28:06,alexander.nino.583@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-07 18:28:08,alexander.nino.583@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Super Administrador
+2026-10-08 08:21:44,alexander.nino.583@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-08 08:21:45,alexander.nino.583@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Super Administrador
+2026-10-08 09:16:11,alexander.nino.583@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Super Administrador
+2026-10-08 09:16:13,alexander.nino.583@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-08 09:17:00,alexander.nino.583@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Super Administrador
+2026-10-08 09:17:00,Administrador,Usuarios,Modificar_Usuario,EXITO,Usuario #1437: David Santiago Alfonso Muñoz (Nuevo Rol: Mentor)
+2026-10-08 09:17:00,Administrador,Usuarios,Modificar_Usuario,EXITO,Usuario #1437: David Santiago Alfonso Muñoz (Nuevo Rol: Aprendiz)
+2026-10-08 09:17:02,alexander.nino.583@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-08 09:18:00,alexander.nino.583@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Super Administrador
+2026-10-08 09:18:00,Administrador,Usuarios,Modificar_Usuario,EXITO,Usuario #1437: David Santiago Alfonso Muñoz (Nuevo Rol: Mentor)
+2026-10-08 09:18:00,Administrador,Usuarios,Modificar_Usuario,EXITO,Usuario #1437: David Santiago Alfonso Muñoz (Nuevo Rol: Aprendiz)
+2026-10-08 09:18:00,Admin,Organizaciones,Actualizar_Logo,EXITO,Logo actualizado para Corporación Universitaria Minuto de Dios
+2026-10-08 09:18:01,alexander.nino.583@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-08 09:18:12,alexander.nino.583@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Super Administrador
+2026-10-08 09:18:12,Administrador,Usuarios,Modificar_Usuario,EXITO,Usuario #1437: David Santiago Alfonso Muñoz (Nuevo Rol: Mentor)
+2026-10-08 09:18:12,Administrador,Usuarios,Modificar_Usuario,EXITO,Usuario #1437: David Santiago Alfonso Muñoz (Nuevo Rol: Aprendiz)
+2026-10-08 09:18:12,Admin,Organizaciones,Actualizar_Logo,EXITO,Logo actualizado para Corporación Universitaria Minuto de Dios
+2026-10-08 09:18:14,alexander.nino.583@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-08 09:20:46,alexander.nino.583@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-08 09:21:06,alexander.nino.583@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Super Administrador
+2026-10-08 09:26:11,diego.alexander.nino.583@hotmail.com,Autenticacion,Validacion_Credenciales,FALLO,Usuario no registrado
+2026-10-08 09:26:16,diego.alexander.nino.583@hotmail.com,Autenticacion,Validacion_Credenciales,FALLO,Usuario no registrado
+2026-10-08 09:26:22,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-08 09:26:40,diego.nino-n@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz
+2026-10-08 09:27:56,Diego Alexander Niño Niño,Personalizacion,Actualizar_Tema_Decorativo,EXITO,Tema decorativo 'estandar' aplicado
+2026-10-08 09:27:58,Diego Alexander Niño Niño,Personalizacion,Actualizar_Tema_Decorativo,EXITO,Tema decorativo 'minimalista' aplicado
+2026-10-08 09:28:04,Diego Alexander Niño Niño,Personalizacion,Actualizar_Tema_Decorativo,EXITO,Tema decorativo 'minimalista' aplicado
+2026-10-08 09:28:04,Diego Alexander Niño Niño,Personalizacion,Actualizar_Tema_Decorativo,EXITO,Tema decorativo 'navidad' aplicado
+2026-10-08 09:28:06,Diego Alexander Niño Niño,Personalizacion,Actualizar_Tema_Decorativo,EXITO,Tema decorativo 'halloween' aplicado
+2026-10-08 10:44:30,alexander.nino.583@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-08 10:45:00,alexander.nino.583@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Super Administrador
+2026-10-11 19:19:34,alexander.nino.583@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-11 19:19:48,alexander.nino.583@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Super Administrador
+2026-10-11 19:57:29,Diego Alexander Niño Niño,Personalizacion,Actualizar_Tema_Decorativo,EXITO,Tema decorativo 'estandar' aplicado
+2026-10-11 20:12:47,alexander.nino.583@gmail.com,Perfil,Actualizar_Foto,EXITO,Foto de perfil actualizada
+2026-10-11 21:07:36,SuperAdmin,Usuarios,Crear_Integrante_Manual,EXITO,Usuario 'camilo' (Administrador) creado en 'Corporación Universitaria Minuto de Dios'. Clave inicial: 123456
+2026-10-11 21:08:42,SuperAdmin,Usuarios,Crear_Integrante_Manual,EXITO,Usuario 'alvaro Niño' (Mentor) creado en 'Corporación Universitaria Minuto de Dios'. Clave inicial: 123456
+2026-10-12 19:28:14,alexander.nino.583@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-12 19:28:33,alexander.nino.583@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Super Administrador
+2026-10-12 19:34:41,Super Administrador,Colecciones,Enviar_Coleccion_Org,EXITO,"Colección 'Liderazgo Pedagógico y Acompañamiento a Aprendices' enviada a Corporación Universitaria Minuto de Dios [Nivel: Mentores, Destinatario ID: Todos]"
+2026-10-12 19:36:52,SuperAdmin,Backups,Crear_Respaldo,EXITO,Copia creada: backup_2026_10_12_193652.db (692.0 KB)
+2026-10-12 19:37:01,SuperAdmin,Backups,Crear_Respaldo,EXITO,Copia creada: backup_2026_10_12_193701.db (696.0 KB)
+2026-10-12 21:05:17,diego.alexander.nino.583@hotmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-12 21:05:47,diego.alexander.nino.583@hotmail.com,Seguridad_2FA,Reenvio_Codigo,EXITO,Ninguno
+2026-10-12 21:06:27,diego.alexander.nino.583@hotmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Administrador
+2026-10-12 21:09:16,diego.alexander.nino.583@hotmail.com,Perfil,Actualizar_Foto,EXITO,Foto de perfil actualizada
+2026-10-12 21:10:20,ninod9716@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-12 21:10:49,ninod9716@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Mentor
+2026-10-12 21:12:19,ninod9716@gmail.com,Perfil,Actualizar_Foto,EXITO,Foto de perfil actualizada
+2026-10-12 21:13:29,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-12 21:13:53,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Reenvio_Codigo,EXITO,Ninguno
+2026-10-12 21:15:03,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Reenvio_Codigo,EXITO,Ninguno
+2026-10-12 21:15:19,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-12 21:40:16,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-12 21:41:45,diego.nino-n@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz
+2026-10-12 21:42:37,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-12 21:43:06,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Reenvio_Codigo,EXITO,Ninguno
+2026-10-12 21:43:12,diego.nino-n@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz
+2026-10-13 21:06:51,alexander.nino.583@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Super Administrador
+2026-10-13 21:06:52,alexander.nino.583@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-13 21:08:57,SuperAdmin,Organizaciones,Crear_Organizacion,EXITO,Org: enano malparido - Dominio: LIBRE
+2026-10-13 21:09:48,SuperAdmin,Organizaciones,Modificar_Organizacion,EXITO,Org #14: enano malparido - Licencias: 100000000 - Dominio: LIBRE
+2026-10-13 21:10:33,admin1@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Administrador - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,admin2@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Administrador - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,admin3@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Administrador - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,admin4@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Administrador - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,admin5@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Administrador - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,admin6@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Administrador - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,admin7@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Administrador - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,admin8@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Administrador - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,admin9@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Administrador - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,admin10@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Administrador - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,admin11@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Administrador - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,admin12@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Administrador - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,admin13@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Administrador - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,admin14@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Administrador - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,admin15@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Administrador - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,admin16@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Administrador - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,admin17@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Administrador - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,admin18@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Administrador - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,admin19@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Administrador - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,admin20@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Administrador - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor1@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor2@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor3@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor4@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor5@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor6@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor7@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor8@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor9@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor10@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor11@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor12@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor13@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor14@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor15@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor16@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor17@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor18@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor19@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor20@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor21@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor22@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor23@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor24@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor25@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor26@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor27@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor28@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor29@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor30@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor31@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor32@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor33@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor34@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor35@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor36@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor37@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor38@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor39@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor40@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor41@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor42@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor43@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor44@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor45@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor46@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor47@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor48@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor49@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,mentor50@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Mentor - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante1@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante2@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante3@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante4@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante5@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante6@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante7@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante8@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante9@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante10@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante11@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante12@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante13@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante14@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante15@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante16@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante17@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante18@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante19@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante20@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante21@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante22@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante23@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante24@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante25@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante26@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante27@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante28@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante29@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante30@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante31@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante32@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante33@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante34@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante35@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante36@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante37@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante38@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante39@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante40@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante41@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante42@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante43@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante44@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante45@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante46@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante47@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante48@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante49@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante50@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante51@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante52@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante53@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante54@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante55@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante56@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante57@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante58@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante59@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante60@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante61@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante62@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante63@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante64@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante65@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante66@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante67@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante68@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante69@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante70@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante71@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante72@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante73@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante74@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante75@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante76@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante77@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante78@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante79@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante80@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante81@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante82@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante83@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante84@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante85@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante86@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante87@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante88@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante89@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante90@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante91@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante92@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante93@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante94@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante95@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante96@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante97@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante98@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante99@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante100@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante101@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante102@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante103@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante104@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante105@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:33,estudiante106@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante107@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante108@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante109@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante110@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante111@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante112@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante113@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante114@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante115@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante116@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante117@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante118@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante119@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante120@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante121@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante122@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante123@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante124@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante125@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante126@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante127@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante128@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante129@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante130@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante131@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante132@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante133@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante134@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante135@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante136@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante137@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante138@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante139@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante140@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante141@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante142@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante143@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante144@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante145@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante146@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante147@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante148@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante149@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante150@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante151@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante152@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante153@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante154@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante155@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante156@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante157@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante158@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante159@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante160@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante161@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante162@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante163@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante164@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante165@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante166@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante167@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante168@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante169@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante170@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante171@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante172@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante173@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante174@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante175@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante176@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante177@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante178@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante179@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante180@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante181@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante182@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante183@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante184@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante185@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante186@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante187@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante188@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante189@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante190@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante191@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante192@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante193@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante194@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante195@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante196@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante197@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante198@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante199@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante200@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante201@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante202@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante203@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante204@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante205@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante206@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante207@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante208@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante209@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante210@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante211@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante212@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante213@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante214@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante215@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante216@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante217@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante218@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante219@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante220@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante221@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante222@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante223@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante224@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante225@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante226@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante227@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante228@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante229@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante230@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante231@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante232@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante233@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante234@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante235@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante236@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante237@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante238@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante239@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante240@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante241@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante242@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante243@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante244@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante245@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante246@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante247@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante248@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante249@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante250@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante251@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:34,estudiante252@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante253@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante254@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante255@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante256@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante257@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante258@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante259@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante260@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante261@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante262@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante263@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante264@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante265@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante266@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante267@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante268@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante269@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante270@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante271@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante272@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante273@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante274@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante275@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante276@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante277@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante278@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante279@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante280@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante281@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante282@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante283@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante284@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante285@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante286@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante287@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante288@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante289@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante290@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante291@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante292@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante293@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante294@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante295@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante296@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante297@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante298@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante299@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante300@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante301@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante302@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante303@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante304@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante305@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante306@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante307@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante308@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante309@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante310@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante311@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante312@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante313@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante314@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante315@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante316@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante317@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante318@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante319@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante320@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante321@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante322@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante323@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante324@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante325@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante326@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante327@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante328@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante329@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante330@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante331@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante332@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante333@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante334@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante335@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante336@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante337@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante338@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante339@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante340@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante341@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante342@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante343@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante344@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante345@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante346@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante347@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante348@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante349@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante350@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante351@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante352@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante353@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante354@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante355@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante356@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante357@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante358@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante359@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante360@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante361@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante362@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante363@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante364@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante365@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante366@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante367@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante368@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante369@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante370@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante371@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante372@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante373@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante374@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante375@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante376@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante377@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante378@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante379@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante380@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante381@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante382@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante383@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante384@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante385@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante386@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante387@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante388@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante389@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante390@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante391@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante392@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante393@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante394@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante395@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante396@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante397@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante398@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante399@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante400@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante401@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante402@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante403@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante404@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante405@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante406@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante407@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante408@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante409@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante410@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante411@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante412@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante413@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante414@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante415@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante416@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante417@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante418@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante419@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante420@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante421@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante422@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante423@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante424@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante425@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante426@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante427@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante428@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante429@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante430@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante431@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante432@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante433@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante434@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante435@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante436@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante437@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante438@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante439@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante440@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante441@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante442@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante443@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante444@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante445@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante446@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante447@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante448@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante449@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante450@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante451@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante452@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante453@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante454@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante455@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante456@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante457@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante458@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante459@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante460@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante461@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante462@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante463@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante464@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante465@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante466@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante467@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante468@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante469@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante470@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante471@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante472@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante473@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante474@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante475@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante476@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante477@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante478@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante479@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante480@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante481@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante482@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante483@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante484@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante485@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante486@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante487@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante488@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante489@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante490@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante491@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante492@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante493@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante494@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante495@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante496@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante497@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante498@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante499@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante500@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante501@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante502@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante503@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante504@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante505@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante506@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante507@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante508@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante509@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante510@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante511@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante512@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante513@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante514@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante515@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante516@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante517@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante518@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante519@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante520@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante521@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante522@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante523@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante524@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante525@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante526@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante527@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante528@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante529@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante530@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante531@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante532@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante533@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante534@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante535@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante536@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante537@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante538@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante539@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante540@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante541@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante542@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante543@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante544@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante545@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante546@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante547@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante548@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante549@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante550@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante551@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante552@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante553@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante554@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante555@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante556@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante557@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante558@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante559@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante560@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante561@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante562@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante563@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante564@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante565@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante566@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante567@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante568@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante569@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante570@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante571@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante572@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante573@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante574@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante575@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante576@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante577@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante578@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante579@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante580@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante581@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante582@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante583@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante584@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante585@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante586@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante587@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante588@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante589@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante590@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante591@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante592@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante593@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante594@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante595@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante596@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante597@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante598@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante599@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante600@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante601@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante602@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante603@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante604@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante605@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante606@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante607@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante608@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante609@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante610@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante611@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante612@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante613@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante614@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante615@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante616@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante617@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante618@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante619@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante620@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante621@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante622@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante623@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante624@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante625@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante626@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante627@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante628@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante629@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante630@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante631@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante632@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante633@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante634@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante635@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante636@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante637@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante638@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante639@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante640@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante641@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante642@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante643@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante644@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante645@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante646@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante647@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante648@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante649@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante650@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante651@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante652@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante653@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante654@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante655@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante656@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante657@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante658@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante659@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante660@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante661@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante662@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante663@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante664@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante665@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante666@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante667@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante668@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante669@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante670@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante671@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante672@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante673@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante674@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante675@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante676@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante677@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante678@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante679@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante680@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante681@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante682@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante683@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante684@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante685@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante686@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante687@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante688@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante689@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante690@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante691@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante692@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante693@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante694@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante695@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante696@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:35,estudiante697@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante698@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante699@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante700@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante701@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante702@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante703@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante704@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante705@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante706@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante707@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante708@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante709@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante710@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante711@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante712@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante713@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante714@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante715@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante716@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante717@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante718@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante719@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante720@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante721@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante722@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante723@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante724@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante725@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante726@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante727@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante728@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante729@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante730@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante731@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante732@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante733@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante734@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante735@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante736@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante737@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante738@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante739@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante740@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante741@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante742@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante743@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante744@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante745@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante746@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante747@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante748@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante749@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante750@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante751@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante752@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante753@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante754@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante755@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante756@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante757@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante758@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante759@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante760@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante761@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante762@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante763@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante764@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante765@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante766@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante767@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante768@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante769@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante770@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante771@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante772@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante773@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante774@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante775@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante776@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante777@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante778@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante779@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante780@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante781@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante782@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante783@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante784@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante785@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante786@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante787@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante788@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante789@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante790@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante791@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante792@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante793@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante794@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante795@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante796@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante797@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante798@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante799@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante800@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante801@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante802@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante803@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante804@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante805@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante806@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante807@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante808@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante809@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante810@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante811@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante812@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante813@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante814@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante815@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante816@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante817@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante818@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante819@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante820@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante821@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante822@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante823@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante824@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante825@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante826@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante827@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante828@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante829@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante830@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante831@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante832@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante833@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante834@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante835@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante836@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante837@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante838@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante839@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante840@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante841@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante842@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante843@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante844@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante845@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante846@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante847@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante848@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante849@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante850@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante851@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante852@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante853@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante854@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante855@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante856@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante857@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante858@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante859@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante860@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante861@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante862@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante863@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante864@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante865@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante866@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante867@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante868@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante869@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante870@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante871@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante872@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante873@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante874@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante875@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante876@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante877@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante878@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante879@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante880@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante881@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante882@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante883@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante884@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante885@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante886@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante887@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante888@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante889@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante890@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante891@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante892@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante893@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante894@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante895@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante896@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante897@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante898@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante899@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante900@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante901@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante902@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante903@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante904@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante905@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante906@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante907@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante908@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante909@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante910@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante911@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante912@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante913@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante914@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante915@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante916@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante917@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante918@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante919@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante920@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante921@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante922@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante923@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante924@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante925@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante926@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante927@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante928@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante929@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante930@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante931@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante932@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante933@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante934@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante935@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante936@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante937@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante938@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante939@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante940@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante941@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante942@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante943@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante944@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante945@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante946@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante947@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante948@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante949@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante950@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante951@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante952@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante953@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante954@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante955@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante956@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante957@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante958@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante959@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante960@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante961@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante962@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante963@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante964@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante965@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante966@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante967@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante968@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante969@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante970@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante971@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante972@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante973@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante974@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante975@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante976@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante977@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante978@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante979@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante980@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante981@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante982@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante983@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante984@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante985@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante986@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante987@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante988@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante989@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante990@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante991@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante992@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante993@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante994@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante995@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante996@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante997@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante998@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante999@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:10:36,estudiante1000@pollito.com.co,Excel_Upload,Crear_Usuario,EXITO,Rol: Aprendiz - Org: El SEna - Modo: flexible
+2026-10-13 21:28:55,alexander.nino.583@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-13 21:29:16,alexander.nino.583@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Super Administrador
+2026-10-13 21:29:47,SuperAdmin,Organizaciones,Eliminar_Organizacion,EXITO,Institución eliminada: El SEna (ID 10)
+2026-10-13 21:32:16,SuperAdmin,Organizaciones,Eliminar_Organizacion,EXITO,Institución eliminada: enano malparido (ID 14)
+2026-10-13 21:32:20,SuperAdmin,Organizaciones,Eliminar_Organizacion,EXITO,Institución eliminada: pollito cerrano (ID 12)
+2026-10-13 21:32:24,SuperAdmin,Organizaciones,Eliminar_Organizacion,EXITO,Institución eliminada: Pompilio Martinez (ID 11)
+2026-10-13 21:33:40,SuperAdmin,Historial_Integrantes,Eliminar_Lote,EXITO,Se eliminaron 1070 registros del historial y se dieron de baja 1070 cuentas de usuario exitosamente.
+2026-10-13 22:04:45,alexander.nino.583@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-13 22:05:06,alexander.nino.583@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Super Administrador
+2026-10-13 22:05:40,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-13 22:06:09,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Reenvio_Codigo,EXITO,Ninguno
+2026-10-13 22:06:39,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Reenvio_Codigo,EXITO,Ninguno
+2026-10-13 22:08:43,diego.alexander.nino.583@hotmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-13 22:09:10,diego.alexander.nino.583@hotmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Administrador
+2026-10-13 22:09:35,ninod9716@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-13 22:09:54,ninod9716@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Mentor
+2026-10-13 22:11:10,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-14 10:07:00,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-14 10:08:47,diego.nino-n@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz
+2026-10-14 10:09:41,diego.nino-n@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz
+2026-10-14 10:09:42,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-14 10:14:38,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-14 10:16:25,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Verificacion_OTP,FALLO,Código ingresado inválido: 492817
+2026-10-14 10:16:50,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Reenvio_Codigo,EXITO,Ninguno
+2026-10-14 10:24:32,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-14 10:25:40,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-14 10:36:22,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-14 10:38:28,diego.nino-n@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz
+2026-10-14 10:39:21,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-14 10:45:10,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-14 21:36:50,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-14 21:38:15,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-14 21:38:45,diego.nino-n@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz
+2026-10-14 21:48:59,alexander.nino.583@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-14 21:49:09,alexander.nino.583@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Super Administrador

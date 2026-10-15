@@ -1,0 +1,17 @@
+======================================================================
+ENLACES DE ACCESO PERMANENTE - CONSULTORIA EDTECH
+======================================================================
+
+1. ACCESO DESDE TU CELULAR (CONECTADO A LA MISMA RED WI-FI)
+   URL: http://192.168.1.9:8080
+   >> 100% permanente. Nunca vence ni cambia de dirección mientras estés en casa/oficina.
+   >> Carga ultrarrápida (<1ms) directa desde tu PC.
+
+2. ACCESO DESDE TU CELULAR (DATOS MOVILES 4G/5G O FUERA DE CASA)
+   URL: https://carey-disable-gabriel-pride.trycloudflare.com
+   >> Accesible desde cualquier lugar con conexión a Internet.
+
+3. ACCESO EN TU COMPUTADOR
+   URL: http://localhost:8080
+
+======================================================================

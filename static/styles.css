@@ -1,0 +1,2281 @@
+/* =====================================================================
+   ESTILOS INSTITUCIONALES EDTECH - DISEÑO CORPORATIVO "CREADOR DE ENTORNOS"
+   ===================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+.hidden {
+  display: none !important;
+}
+
+:root {
+  --navy-dark: #071828;
+  --navy-sidebar: #091b2c;
+  --navy-hover: #0f273f;
+  --navy-active-pill: rgba(0, 180, 216, 0.14);
+  --navy-active-border: rgba(0, 180, 216, 0.35);
+  --cyan-accent: #00b4d8;
+  --cyan-light: #e0f2fe;
+  --text-sidebar-muted: #8fa3b7;
+  --bg-main: #f8fafc;
+  --text-navy-title: #0a192f;
+  --text-muted: #64748b;
+  --card-border: #f1f5f9;
+  --card-border-hover: #cbd5e1;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg-main);
+  color: #1e293b;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+/* Sidebar Navigation Desplegable y Retráctil */
+.sidebar-container {
+  background-color: var(--navy-sidebar);
+  color: #ffffff;
+  width: 270px;
+  min-height: 100vh;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 50;
+}
+
+@media (max-width: 1023px) {
+  .sidebar-container {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    transform: translateX(-100%);
+    box-shadow: 12px 0 35px rgba(0, 0, 0, 0.45);
+  }
+  .sidebar-container.sidebar-drawer-abierto {
+    transform: translateX(0) !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .sidebar-container.sidebar-colapsado {
+    width: 0 !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    border-right: none !important;
+  }
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  color: var(--text-sidebar-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.18s ease;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.sidebar-link:hover {
+  color: #ffffff;
+  background-color: var(--navy-hover);
+}
+
+.sidebar-link.active {
+  background-color: var(--navy-active-pill);
+  border-color: var(--navy-active-border);
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+.sidebar-link.active svg {
+  color: var(--cyan-accent);
+}
+
+/* Header Avatar SA */
+.avatar-sa {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--cyan-accent);
+  color: #071828;
+  font-weight: 800;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: -0.02em;
+}
+
+/* Featured Action Card: Aprovisionar Nueva Institución */
+.card-aprovisionar {
+  border: 2px dashed #cbd5e1;
+  border-radius: 22px;
+  background: #ffffff;
+  padding: 44px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.card-aprovisionar:hover {
+  border-color: var(--cyan-accent);
+  background-color: #fbfdfe;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 180, 216, 0.08);
+}
+
+.circle-plus-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background-color: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px auto;
+  transition: all 0.2s ease;
+}
+
+.card-aprovisionar:hover .circle-plus-btn {
+  background-color: #e0f2fe;
+  color: var(--cyan-accent);
+  transform: scale(1.06);
+}
+
+/* Cards de Nodos Aprovisionados */
+.nodo-card {
+  background: #ffffff;
+  border: 1px solid #f1f5f9;
+  border-radius: 18px;
+  padding: 20px 22px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.025);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.nodo-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.08);
+  border-color: #e2e8f0;
+}
+
+/* Barra de Progreso Cian */
+.progress-track-cyan {
+  height: 6px;
+  background-color: var(--cyan-light);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progress-bar-cyan {
+  height: 100%;
+  background-color: var(--cyan-accent);
+  border-radius: 9999px;
+  transition: width 0.6s ease-in-out;
+}
+
+/* Avatares circulares de las instituciones */
+.nodo-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Tarjetas y paneles institucionales */
+.corp-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.corp-input {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  transition: all 0.2s ease;
+}
+
+.corp-input:focus {
+  border-color: var(--cyan-accent);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 180, 216, 0.15);
+}
+
+/* Badges corporativos */
+.badge-corp {
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.badge-corp-superadmin,
+.badge-corp-admin {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.badge-corp-mentor {
+  background: #f3e8ff;
+  color: #6b21a8;
+  border: 1px solid #e9d5ff;
+}
+
+.badge-corp-aprendiz {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+/* Scrollbar refinado */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* =====================================================================
+   TABLERO DE JERARQUÍA EN 3 COLUMNAS (ADMINS | MENTORES | APRENDICES)
+   ===================================================================== */
+.jerarquia-col {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.jerarquia-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid #f1f5f9;
+}
+
+.card-jerarquia {
+  background: #ffffff;
+  border: 1px solid #f1f5f9;
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 10px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.card-jerarquia:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+  transform: translateY(-1px);
+}
+
+.card-jerarquia-admin {
+  border-left: 3px solid #0284c7;
+}
+
+.card-jerarquia-mentor {
+  border-left: 3px solid #0ea5e9;
+}
+
+.card-jerarquia-aprendiz {
+  border-left: 3px solid #38bdf8;
+}
+
+.btn-icon-edit {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  transition: all 0.15s ease;
+}
+
+.btn-icon-edit:hover {
+  background-color: #e0f2fe;
+  color: #0284c7;
+  border-color: #38bdf8;
+}
+
+.btn-icon-delete {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  transition: all 0.15s ease;
+}
+
+.btn-icon-delete:hover {
+  background-color: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+/* Gráficas Chart.js */
+.chart-container-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+/* Ocultar el icono nativo de revelar contraseña de Edge / Windows para evitar doble ojito */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* =====================================================================
+   ESTILO MINIMALISTA LIMPIO (ALTA LEGIBILIDAD, CERO DISTRACCIONES)
+   ===================================================================== */
+body.tema-minimalista {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+body.tema-minimalista .sidebar-container {
+  background-color: #0f172a !important;
+  border-right: 1px solid #e2e8f0 !important;
+}
+
+body.tema-minimalista .corp-card {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+}
+
+body.tema-minimalista header {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+body.tema-minimalista .sidebar-link.active {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+  border-color: #334155 !important;
+}
+
+/* =====================================================================
+   MODOS VISUALES ESENCIALES (MODO OSCURO ELEGANTE & MODO BLANCO MINIMALISTA)
+   ===================================================================== */
+
+/* =====================================================================
+   PALETA CORPORATIVA MINIMALISTA OFICIAL (MODO OSCURO & MODO CLARO)
+   ===================================================================== */
+
+/* 1. MODO CLARO MINIMALISTA
+   Fondo principal: #FFFFFF
+   Superficies (Burbujas / Tarjetas): #F0F4F9
+   Texto principal: #1F1F1F
+   Texto secundario: #444746
+   Bordes y separadores: #E3E3E3 */
+body.tema-claro,
+body.tema-predeterminado {
+  background-color: #FFFFFF !important;
+  color: #1F1F1F !important;
+}
+
+body.tema-claro header,
+body.tema-predeterminado header {
+  background-color: #F0F4F9 !important;
+  border-bottom: 1px solid #E3E3E3 !important;
+  color: #1F1F1F !important;
+}
+
+body.tema-claro .sidebar-container,
+body.tema-predeterminado .sidebar-container {
+  background-color: #F0F4F9 !important;
+  border-right: 1px solid #E3E3E3 !important;
+  color: #1F1F1F !important;
+}
+
+body.tema-claro .sidebar-link,
+body.tema-predeterminado .sidebar-link {
+  color: #444746 !important;
+}
+
+body.tema-claro .sidebar-link:hover,
+body.tema-predeterminado .sidebar-link:hover {
+  background-color: #E3E3E3 !important;
+  color: #1F1F1F !important;
+}
+
+body.tema-claro .sidebar-link.active,
+body.tema-predeterminado .sidebar-link.active {
+  background-color: #FFFFFF !important;
+  color: #1F1F1F !important;
+  border-color: #E3E3E3 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+body.tema-claro .corp-card,
+body.tema-predeterminado .corp-card {
+  background-color: #F0F4F9 !important;
+  border: 1px solid #E3E3E3 !important;
+  color: #1F1F1F !important;
+  box-shadow: none !important;
+}
+
+body.tema-claro .bg-white,
+body.tema-claro .bg-slate-50,
+body.tema-claro .bg-slate-100 {
+  background-color: #F0F4F9 !important;
+  color: #1F1F1F !important;
+}
+
+body.tema-claro h1,
+body.tema-claro h2,
+body.tema-claro h3,
+body.tema-claro h4,
+body.tema-claro [class*="text-[#0a192f]"],
+body.tema-claro .text-slate-900,
+body.tema-claro .text-slate-800,
+body.tema-claro .text-slate-700 {
+  color: #1F1F1F !important;
+}
+
+body.tema-claro .text-slate-600,
+body.tema-claro .text-slate-500,
+body.tema-claro .text-slate-400 {
+  color: #444746 !important;
+}
+
+body.tema-claro .border-slate-100,
+body.tema-claro .border-slate-200,
+body.tema-claro .border-slate-300 {
+  border-color: #E3E3E3 !important;
+}
+
+body.tema-claro input,
+body.tema-claro select,
+body.tema-claro textarea {
+  background-color: #FFFFFF !important;
+  color: #1F1F1F !important;
+  border: 1px solid #E3E3E3 !important;
+}
+
+body.tema-claro input:focus,
+body.tema-claro select:focus,
+body.tema-claro textarea:focus {
+  border-color: #444746 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+body.tema-claro table thead {
+  background-color: #FFFFFF !important;
+  color: #444746 !important;
+}
+
+body.tema-claro table tbody tr {
+  border-color: #E3E3E3 !important;
+}
+
+body.tema-claro table tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+}
+
+/* =====================================================================
+   ESTILOS GENERALES: TARJETAS Y CHIPS EN MODO PREDETERMINADO / CLARO
+   ===================================================================== */
+.nodo-card-crear {
+  border-color: rgba(6, 182, 212, 0.6);
+  background-color: rgba(236, 254, 255, 0.35);
+}
+.nodo-card-crear:hover {
+  border-color: #06b6d4;
+  background-color: rgba(236, 254, 255, 0.7);
+}
+.nodo-avatar-crear {
+  background-color: #cffafe;
+  color: #0e7490;
+}
+.nodo-card-crear:hover .nodo-avatar-crear {
+  background-color: #0891b2;
+  color: #ffffff;
+}
+.nodo-title-crear {
+  color: #0a192f;
+}
+.nodo-card-crear:hover .nodo-title-crear {
+  color: #0e7490;
+}
+.nodo-badge-crear {
+  background-color: #cffafe;
+  color: #155e75;
+  border: 1px solid #a5f3fc;
+}
+.nodo-desc-crear {
+  color: #64748b;
+}
+.nodo-circle-plus {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+.nodo-card-crear:hover .nodo-circle-plus {
+  border-color: #38bdf8;
+  background-color: #f0fdf4;
+}
+.nodo-footer-crear {
+  border-color: rgba(165, 243, 252, 0.6);
+}
+.nodo-footer-text {
+  color: #155e75;
+}
+.nodo-footer-cta {
+  color: #0891b2;
+}
+
+.chip-dominio-especifico {
+  background-color: #ecfeff;
+  color: #155e75;
+  border: 1px solid #bae6fd;
+}
+.chip-dominio-libre {
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+.nodo-org-title {
+  color: #0a192f;
+}
+.txt-estudiantes-reales {
+  color: #0e7490;
+}
+
+/* =====================================================================
+   2. MODO OSCURO OLED & MINIMALISTA ELEGANTE
+   Fondo principal: #0E1012
+   Superficies (Tarjetas, modales): #16181B
+   Superficies elevadas (Inputs, hovers): #1E2125
+   Bordes sutiles: #26292E
+   Texto principal: #F1F5F9
+   Texto secundario: #94A3B8
+   Acentos: Cian (#38bdf8), Esmeralda (#34d399), Rosa (#fb7185)
+   ===================================================================== */
+body.tema-oscuro {
+  background-color: #0E1012 !important;
+  color: #F1F5F9 !important;
+}
+
+body.tema-oscuro header {
+  background-color: rgba(18, 20, 23, 0.9) !important;
+  backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid #24272D !important;
+  color: #F1F5F9 !important;
+}
+
+body.tema-oscuro .sidebar-container {
+  background-color: #141619 !important;
+  border-right: 1px solid #24272D !important;
+  color: #F1F5F9 !important;
+}
+
+body.tema-oscuro .sidebar-link {
+  color: #94A3B8 !important;
+}
+
+body.tema-oscuro .sidebar-link:hover {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  color: #F1F5F9 !important;
+}
+
+body.tema-oscuro .sidebar-link.active {
+  background-color: rgba(6, 182, 212, 0.12) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(56, 189, 248, 0.3) !important;
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.15) !important;
+}
+
+/* --- TARJETAS EN MODO OSCURO --- */
+body.tema-oscuro .nodo-card,
+body.tema-oscuro .corp-card,
+body.tema-oscuro .jerarquia-col,
+body.tema-oscuro .card-jerarquia,
+body.tema-oscuro .chart-container-card {
+  background-color: #16181B !important;
+  border: 1px solid #26292E !important;
+  color: #F1F5F9 !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35) !important;
+}
+
+body.tema-oscuro .nodo-card:hover,
+body.tema-oscuro .corp-card:hover,
+body.tema-oscuro .card-jerarquia:hover {
+  background-color: #1C1F23 !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Tarjeta Nueva Institución en Modo Oscuro */
+body.tema-oscuro .nodo-card-crear,
+body.tema-oscuro .nodo-card.border-dashed {
+  background-color: rgba(6, 182, 212, 0.04) !important;
+  border: 1.5px dashed rgba(56, 189, 248, 0.38) !important;
+}
+
+body.tema-oscuro .nodo-card-crear:hover,
+body.tema-oscuro .nodo-card.border-dashed:hover {
+  background-color: rgba(6, 182, 212, 0.09) !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 8px 25px rgba(6, 182, 212, 0.15) !important;
+}
+
+body.tema-oscuro .nodo-avatar-crear {
+  background-color: rgba(6, 182, 212, 0.16) !important;
+  color: #38bdf8 !important;
+}
+
+body.tema-oscuro .nodo-card-crear:hover .nodo-avatar-crear {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+}
+
+body.tema-oscuro .nodo-badge-crear {
+  background-color: rgba(6, 182, 212, 0.18) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+}
+
+body.tema-oscuro .nodo-title-crear {
+  color: #F1F5F9 !important;
+}
+
+body.tema-oscuro .nodo-card-crear:hover .nodo-title-crear {
+  color: #38bdf8 !important;
+}
+
+body.tema-oscuro .nodo-desc-crear {
+  color: #94A3B8 !important;
+}
+
+body.tema-oscuro .nodo-circle-plus {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+body.tema-oscuro .nodo-card-crear:hover .nodo-circle-plus {
+  border-color: #38bdf8 !important;
+  background-color: rgba(56, 189, 248, 0.15) !important;
+}
+
+body.tema-oscuro .nodo-footer-crear {
+  border-color: rgba(56, 189, 248, 0.15) !important;
+}
+
+body.tema-oscuro .nodo-footer-text,
+body.tema-oscuro .nodo-footer-cta {
+  color: #38bdf8 !important;
+}
+
+/* Títulos y chips en tarjetas */
+body.tema-oscuro .nodo-org-title {
+  color: #F1F5F9 !important;
+}
+
+body.tema-oscuro .chip-dominio-especifico,
+body.tema-oscuro .nodo-card [class*="bg-cyan-50"],
+body.tema-oscuro .nodo-card [class*="bg-cyan-100"] {
+  background-color: rgba(6, 182, 212, 0.12) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(56, 189, 248, 0.25) !important;
+}
+
+body.tema-oscuro .chip-dominio-libre,
+body.tema-oscuro .nodo-card [class*="bg-slate-100"] {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  color: #94A3B8 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+body.tema-oscuro .txt-estudiantes-reales,
+body.tema-oscuro .nodo-card .text-cyan-700 {
+  color: #38bdf8 !important;
+}
+
+/* Botones de acción en tarjetas */
+body.tema-oscuro .btn-icon-edit,
+body.tema-oscuro .btn-icon-delete {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #94A3B8 !important;
+}
+
+body.tema-oscuro .btn-icon-edit:hover {
+  background-color: rgba(14, 165, 233, 0.2) !important;
+  border-color: rgba(56, 189, 248, 0.5) !important;
+  color: #38bdf8 !important;
+}
+
+body.tema-oscuro .btn-icon-delete:hover {
+  background-color: rgba(244, 63, 94, 0.2) !important;
+  border-color: rgba(244, 63, 94, 0.5) !important;
+  color: #fb7185 !important;
+}
+
+/* Barra de progreso de cupos */
+body.tema-oscuro .progress-track-cyan {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+body.tema-oscuro .progress-bar-cyan {
+  background: linear-gradient(90deg, #06b6d4, #0284c7) !important;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.4) !important;
+}
+
+/* --- TIPOGRAFÍA Y TEXTO GLOBAL EN MODO OSCURO --- */
+body.tema-oscuro h1,
+body.tema-oscuro h2,
+body.tema-oscuro h3,
+body.tema-oscuro h4,
+body.tema-oscuro h5,
+body.tema-oscuro h6,
+body.tema-oscuro [class*="text-[#0a192f]"],
+body.tema-oscuro .text-slate-900,
+body.tema-oscuro .text-slate-800,
+body.tema-oscuro .text-slate-700 {
+  color: #F1F5F9 !important;
+}
+
+body.tema-oscuro .text-slate-600,
+body.tema-oscuro .text-slate-500,
+body.tema-oscuro .text-slate-400 {
+  color: #94A3B8 !important;
+}
+
+body.tema-oscuro .text-cyan-600,
+body.tema-oscuro .text-cyan-700 {
+  color: #38bdf8 !important;
+}
+
+/* Fondos y bordes neutros */
+body.tema-oscuro .bg-white:not(.nodo-avatar img),
+body.tema-oscuro .bg-slate-50,
+body.tema-oscuro .bg-slate-100 {
+  background-color: #16181B !important;
+  color: #F1F5F9 !important;
+}
+
+body.tema-oscuro .border-slate-100,
+body.tema-oscuro .border-slate-200,
+body.tema-oscuro .border-slate-300,
+body.tema-oscuro .border-slate-700,
+body.tema-oscuro .border-slate-800,
+body.tema-oscuro [class*="border-slate-200"] {
+  border-color: #24272D !important;
+}
+
+/* Entradas de formulario */
+body.tema-oscuro input,
+body.tema-oscuro select,
+body.tema-oscuro textarea {
+  background-color: #101214 !important;
+  color: #F1F5F9 !important;
+  border: 1px solid #2E3238 !important;
+}
+
+body.tema-oscuro input:focus,
+body.tema-oscuro select:focus,
+body.tema-oscuro textarea:focus {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15) !important;
+  outline: none !important;
+}
+
+/* Modales */
+body.tema-oscuro .modal-container,
+body.tema-oscuro .modal-content,
+body.tema-oscuro .bg-white.rounded-2xl {
+  background-color: #16181B !important;
+  border: 1px solid #2B2F35 !important;
+  color: #F1F5F9 !important;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.65) !important;
+}
+
+body.tema-oscuro table thead {
+  background-color: #101214 !important;
+  color: #94A3B8 !important;
+}
+
+body.tema-oscuro table tbody tr {
+  border-color: #24272D !important;
+}
+
+body.tema-oscuro table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Botones de Cabecera y Sidebar */
+body.tema-oscuro .btn-header-menu {
+  background-color: #1A1C1F !important;
+  border: 1px solid #2E3238 !important;
+  color: #F1F5F9 !important;
+}
+
+body.tema-oscuro .btn-header-menu:hover {
+  background-color: #22252A !important;
+  border-color: #3E434B !important;
+}
+
+body.tema-oscuro .btn-sidebar-collapse {
+  background-color: #1A1C1F !important;
+  border: 1px solid #2E3238 !important;
+  color: #94A3B8 !important;
+}
+
+body.tema-oscuro .btn-sidebar-collapse:hover {
+  background-color: #22252A !important;
+  color: #F1F5F9 !important;
+}
+
+body.tema-oscuro .btn-sidebar-icon-close {
+  background-color: #1A1C1F !important;
+  border: 1px solid #2E3238 !important;
+  color: #94A3B8 !important;
+}
+
+body.tema-oscuro .btn-sidebar-icon-close:hover {
+  background-color: #22252A !important;
+  color: #F1F5F9 !important;
+}
+
+/* Badges de Roles - SuperAdmin y Admin con el mismo color */
+body.tema-oscuro .badge-corp-superadmin,
+body.tema-oscuro .badge-corp-admin {
+  background-color: #fef08a !important;
+  color: #713f12 !important;
+  border: 1px solid #fde047 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+body.tema-oscuro .badge-corp-mentor {
+  background-color: #f3e8ff !important;
+  color: #581c87 !important;
+  border: 1px solid #e9d5ff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+body.tema-oscuro .badge-corp-aprendiz {
+  background-color: #cffafe !important;
+  color: #155e75 !important;
+  border: 1px solid #a5f3fc !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Botón Temas y Salir en Cabecera */
+body.tema-oscuro header button[onclick="alternarTemaVisualRapido()"] {
+  background-color: #1A1C1F !important;
+  border: 1px solid #2E3238 !important;
+  color: #E2E8F0 !important;
+}
+
+body.tema-oscuro header button[onclick="alternarTemaVisualRapido()"]:hover {
+  background-color: #22252A !important;
+  border-color: #38bdf8 !important;
+}
+
+body.tema-oscuro header button[onclick="cerrarSesion()"] {
+  background-color: rgba(244, 63, 94, 0.12) !important;
+  border: 1px solid rgba(244, 63, 94, 0.25) !important;
+  color: #fb7185 !important;
+}
+
+body.tema-oscuro header button[onclick="cerrarSesion()"]:hover {
+  background-color: rgba(244, 63, 94, 0.22) !important;
+  border-color: rgba(244, 63, 94, 0.45) !important;
+}
+
+/* Bordes de rol en jerarquía modo oscuro */
+body.tema-oscuro .card-jerarquia-admin {
+  border-left: 3px solid #38bdf8 !important;
+}
+body.tema-oscuro .card-jerarquia-mentor {
+  border-left: 3px solid #0284c7 !important;
+}
+body.tema-oscuro .card-jerarquia-aprendiz {
+  border-left: 3px solid #0ea5e9 !important;
+}
+
+/* =====================================================================
+   3. MODO INSTITUCIONAL CORPORATIVO (PERSONALIZADO POR ADMINISTRADOR)
+   ===================================================================== */
+body.tema-institucional {
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
+}
+
+body.tema-institucional header {
+  background-color: var(--navy-sidebar, #0A192F) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #FFFFFF !important;
+}
+
+body.tema-institucional header .text-slate-800,
+body.tema-institucional header .text-slate-700,
+body.tema-institucional header .text-slate-600,
+body.tema-institucional header .text-slate-500 {
+  color: #E2E8F0 !important;
+}
+
+body.tema-institucional .sidebar-container {
+  background-color: var(--navy-sidebar, #091B2C) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #E2E8F0 !important;
+}
+
+body.tema-institucional .sidebar-link {
+  color: #94A3B8 !important;
+}
+
+body.tema-institucional .sidebar-link:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #FFFFFF !important;
+}
+
+body.tema-institucional .sidebar-link.active {
+  background-color: var(--cyan-accent, #00B4D8) !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 10px rgba(0, 180, 216, 0.35) !important;
+}
+
+body.tema-institucional .btn-header-menu {
+  background-color: var(--navy-hover, #0F273F) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #FFFFFF !important;
+}
+
+body.tema-institucional .btn-header-menu:hover {
+  filter: brightness(1.15);
+}
+
+body.tema-institucional .btn-sidebar-collapse,
+body.tema-institucional .btn-sidebar-icon-close {
+  background-color: var(--navy-hover, #0F273F) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #E2E8F0 !important;
+}
+
+body.tema-institucional .btn-sidebar-collapse:hover,
+body.tema-institucional .btn-sidebar-icon-close:hover {
+  filter: brightness(1.15);
+  color: #FFFFFF !important;
+}
+
+body.tema-institucional .corp-card,
+body.tema-institucional .nodo-card,
+body.tema-institucional .jerarquia-col,
+body.tema-institucional .card-jerarquia {
+  background-color: #FFFFFF !important;
+  border: 1px solid #E2E8F0 !important;
+  color: #0F172A !important;
+  box-shadow: 0 2px 8px rgba(10, 25, 47, 0.04) !important;
+}
+
+body.tema-institucional .nodo-card:hover,
+body.tema-institucional .card-jerarquia:hover {
+  border-color: var(--cyan-accent, #00B4D8) !important;
+  box-shadow: 0 6px 20px rgba(0, 180, 216, 0.12) !important;
+}
+
+body.tema-institucional header button[onclick="alternarTemaVisualRapido()"] {
+  background-color: var(--navy-hover, #0F273F) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #E2E8F0 !important;
+}
+
+body.tema-institucional header button[onclick="alternarTemaVisualRapido()"]:hover {
+  filter: brightness(1.15);
+  border-color: var(--cyan-accent, #00B4D8) !important;
+}
+
+/* =====================================================================
+   BOTÓN RETORNO AL CENTRO DE MANDO (.btn-volver-cfg) - ADAPTABLE AL TEMA
+   ===================================================================== */
+.btn-volver-cfg {
+  background-color: #FFFFFF !important;
+  border: 1px solid #E2E8F0 !important;
+  color: #1E293B !important;
+  cursor: pointer;
+}
+.btn-volver-cfg:hover {
+  background-color: #F8FAFC !important;
+  border-color: #CBD5E1 !important;
+  color: #0284C7 !important;
+}
+
+body.tema-oscuro .btn-volver-cfg {
+  background-color: #16181B !important;
+  border: 1px solid #2E3238 !important;
+  color: #F1F5F9 !important;
+}
+body.tema-oscuro .btn-volver-cfg:hover {
+  background-color: #22262C !important;
+  border-color: #38BDF8 !important;
+  color: #38BDF8 !important;
+}
+
+body.tema-institucional .btn-volver-cfg {
+  background-color: var(--navy-hover, #0F273F) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #E2E8F0 !important;
+}
+body.tema-institucional .btn-volver-cfg:hover {
+  filter: brightness(1.15);
+  border-color: var(--cyan-accent, #00B4D8) !important;
+  color: #FFFFFF !important;
+}
+
+/* =====================================================================
+   ESTILOS ESTÉTICOS: BOTONES DE NAVEGACIÓN Y LOGO INSTITUCIONAL
+   ===================================================================== */
+.btn-header-menu {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  background-color: #FFFFFF;
+  color: #1F1F1F;
+  border: 1px solid #E3E3E3;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-header-menu:hover {
+  background-color: #F0F4F9;
+  border-color: #C4C7C5;
+  color: #000000;
+  transform: translateY(-1px);
+}
+
+body.tema-oscuro .btn-header-menu {
+  background-color: #1E1F20 !important;
+  color: #E3E3E3 !important;
+  border: 1px solid #444746 !important;
+  box-shadow: none !important;
+}
+
+body.tema-oscuro .btn-header-menu:hover {
+  background-color: #131314 !important;
+  border-color: #C4C7C5 !important;
+  color: #FFFFFF !important;
+}
+
+.sidebar-footer-container {
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent !important;
+}
+
+body.tema-claro .sidebar-footer-container,
+body.tema-predeterminado .sidebar-footer-container {
+  border-top: 1px solid #E3E3E3 !important;
+}
+
+body.tema-oscuro .sidebar-footer-container {
+  border-top: 1px solid #444746 !important;
+}
+
+.btn-sidebar-collapse {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-sidebar-collapse:hover {
+  background-color: rgba(255, 255, 255, 0.10);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+body.tema-claro .btn-sidebar-collapse,
+body.tema-predeterminado .btn-sidebar-collapse {
+  background-color: #FFFFFF !important;
+  border: 1px solid #E3E3E3 !important;
+  color: #444746 !important;
+}
+
+body.tema-claro .btn-sidebar-collapse:hover,
+body.tema-predeterminado .btn-sidebar-collapse:hover {
+  background-color: #F0F4F9 !important;
+  color: #1F1F1F !important;
+  border-color: #C4C7C5 !important;
+}
+
+body.tema-oscuro .btn-sidebar-collapse {
+  background-color: #131314 !important;
+  border: 1px solid #444746 !important;
+  color: #C4C7C5 !important;
+}
+
+body.tema-oscuro .btn-sidebar-collapse:hover {
+  background-color: #1E1F20 !important;
+  color: #E3E3E3 !important;
+  border-color: #C4C7C5 !important;
+}
+
+.btn-sidebar-icon-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  flex-shrink: 0;
+}
+
+.btn-sidebar-icon-close:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+body.tema-claro .btn-sidebar-icon-close,
+body.tema-predeterminado .btn-sidebar-icon-close {
+  background-color: #FFFFFF !important;
+  border: 1px solid #E3E3E3 !important;
+  color: #444746 !important;
+}
+
+body.tema-claro .btn-sidebar-icon-close:hover,
+body.tema-predeterminado .btn-sidebar-icon-close:hover {
+  background-color: #F0F4F9 !important;
+  color: #1F1F1F !important;
+  border-color: #C4C7C5 !important;
+}
+
+body.tema-oscuro .btn-sidebar-icon-close {
+  background-color: #131314 !important;
+  border: 1px solid #444746 !important;
+  color: #C4C7C5 !important;
+}
+
+body.tema-oscuro .btn-sidebar-icon-close:hover {
+  background-color: #1E1F20 !important;
+  color: #E3E3E3 !important;
+  border-color: #C4C7C5 !important;
+}
+
+.sidebar-org-card {
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease;
+}
+
+body.tema-claro .sidebar-org-card,
+body.tema-predeterminado .sidebar-org-card {
+  background-color: #FFFFFF !important;
+  border: 1px solid #E3E3E3 !important;
+}
+
+body.tema-claro #sidebar-org-nombre,
+body.tema-predeterminado #sidebar-org-nombre {
+  color: #1F1F1F !important;
+}
+
+body.tema-oscuro .sidebar-org-card {
+  background-color: #131314 !important;
+  border: 1px solid #444746 !important;
+}
+
+body.tema-oscuro #sidebar-org-nombre {
+  color: #E3E3E3 !important;
+}
+
+.btn-sidebar-add-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  background-color: rgba(0, 180, 216, 0.12);
+  border: 1px solid rgba(0, 180, 216, 0.3);
+  color: #38bdf8;
+  transition: all 0.18s ease;
+  flex-shrink: 0;
+}
+
+.btn-sidebar-add-logo:hover {
+  background-color: rgba(0, 180, 216, 0.22);
+  color: #ffffff;
+  border-color: #38bdf8;
+  transform: translateY(-1px);
+}
+
+body.tema-claro .btn-sidebar-add-logo,
+body.tema-predeterminado .btn-sidebar-add-logo {
+  background-color: #F0F4F9 !important;
+  border: 1px solid #E3E3E3 !important;
+  color: #1F1F1F !important;
+}
+
+body.tema-claro .btn-sidebar-add-logo:hover,
+body.tema-predeterminado .btn-sidebar-add-logo:hover {
+  background-color: #E3E3E3 !important;
+  color: #000000 !important;
+  border-color: #C4C7C5 !important;
+}
+
+body.tema-oscuro .btn-sidebar-add-logo {
+  background-color: #1E1F20 !important;
+  border: 1px solid #444746 !important;
+  color: #E3E3E3 !important;
+}
+
+body.tema-oscuro .btn-sidebar-add-logo:hover {
+  background-color: #131314 !important;
+  color: #FFFFFF !important;
+  border-color: #C4C7C5 !important;
+}
+
+.btn-icon-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #F0F4F9;
+  border: 1px solid #E3E3E3;
+  color: #0284c7;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.btn-icon-logo:hover {
+  background-color: #0284c7;
+  color: #FFFFFF;
+  border-color: #0284c7;
+  transform: translateY(-1px);
+}
+
+body.tema-oscuro .btn-icon-logo {
+  background-color: #131314 !important;
+  border: 1px solid #444746 !important;
+  color: #38bdf8 !important;
+}
+
+body.tema-oscuro .btn-icon-logo:hover {
+  background-color: #38bdf8 !important;
+  color: #131314 !important;
+  border-color: #38bdf8 !important;
+}
+
+/* =====================================================================
+   SISTEMA DE BOTONES CORPORATIVOS & EXCLUSIVIDAD DE COLOR VERDE PARA EXCEL
+   ===================================================================== */
+
+/* 1. BOTONES DE DESCARGA EXCEL (EL VERDE ES EXCLUSIVO PARA ARCHIVOS EXCEL) */
+.btn-excel-descarga {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  border-radius: 12px;
+  padding: 8px 16px;
+  background-color: #059669 !important;
+  color: #ffffff !important;
+  border: 1px solid #047857 !important;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25) !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-excel-descarga:hover {
+  background-color: #047857 !important;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35) !important;
+  transform: translateY(-1px);
+}
+
+body.tema-oscuro .btn-excel-descarga {
+  background-color: #064e3b !important;
+  color: #a7f3d0 !important;
+  border: 1px solid #059669 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.tema-oscuro .btn-excel-descarga:hover {
+  background-color: #065f46 !important;
+  color: #ffffff !important;
+  border-color: #10b981 !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25) !important;
+}
+
+body.tema-institucional .btn-excel-descarga {
+  background-color: #065f46 !important;
+  color: #ffffff !important;
+  border: 1px solid #047857 !important;
+}
+
+.btn-excel-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  border-radius: 10px;
+  padding: 7px 12px;
+  background-color: #ecfdf5 !important;
+  color: #047857 !important;
+  border: 1px solid #a7f3d0 !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-excel-link:hover {
+  background-color: #d1fae5 !important;
+  color: #065f46 !important;
+  border-color: #6ee7b7 !important;
+}
+
+body.tema-oscuro .btn-excel-link {
+  background-color: rgba(6, 78, 59, 0.45) !important;
+  color: #6ee7b7 !important;
+  border: 1px solid rgba(16, 185, 129, 0.35) !important;
+}
+
+body.tema-oscuro .btn-excel-link:hover {
+  background-color: rgba(6, 78, 59, 0.75) !important;
+  color: #a7f3d0 !important;
+  border-color: #10b981 !important;
+}
+
+/* 2. BOTONES CORPORATIVOS PRIMARIOS (NO VERDES) */
+.btn-corp-primario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  border-radius: 12px;
+  padding: 8px 16px;
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+  border: 1px solid #0284c7 !important;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.2) !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-corp-primario:hover {
+  background-color: #0369a1 !important;
+  border-color: #0369a1 !important;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3) !important;
+  transform: translateY(-1px);
+}
+
+body.tema-oscuro .btn-corp-primario {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+  border: 1px solid #38bdf8 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.tema-oscuro .btn-corp-primario:hover {
+  background-color: #0ea5e9 !important;
+  border-color: #7dd3fc !important;
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.25) !important;
+}
+
+body.tema-institucional .btn-corp-primario {
+  background-color: var(--cyan-accent, #00b4d8) !important;
+  color: #0a192f !important;
+  border: 1px solid var(--cyan-accent, #00b4d8) !important;
+}
+
+/* 3. BOTONES CORPORATIVOS SECUNDARIOS */
+.btn-corp-secundario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  border-radius: 12px;
+  padding: 8px 14px;
+  background-color: #ffffff !important;
+  color: #334155 !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-corp-secundario:hover {
+  background-color: #f8fafc !important;
+  border-color: #94a3b8 !important;
+  color: #0284c7 !important;
+}
+
+body.tema-oscuro .btn-corp-secundario {
+  background: linear-gradient(135deg, #0b1528 0%, #10223f 100%) !important;
+  color: #7dd3fc !important;
+  border: 1px solid #1e3a5f !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35) !important;
+}
+
+body.tema-oscuro .btn-corp-secundario:hover {
+  background: linear-gradient(135deg, #0f244a 0%, #1e3e70 100%) !important;
+  border-color: #38bdf8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.22) !important;
+  transform: translateY(-1px);
+}
+
+body.tema-institucional .btn-corp-secundario {
+  background-color: var(--navy-hover, #0f273f) !important;
+  color: #e2e8f0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+/* 4. BOTONES DEL CATÁLOGO DE CONTENIDOS */
+.btn-catalogo-explorar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  background-color: #e0f2fe !important;
+  color: #0369a1 !important;
+  border: 1px solid #7dd3fc !important;
+  box-shadow: 0 1px 3px rgba(3, 105, 161, 0.12) !important;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-catalogo-explorar:hover {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25) !important;
+  transform: translateY(-1px);
+}
+
+body.tema-oscuro .btn-catalogo-explorar {
+  background: linear-gradient(135deg, #0b1329 0%, #16243b 100%) !important;
+  color: #e0f2fe !important;
+  border: 1px solid #1e3a5f !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.tema-oscuro .btn-catalogo-explorar:hover {
+  background: linear-gradient(135deg, #16243b 0%, #0284c7 100%) !important;
+  border-color: #38bdf8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.25) !important;
+  transform: translateY(-1px);
+}
+
+.btn-catalogo-enviar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 13px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  background-color: #f0f9ff !important;
+  color: #0369a1 !important;
+  border: 1px solid #bae6fd !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-catalogo-enviar:hover {
+  background-color: #e0f2fe !important;
+  color: #0284c7 !important;
+  border-color: #7dd3fc !important;
+  transform: translateY(-1px);
+}
+
+body.tema-oscuro .btn-catalogo-enviar {
+  background: linear-gradient(135deg, #0a1526 0%, #0f2342 100%) !important;
+  color: #38bdf8 !important;
+  border: 1px solid #1e3a5f !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+body.tema-oscuro .btn-catalogo-enviar:hover {
+  background: linear-gradient(135deg, #0c1e38 0%, #163664 100%) !important;
+  color: #ffffff !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2) !important;
+  transform: translateY(-1px);
+}
+
+/* 5. BOTONES DE ACCIONES ESPECIALES / AUDITORÍA */
+.btn-alerta-amber {
+  background-color: #fffbeb !important;
+  color: #b45309 !important;
+  border: 1px solid #fde68a !important;
+  padding: 8px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-alerta-amber:hover {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+}
+
+body.tema-oscuro .btn-alerta-amber {
+  background-color: rgba(180, 83, 9, 0.18) !important;
+  color: #fcd34d !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+}
+
+body.tema-oscuro .btn-alerta-amber:hover {
+  background-color: rgba(180, 83, 9, 0.32) !important;
+  color: #ffffff !important;
+  border-color: #fbbf24 !important;
+}
+
+.btn-alerta-rose {
+  background-color: #fff1f2 !important;
+  color: #be123c !important;
+  border: 1px solid #fecdd3 !important;
+  padding: 8px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-alerta-rose:hover {
+  background-color: #ffe4e6 !important;
+  color: #9f1239 !important;
+}
+
+body.tema-oscuro .btn-alerta-rose {
+  background-color: rgba(190, 18, 60, 0.18) !important;
+  color: #fda4af !important;
+  border: 1px solid rgba(244, 63, 94, 0.35) !important;
+}
+
+body.tema-oscuro .btn-alerta-rose:hover {
+  background-color: rgba(190, 18, 60, 0.32) !important;
+  color: #ffffff !important;
+  border-color: #fb7185 !important;
+}
+
+/* 6. BOTÓN VER AVANCE & MÉTRICAS */
+.btn-ver-metricas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background-color: #f0f9ff !important;
+  color: #0369a1 !important;
+  border: 1px solid #bae6fd !important;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+}
+
+.btn-ver-metricas:hover {
+  background-color: #e0f2fe !important;
+  color: #0284c7 !important;
+  border-color: #7dd3fc !important;
+  transform: translateY(-1px);
+}
+
+body.tema-oscuro .btn-ver-metricas {
+  background: linear-gradient(135deg, #0b1528 0%, #10223f 100%) !important;
+  color: #7dd3fc !important;
+  border: 1px solid #1e3a5f !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35) !important;
+}
+
+body.tema-oscuro .btn-ver-metricas:hover {
+  background: linear-gradient(135deg, #0f244a 0%, #1e3e70 100%) !important;
+  border-color: #38bdf8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.22) !important;
+  transform: translateY(-1px);
+}
+
+body.tema-institucional .btn-ver-metricas {
+  background-color: var(--navy-hover, #0f273f) !important;
+  color: var(--cyan-accent, #00b4d8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* 7. ADAPTACIÓN DE TABLAS Y CONTENEDORES EN MODO OSCURO */
+body.tema-oscuro table tr:hover td {
+  background-color: #1a1c20 !important;
+}
+
+body.tema-oscuro [class*="bg-slate-50/80"],
+body.tema-oscuro [class*="bg-slate-50/50"] {
+  background-color: #141619 !important;
+  border-color: #24272d !important;
+}
+
+body.tema-oscuro .empty-state-card {
+  background-color: #141619 !important;
+  border-color: #24272d !important;
+}
+
+/* =====================================================================
+   8. DIAGNÓSTICO DE AUDITORÍA OWASP & CIBERSEGURIDAD EN MODO OSCURO
+   ===================================================================== */
+body.tema-oscuro #card-resultado-escaneo {
+  background-color: #16181B !important;
+  border: 1px solid #26292E !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.tema-oscuro #escaneo-score-label {
+  color: #34d399 !important;
+  text-shadow: 0 0 12px rgba(52, 211, 153, 0.25);
+}
+
+body.tema-oscuro #escaneo-badge-score {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: #10b981 !important;
+  color: #34d399 !important;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.2) !important;
+}
+
+/* Tarjetas individuales de prueba OWASP */
+body.tema-oscuro .owasp-prueba-card,
+body.tema-oscuro #lista-pruebas-escaneo > div {
+  background-color: #1A1D21 !important;
+  border: 1px solid #2B2F36 !important;
+  color: #F1F5F9 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
+}
+
+body.tema-oscuro .owasp-prueba-card:hover,
+body.tema-oscuro #lista-pruebas-escaneo > div:hover {
+  background-color: #21252B !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 4px 16px rgba(56, 189, 248, 0.15) !important;
+}
+
+body.tema-oscuro .owasp-prueba-titulo {
+  color: #F8FAFC !important;
+}
+
+body.tema-oscuro .owasp-check-icon {
+  background-color: rgba(16, 185, 129, 0.16) !important;
+  border: 1px solid rgba(52, 211, 153, 0.3) !important;
+  color: #34d399 !important;
+}
+
+body.tema-oscuro .owasp-badge-aprobado {
+  background-color: rgba(16, 185, 129, 0.15) !important;
+  border: 1px solid rgba(52, 211, 153, 0.35) !important;
+  color: #34d399 !important;
+}
+
+body.tema-oscuro .owasp-prueba-meta {
+  color: #38bdf8 !important;
+}
+
+body.tema-oscuro .owasp-prueba-evidencia {
+  color: #94A3B8 !important;
+}
+
+/* KPIs de Ciberseguridad en Modo Oscuro */
+body.tema-oscuro #panel-celador-ciberseguridad .corp-card {
+  background-color: #16181B !important;
+  border-color: #26292E !important;
+}
+
+body.tema-oscuro #panel-celador-ciberseguridad form {
+  background-color: #141619 !important;
+  border-color: #26292E !important;
+}
+
+body.tema-oscuro #panel-celador-ciberseguridad table thead {
+  background-color: #101214 !important;
+  border-bottom: 1px solid #24272D !important;
+}
+
+/* =====================================================================
+   9. SELECTORES DE OPCIÓN DE MODO DE CARGA (RADIO BUTTONS ESTÉTICOS)
+   ===================================================================== */
+.radio-opc-modo {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.radio-opc-modo:hover {
+  border-color: #bae6fd;
+  background-color: #f8fafc;
+}
+
+.radio-opc-modo.seleccionado {
+  border: 1.5px solid #0284c7 !important;
+  background-color: #f0f9ff !important;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12) !important;
+}
+
+.radio-opc-modo.seleccionado .radio-opc-titulo {
+  color: #0369a1 !important;
+}
+
+.radio-opc-modo.seleccionado .radio-opc-desc {
+  color: #075985 !important;
+}
+
+/* En Modo Oscuro */
+body.tema-oscuro .radio-opc-modo {
+  background-color: #141619 !important;
+  border: 1px solid #26292e !important;
+}
+
+body.tema-oscuro .radio-opc-modo:hover {
+  background-color: #1a1e24 !important;
+  border-color: #38bdf8 !important;
+}
+
+body.tema-oscuro .radio-opc-modo .radio-opc-titulo {
+  color: #f1f5f9 !important;
+}
+
+body.tema-oscuro .radio-opc-modo .radio-opc-desc {
+  color: #94a3b8 !important;
+}
+
+body.tema-oscuro .radio-opc-modo.seleccionado {
+  border: 1.5px solid #38bdf8 !important;
+  background-color: rgba(6, 182, 212, 0.08) !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15) !important;
+}
+
+body.tema-oscuro .radio-opc-modo.seleccionado .radio-opc-titulo {
+  color: #38bdf8 !important;
+}
+
+body.tema-oscuro .radio-opc-modo.seleccionado .radio-opc-desc {
+  color: #bae6fd !important;
+}
+
+/* =====================================================================
+   10. BADGES DE CATÁLOGO (MÓDULOS & ROL DESTINO) EN MODO CLARO Y OSCURO
+   ===================================================================== */
+.badge-catalogo-modulos {
+  background-color: #f0f9ff;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.badge-catalogo-rol {
+  background-color: #e0f2fe;
+  color: #0284c7;
+  border: 1px solid #7dd3fc;
+}
+
+body.tema-oscuro .badge-catalogo-modulos {
+  background-color: rgba(14, 165, 233, 0.12) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(56, 189, 248, 0.28) !important;
+}
+
+body.tema-oscuro .badge-catalogo-rol {
+  background-color: rgba(30, 58, 138, 0.3) !important;
+  color: #93c5fd !important;
+  border: 1px solid rgba(147, 197, 253, 0.28) !important;
+}
+
+/* =====================================================================
+   11. SELECTOR JERÁRQUICO DE ASIGNACIÓN DE COLECCIONES (MODAL)
+   ===================================================================== */
+.opcion-destino-card {
+  border-color: #e2e8f0;
+  background-color: #ffffff;
+  color: #1e293b;
+  transition: all 0.2s ease-in-out;
+}
+
+.opcion-destino-card:hover {
+  border-color: #0284c7;
+}
+
+.opcion-destino-card.seleccionado {
+  border-color: #0284c7 !important;
+  background-color: #f0f9ff !important;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2) !important;
+}
+
+.opcion-destino-card.seleccionado span.font-bold {
+  color: #0369a1 !important;
+}
+
+/* Modo oscuro para selector jerárquico */
+body.tema-oscuro .opcion-destino-card {
+  border-color: #2e384d !important;
+  background-color: #16181b !important;
+  color: #f1f5f9 !important;
+}
+
+body.tema-oscuro .opcion-destino-card:hover {
+  border-color: #38bdf8 !important;
+  background-color: #1e2125 !important;
+}
+
+body.tema-oscuro .opcion-destino-card.seleccionado {
+  border-color: #38bdf8 !important;
+  background-color: rgba(56, 189, 248, 0.12) !important;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25) !important;
+}
+
+body.tema-oscuro .opcion-destino-card.seleccionado span.font-bold {
+  color: #38bdf8 !important;
+}
+
+body.tema-oscuro .opcion-destino-card span.text-slate-800 {
+  color: #f1f5f9 !important;
+}
+
+body.tema-oscuro .opcion-destino-card span.text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+body.tema-oscuro #contenedor-destinatario-especifico {
+  background-color: #1e2125 !important;
+  border-color: #2b2f35 !important;
+}
+
+body.tema-oscuro #txt-explicacion-jerarquia {
+  background-color: #1a1d21 !important;
+  border-color: #2b2f35 !important;
+  color: #cbd5e1 !important;
+}
+
+body.tema-oscuro #preview-coleccion-envio {
+  background-color: #1e2125 !important;
+  border-color: #2b2f35 !important;
+}
+
+body.tema-oscuro #preview-col-titulo {
+  color: #f1f5f9 !important;
+}
+
+/* =====================================================================
+   BOTONES CORPORATIVOS PARA MODALES Y ACCIONES PRIMARIAS
+   ===================================================================== */
+.btn-corp-submit-modal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #0f273f 0%, #1e3a5f 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid #1e3a8a !important;
+  box-shadow: 0 4px 12px rgba(15, 39, 63, 0.2) !important;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-corp-submit-modal:hover {
+  background: linear-gradient(135deg, #1e3a5f 0%, #0284c7 100%) !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 6px 16px rgba(2, 132, 199, 0.3) !important;
+  transform: translateY(-1px);
+}
+
+body.tema-oscuro .btn-corp-submit-modal {
+  background: linear-gradient(135deg, #16243b 0%, #1d3557 100%) !important;
+  color: #f0f9ff !important;
+  border: 1px solid #2b4c7e !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.tema-oscuro .btn-corp-submit-modal:hover {
+  background: linear-gradient(135deg, #1e3a8a 0%, #0284c7 100%) !important;
+  border-color: #38bdf8 !important;
+  box-shadow: 0 6px 16px rgba(56, 189, 248, 0.35) !important;
+  transform: translateY(-1px);
+}
+
+/* =====================================================================
+   ALERTAS SEMÁNTICAS (VERIFICACIÓN DUPLICADOS / ESTADOS)
+   ===================================================================== */
+.alerta-caja-exito {
+  background-color: #ecfdf5 !important;
+  border: 1px solid #a7f3d0 !important;
+  color: #065f46 !important;
+}
+
+.alerta-caja-error {
+  background-color: #fff1f2 !important;
+  border: 1px solid #fecdd3 !important;
+  color: #9f1239 !important;
+}
+
+body.tema-oscuro .alerta-caja-exito {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  border: 1px solid rgba(16, 185, 129, 0.35) !important;
+  color: #6ee7b7 !important;
+}
+
+body.tema-oscuro .alerta-caja-error {
+  background-color: rgba(244, 63, 94, 0.12) !important;
+  border: 1px solid rgba(244, 63, 94, 0.35) !important;
+  color: #fda4af !important;
+}
+
+/* =====================================================================
+   MODAL DE MANTENIMIENTO Y LIMPIEZA GRANULAR
+   ===================================================================== */
+.modal-limpieza-item {
+  transition: all 0.15s ease-in-out;
+}
+
+body.tema-oscuro .modal-limpieza-item {
+  background-color: #16181b !important;
+  border-color: #2b2f35 !important;
+}
+
+body.tema-oscuro .modal-limpieza-item:hover {
+  background-color: #1e2125 !important;
+  border-color: #38bdf8 !important;
+}
+
+body.tema-oscuro .modal-limpieza-item strong {
+  color: #f1f5f9 !important;
+}
+
+body.tema-oscuro .modal-limpieza-item p {
+  color: #94a3b8 !important;
+}
+
+body.tema-oscuro .modal-limpieza-item.item-amber {
+  background-color: rgba(245, 158, 11, 0.08) !important;
+  border-color: rgba(245, 158, 11, 0.25) !important;
+}
+
+body.tema-oscuro .modal-limpieza-item.item-amber strong {
+  color: #fde68a !important;
+}
+
+body.tema-oscuro .modal-limpieza-item.item-amber p {
+  color: #fef08a !important;
+}
+
+body.tema-oscuro .modal-limpieza-item.item-emerald {
+  background-color: rgba(16, 185, 129, 0.08) !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
+}
+
+body.tema-oscuro .modal-limpieza-item.item-emerald strong {
+  color: #a7f3d0 !important;
+}
+
+body.tema-oscuro .modal-limpieza-item.item-emerald p {
+  color: #6ee7b7 !important;
+}
+
+body.tema-oscuro .banner-blindaje {
+  background-color: #1e2125 !important;
+  border-color: #2b2f35 !important;
+  color: #cbd5e1 !important;
+}
+
+/* =====================================================================
+   TARJETAS DE SELECCIÓN DE IDIOMA EN CONFIGURACIÓN
+   ===================================================================== */
+.card-selector-idioma {
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  background-color: #ffffff;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.card-selector-idioma:hover {
+  border-color: #0284c7;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(2, 132, 199, 0.1);
+}
+
+.card-selector-idioma.seleccionado {
+  border-color: #0284c7 !important;
+  background-color: #f0f9ff !important;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2) !important;
+}
+
+body.tema-oscuro .card-selector-idioma {
+  border-color: #2b2f35 !important;
+  background-color: #16181b !important;
+  color: #f1f5f9 !important;
+}
+
+body.tema-oscuro .card-selector-idioma:hover {
+  border-color: #38bdf8 !important;
+  background-color: #1e2125 !important;
+}
+
+body.tema-oscuro .card-selector-idioma.seleccionado {
+  border-color: #38bdf8 !important;
+  background-color: rgba(56, 189, 248, 0.12) !important;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25) !important;
+}
+
+body.tema-oscuro .card-selector-idioma strong {
+  color: #f1f5f9 !important;
+}
+
+body.tema-oscuro .card-selector-idioma p {
+  color: #94a3b8 !important;
+}
+
+body.tema-oscuro .card-selector-idioma span.font-mono {
+  color: #64748b !important;
+}
+
+/* =====================================================================
+   BOTONES SELECTORES DE IDIOMA (COMPACTOS & HEADER)
+   ===================================================================== */
+.btn-selector-idioma {
+  border-color: #cbd5e1;
+  background-color: #ffffff;
+  color: #334155;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-selector-idioma:hover {
+  border-color: #0284c7;
+  color: #0284c7;
+  transform: translateY(-1px);
+}
+
+.btn-selector-idioma.activo {
+  border-color: #0284c7 !important;
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25) !important;
+}
+
+.btn-selector-idioma.activo .badge-idioma-check {
+  display: inline !important;
+  color: #ffffff !important;
+}
+
+body.tema-oscuro .btn-selector-idioma {
+  border-color: #334155;
+  background-color: #1e2125;
+  color: #e2e8f0;
+}
+
+body.tema-oscuro .btn-selector-idioma:hover {
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+body.tema-oscuro .btn-selector-idioma.activo {
+  border-color: #0284c7 !important;
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.3) !important;
+}
+
+#dropdown-header-idioma-menu {
+  min-width: 140px;
+}
+
+body.tema-oscuro #dropdown-header-idioma-menu {
+  background-color: #16181b !important;
+  border-color: #2b2f35 !important;
+}
+
+body.tema-oscuro #dropdown-header-idioma-menu button {
+  color: #e2e8f0 !important;
+}
+
+body.tema-oscuro #dropdown-header-idioma-menu button:hover {
+  background-color: #1e2125 !important;
+}
+
+/* =====================================================================
+   SOBREESCRITURAS GLOBALES PASTEL PARA MODO OSCURO CONFORTABLE
+   ===================================================================== */
+body.tema-oscuro .bg-emerald-50,
+body.tema-oscuro .bg-emerald-50\/40,
+body.tema-oscuro .bg-emerald-100 {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  color: #a7f3d0 !important;
+}
+
+body.tema-oscuro .text-emerald-700,
+body.tema-oscuro .text-emerald-800,
+body.tema-oscuro .text-emerald-950 {
+  color: #a7f3d0 !important;
+}
+
+body.tema-oscuro .border-emerald-100,
+body.tema-oscuro .border-emerald-200 {
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+body.tema-oscuro .bg-amber-50,
+body.tema-oscuro .bg-amber-50\/40,
+body.tema-oscuro .bg-amber-100 {
+  background-color: rgba(245, 158, 11, 0.12) !important;
+  color: #fde68a !important;
+}
+
+body.tema-oscuro .text-amber-700,
+body.tema-oscuro .text-amber-800,
+body.tema-oscuro .text-amber-950 {
+  color: #fde68a !important;
+}
+
+body.tema-oscuro .border-amber-100,
+body.tema-oscuro .border-amber-200 {
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+body.tema-oscuro .bg-rose-50,
+body.tema-oscuro .bg-rose-50\/40,
+body.tema-oscuro .bg-rose-100 {
+  background-color: rgba(244, 63, 94, 0.12) !important;
+  color: #fecdd3 !important;
+}
+
+body.tema-oscuro .text-rose-700,
+body.tema-oscuro .text-rose-800,
+body.tema-oscuro .text-rose-950 {
+  color: #fecdd3 !important;
+}
+
+body.tema-oscuro .border-rose-100,
+body.tema-oscuro .border-rose-200 {
+  border-color: rgba(244, 63, 94, 0.3) !important;
+}
+
+body.tema-oscuro .bg-cyan-50,
+body.tema-oscuro .bg-cyan-50\/40,
+body.tema-oscuro .bg-cyan-50\/60,
+body.tema-oscuro .bg-cyan-100 {
+  background-color: rgba(6, 182, 212, 0.12) !important;
+  color: #a5f3fc !important;
+}
+
+body.tema-oscuro .text-cyan-700,
+body.tema-oscuro .text-cyan-800,
+body.tema-oscuro .text-cyan-950 {
+  color: #a5f3fc !important;
+}
+
+body.tema-oscuro .border-cyan-100,
+body.tema-oscuro .border-cyan-200 {
+  border-color: rgba(6, 182, 212, 0.3) !important;
+}
+
+body.tema-oscuro .bg-slate-50,
+body.tema-oscuro .bg-slate-100 {
+  background-color: #1e2125 !important;
+  color: #cbd5e1 !important;
+}
+
+body.tema-oscuro .border-slate-100,
+body.tema-oscuro .border-slate-200 {
+  border-color: #2b2f35 !important;
+}

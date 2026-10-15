@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+.env.local
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Large binaries & temporary tools
+cloudflared.exe
+*.log
+scratch/
+.system_generated/
+
+# SQLite local replica (Render uses Azure SQL)
+consultoria_local.db
+consultoria_local.db-journal
+
+# IDE / OS
+.vscode/
+.idea/
+Thumbs.db
