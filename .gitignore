@@ -16,9 +16,13 @@ cloudflared.exe
 scratch/
 .system_generated/
 
-# SQLite local replica (Render uses Azure SQL)
-consultoria_local.db
-consultoria_local.db-journal
+# SQLite local replica and backups (Render uses Azure SQL)
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+backups/
+*.xlsx
 
 # IDE / OS
 .vscode/
