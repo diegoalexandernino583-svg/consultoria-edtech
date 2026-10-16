@@ -2332,8 +2332,8 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
             fetchone=True
         )
 
-    # Generar código OTP de 6 dígitos
-    codigo_otp = str(random.randint(100000, 999999))
+    # Generar código OTP de 4 dígitos
+    codigo_otp = str(random.randint(1000, 9999))
     ahora = datetime.now()
     expira = ahora + timedelta(minutes=30)
     
@@ -2408,7 +2408,8 @@ def reenviar_2fa(datos: Reenviar2FARequest):
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado en el sistema.")
         
-    codigo_otp = str(random.randint(100000, 999999))
+    # Generar código OTP de 4 dígitos
+    codigo_otp = str(random.randint(1000, 9999))
     ahora = datetime.now()
     expira = ahora + timedelta(minutes=30)
     
@@ -2609,7 +2610,7 @@ def solicitar_recuperacion(datos: SolicitarRecuperacionRequest):
             detail=f"El correo '{correo_limpio}' no pertenece a ningún usuario registrado. Asegúrate de ingresar tu correo registrado (ej: diego.nino-n@uniminuto.edu.co o alexander.nino.583@gmail.com)."
         )
     
-    codigo = str(random.randint(100000, 999999))
+    codigo = str(random.randint(1000, 9999))
     ahora = datetime.now()
     expira = ahora + timedelta(minutes=15)
     
