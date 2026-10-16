@@ -1723,8 +1723,8 @@ async function ejecutarCambioPassword(event) {
   const pwd1 = document.getElementById('recuperar-nueva-pwd').value;
   const pwd2 = document.getElementById('recuperar-confirm-pwd').value;
 
-  if (!codigo || (codigo.length !== 4 && codigo.length !== 6)) {
-    return mostrarToast('Introduce el código de 4 dígitos que llegó a tu correo.', 'advertencia');
+  if (!codigo || (codigo.length !== 6 && codigo.length !== 4)) {
+    return mostrarToast('Introduce el código de 6 dígitos que llegó a tu correo.', 'advertencia');
   }
 
   if (pwd1.length < 6) {
@@ -1854,7 +1854,7 @@ async function iniciarLoginConCredenciales(correo, password) {
     if (inputOtp) {
       inputOtp.value = '';
       inputOtp.oninput = function() {
-        if (this.value.trim().length === 4) {
+        if (this.value.trim().length === 6) {
           procesarLoginPaso2();
         }
       };
@@ -2003,8 +2003,8 @@ async function reenviarCodigo2FA() {
 
 async function procesarLoginPaso2() {
   const codigo = document.getElementById('login-otp').value.trim();
-  if (!codigo || (codigo.length !== 4 && codigo.length !== 6)) {
-    return mostrarToast('Introduce el código de 4 dígitos que llegó a tu correo.', 'advertencia');
+  if (!codigo || (codigo.length !== 6 && codigo.length !== 4)) {
+    return mostrarToast('Introduce el código de 6 dígitos que llegó a tu correo.', 'advertencia');
   }
 
   const btnVerificar = document.getElementById('btn-verificar-otp');
