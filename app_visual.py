@@ -748,26 +748,46 @@ class DatabaseManager:
         cursor.execute("SELECT COUNT(*) FROM organizaciones")
         if cursor.fetchone()[0] == 0:
             cursor.execute("""
-                INSERT INTO organizaciones (id, nombre, tipo_organizacion, dominio_permitido, licencias_asignadas, max_administradores, max_mentores)
+                INSERT INTO organizaciones (id, nombre, tipo_organizacion, dominio_permitido, licencias_asignadas, max_administradores, max_mentores, color_primario, color_secundario, color_acento)
                 VALUES 
+                (13, 'Corporación Universitaria Minuto de Dios', 'Educativa', 'uniminuto.edu.co', 500, 2, 20, '#0a192f', '#0f273f', '#06b6d4'),
                 (1, 'UNIMINUTO', 'Educativa', 'uniminuto.edu.co', 500, 2, 20),
                 (2, 'Hotmart', 'Empresa', 'hotmart.com', 100, 1, 5),
                 (3, 'Comunidad EdTech Libre', 'Comunidad', 'LIBRE', 50, 1, 3);
             """)
 
-        cursor.execute("SELECT COUNT(*) FROM usuarios")
+        usuarios_reales_seed = [
+            (1, 13, None, 'Diego Alexander Niño Niño', 'alexander.nino.583@gmail.com', 'Super Administrador', '$2b$12$Nh5npfN6/cCS8MBclXRVNueVPr.MzcVGn4hq58M4ZfDNzndP3MzOu'),
+            (1437, 13, None, 'David Santiago Alfonso Muñoz', 'david.alfonso-m@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1438, 13, None, 'Sebastian Arevalo Matiz', 'sebastian.arevalo-m@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1439, 13, None, 'Luis Eduardo Castillo Hernandez', 'luis.castillo-h@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1440, 13, None, 'Jose Santiago Lemus Duran', 'jose.lemus-d@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1442, 13, None, 'Cristian Danilo Mendez Ortiz', 'cristian.mendez-o@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1443, 13, None, 'Juan David Narciso Posada', 'juan.narciso-p@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1444, 13, None, 'Diego Alexander Niño Niño', 'diego.nino-n@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1445, 13, None, 'Liseth Sudiany Perez Moreno', 'liseth.perez-m@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1446, 13, None, 'Andres David Prada Opayome', 'andres.prada-o@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1447, 13, None, 'Diana Katerin Ramirez Nieto', 'diana.ramirez-n@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1448, 13, None, 'Cristian Camilo Rozo Castro', 'cristian.rozo-c@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1449, 13, None, 'Juan Camilo Rozo Penagos', 'juan.rozo-p@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1450, 13, None, 'Jose Manuel Toro Garzon', 'jose.toro-g@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1451, 13, None, 'Christian David Torres Rivero', 'christian.torres-r@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1452, 13, None, 'Juan Camilo Urrego Romero', 'juan.urrego-r@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1453, 13, None, 'alejito', 'alejandro.mejia-a@uniminuto.edu.co', 'Administrador', '$2b$12$z9QOq8wkA/wy8rvrCkbR4eVgvgu6wg1cnSn7FEV4Ru2D5ry2195Yq'),
+            (1454, 13, None, 'camilo', 'diego.alexander.nino.583@hotmail.com', 'Administrador', '$2b$12$DHqMgJKlq4NBlrQP7Lm9gu1aifoXt4e3fhOV33IxzQZJd0SjgSG9a'),
+            (1455, 13, None, 'alvaro Niño', 'ninod9716@gmail.com', 'Mentor', '$2b$12$81MVkQbBYUpwFB3wJtpQ3u78FuFqpohbGc5rKN7BwORbP/GIj7B5m')
+        ]
+
+        cursor.execute("SELECT COUNT(*) FROM usuarios WHERE correo = 'diego.nino-n@uniminuto.edu.co'")
         if cursor.fetchone()[0] == 0:
-            pwd_hash = bcrypt.hashpw("123456789".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            cursor.execute("""
-                INSERT INTO usuarios (id, organizacion_id, mentor_id, nombre, correo, rol, password_hash)
-                VALUES 
-                (1, 1, NULL, 'Diego Alexander Niño Niño', 'alexander.nino.583@gmail.com', 'Super Administrador', ?),
-                (2, 1, NULL, 'Profesor Mentor UNIMINUTO', 'mentor@uniminuto.edu.co', 'Mentor', ?),
-                (3, 1, 2, 'Carlos Aprendiz UNIMINUTO', 'aprendiz@uniminuto.edu.co', 'Aprendiz', ?),
-                (4, 2, NULL, 'Laura Administradora Hotmart', 'laura@hotmart.com', 'Administrador', ?),
-                (5, 1, 2, 'Sofia Gómez (Estudiante)', 'sofia@uniminuto.edu.co', 'Aprendiz', ?),
-                (6, 1, NULL, 'Mateo Ruiz (Sin Mentor)', 'mateo@uniminuto.edu.co', 'Aprendiz', ?)
-            """, (pwd_hash, pwd_hash, pwd_hash, pwd_hash, pwd_hash, pwd_hash))
+            for u in usuarios_reales_seed:
+                try:
+                    cursor.execute("""
+                        INSERT OR IGNORE INTO usuarios (id, organizacion_id, mentor_id, nombre, correo, rol, password_hash)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, u)
+                except Exception:
+                    pass
 
         cursor.execute("SELECT COUNT(*) FROM material_capacitacion")
         if cursor.fetchone()[0] == 0:
