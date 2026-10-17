@@ -745,16 +745,20 @@ class DatabaseManager:
         """)
         
         # Inyectar organizaciones iniciales si está vacía
-        cursor.execute("SELECT COUNT(*) FROM organizaciones")
-        if cursor.fetchone()[0] == 0:
-            cursor.execute("""
-                INSERT INTO organizaciones (id, nombre, tipo_organizacion, dominio_permitido, licencias_asignadas, max_administradores, max_mentores, color_primario, color_secundario, color_acento)
-                VALUES 
-                (13, 'Corporación Universitaria Minuto de Dios', 'Educativa', 'uniminuto.edu.co', 500, 2, 20, '#0a192f', '#0f273f', '#06b6d4'),
-                (1, 'UNIMINUTO', 'Educativa', 'uniminuto.edu.co', 500, 2, 20),
-                (2, 'Hotmart', 'Empresa', 'hotmart.com', 100, 1, 5),
-                (3, 'Comunidad EdTech Libre', 'Comunidad', 'LIBRE', 50, 1, 3);
-            """)
+        try:
+            cursor.execute("SELECT COUNT(*) FROM organizaciones")
+            if cursor.fetchone()[0] == 0:
+                cursor.execute("""
+                    INSERT INTO organizaciones (id, nombre, tipo_organizacion, dominio_permitido, licencias_asignadas, max_administradores, max_mentores, color_primario, color_secundario, color_acento)
+                    VALUES 
+                    (13, 'Corporación Universitaria Minuto de Dios', 'Educativa', 'uniminuto.edu.co', 500, 2, 20, '#0a192f', '#0f273f', '#06b6d4'),
+                    (1, 'UNIMINUTO', 'Educativa', 'uniminuto.edu.co', 500, 2, 20),
+                    (2, 'Hotmart', 'Empresa', 'hotmart.com', 100, 1, 5),
+                    (3, 'Comunidad EdTech Libre', 'Comunidad', 'LIBRE', 50, 1, 3);
+                """)
+                conn.commit()
+        except Exception as e_org:
+            print(f">> [SEED ORGS] Error: {e_org}")
 
         usuarios_reales_seed = [
             (1, 13, None, 'Diego Alexander Niño Niño', 'alexander.nino.583@gmail.com', 'Super Administrador', '$2b$12$Nh5npfN6/cCS8MBclXRVNueVPr.MzcVGn4hq58M4ZfDNzndP3MzOu'),
@@ -778,73 +782,90 @@ class DatabaseManager:
             (1455, 13, None, 'alvaro Niño', 'ninod9716@gmail.com', 'Mentor', '$2b$12$81MVkQbBYUpwFB3wJtpQ3u78FuFqpohbGc5rKN7BwORbP/GIj7B5m')
         ]
 
-        cursor.execute("SELECT COUNT(*) FROM usuarios WHERE correo = 'diego.nino-n@uniminuto.edu.co'")
-        if cursor.fetchone()[0] == 0:
-            for u in usuarios_reales_seed:
-                try:
-                    cursor.execute("""
-                        INSERT OR IGNORE INTO usuarios (id, organizacion_id, mentor_id, nombre, correo, rol, password_hash)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """, u)
-                except Exception:
-                    pass
+        try:
+            cursor.execute("SELECT COUNT(*) FROM usuarios WHERE correo = 'diego.nino-n@uniminuto.edu.co'")
+            if cursor.fetchone()[0] == 0:
+                for u in usuarios_reales_seed:
+                    try:
+                        cursor.execute("""
+                            INSERT OR IGNORE INTO usuarios (id, organizacion_id, mentor_id, nombre, correo, rol, password_hash)
+                            VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """, u)
+                    except Exception:
+                        pass
+                conn.commit()
+        except Exception as e_seed_u:
+            print(f">> [SEED USUARIOS] Error: {e_seed_u}")
 
-        cursor.execute("SELECT COUNT(*) FROM material_capacitacion")
-        if cursor.fetchone()[0] == 0:
-            cursor.execute("""
-                INSERT INTO material_capacitacion (id, titulo, tipo_material, enlace_url, rol_destino)
-                VALUES 
-                (1, 'Certificación Microsoft Azure Fundamentals (AZ-900)', 'Colección Microsoft', 'https://learn.microsoft.com/es-es/training/paths/microsoft-azure-fundamentals-describe-cloud-concepts/', 'Aprendiz'),
-                (2, 'Modelado Relacional y SQL Server en la Nube', 'Módulo Especializado', 'https://learn.microsoft.com/es-es/training/modules/describe-relational-azure-data-services/', 'Aprendiz'),
-                (3, 'Centro de Métricas Ejecutivas Power BI', 'Tablero Power BI', 'https://app.powerbi.com/', 'Aprendiz'),
-                (4, 'Didáctica Universitaria y Estrategias de Tutoría Virtual', 'Capacitación Docente', 'https://learn.microsoft.com/es-es/training/educator-center/', 'Mentor'),
-                (5, 'Gestión de Aulas Híbridas y Evaluación Formativa EdTech', 'Módulo Especializado', 'https://learn.microsoft.com/es-es/training/modules/hybrid-learning-framework/', 'Mentor')
-            """)
-            cursor.execute("""
-                INSERT INTO asignacion_material (material_id, organizacion_id)
-                VALUES 
-                (1, 1),
-                (2, 1),
-                (3, 1),
-                (4, 1),
-                (5, 1),
-                (4, NULL),
-                (5, NULL)
-            """)
+        try:
+            cursor.execute("SELECT COUNT(*) FROM material_capacitacion")
+            if cursor.fetchone()[0] == 0:
+                cursor.execute("""
+                    INSERT INTO material_capacitacion (id, titulo, tipo_material, enlace_url, rol_destino, total_modulos)
+                    VALUES 
+                    (1, 'Certificación Microsoft Azure Fundamentals (AZ-900)', 'Colección Microsoft', 'https://learn.microsoft.com/es-es/training/paths/microsoft-azure-fundamentals-describe-cloud-concepts/', 'Aprendiz', 3),
+                    (2, 'Modelado Relacional y SQL Server en la Nube', 'Módulo Especializado', 'https://learn.microsoft.com/es-es/training/modules/describe-relational-azure-data-services/', 'Aprendiz', 3),
+                    (3, 'Centro de Métricas Ejecutivas Power BI', 'Tablero Power BI', 'https://app.powerbi.com/', 'Aprendiz', 4),
+                    (4, 'Didáctica Universitaria y Estrategias de Tutoría Virtual', 'Capacitación Docente', 'https://learn.microsoft.com/es-es/training/educator-center/', 'Mentor', 4),
+                    (5, 'Gestión de Aulas Híbridas y Evaluación Formativa EdTech', 'Módulo Especializado', 'https://learn.microsoft.com/es-es/training/modules/hybrid-learning-framework/', 'Mentor', 3)
+                """)
+                cursor.execute("""
+                    INSERT INTO asignacion_material (material_id, organizacion_id)
+                    VALUES 
+                    (1, 1),
+                    (2, 1),
+                    (3, 1),
+                    (4, 1),
+                    (5, 1),
+                    (4, NULL),
+                    (5, NULL)
+                """)
+                conn.commit()
+        except Exception as e_mat:
+            print(f">> [SEED MATERIALES] Error: {e_mat}")
 
         # Asegurar cursos y materiales de formación pedagógica para mentores
-        materiales_mentor_base = [
-            ("Didáctica Universitaria y Estrategias de Tutoría Virtual", "Capacitación Docente", "https://learn.microsoft.com/es-es/training/educator-center/", "Mentor", 4),
-            ("Pedagogía Digital y Gamificación en Aula EdTech", "Capacitación Docente", "https://learn.microsoft.com/es-es/training/modules/hybrid-learning-framework/", "Mentor", 3),
-            ("Evaluación Formativa y Retroalimentación con IA", "Módulo Especializado", "https://learn.microsoft.com/es-es/training/paths/ai-for-educators/", "Mentor", 3),
-            ("Liderazgo Pedagógico y Acompañamiento a Aprendices", "Taller Docente", "https://learn.microsoft.com/es-es/training/educator-center/", "Mentor", 2)
-        ]
-        for mat_tit, mat_tipo, mat_url, mat_rol, mat_mods in materiales_mentor_base:
-            cursor.execute("SELECT id FROM material_capacitacion WHERE titulo = ?", (mat_tit,))
-            if not cursor.fetchone():
-                cursor.execute("""
-                    INSERT INTO material_capacitacion (titulo, tipo_material, enlace_url, rol_destino, total_modulos)
-                    VALUES (?, ?, ?, ?, ?)
-                """, (mat_tit, mat_tipo, mat_url, mat_rol, mat_mods))
-
-        # Asignar progreso de capacitación docente a mentores existentes
-        cursor.execute("SELECT id FROM usuarios WHERE rol = 'Mentor'")
-        mentores_todos = [row[0] for row in cursor.fetchall()]
-        cursor.execute("SELECT id, total_modulos FROM material_capacitacion WHERE rol_destino = 'Mentor'")
-        mats_mentor_ids = cursor.fetchall()
-        
-        for m_id in mentores_todos:
-            for idx_m, (mat_id, total_m) in enumerate(mats_mentor_ids):
-                cursor.execute("SELECT id FROM progreso_cursos WHERE usuario_id = ? AND curso_id = ?", (m_id, mat_id))
+        try:
+            materiales_mentor_base = [
+                ("Didáctica Universitaria y Estrategias de Tutoría Virtual", "Capacitación Docente", "https://learn.microsoft.com/es-es/training/educator-center/", "Mentor", 4),
+                ("Pedagogía Digital y Gamificación en Aula EdTech", "Capacitación Docente", "https://learn.microsoft.com/es-es/training/modules/hybrid-learning-framework/", "Mentor", 3),
+                ("Evaluación Formativa y Retroalimentación con IA", "Módulo Especializado", "https://learn.microsoft.com/es-es/training/paths/ai-for-educators/", "Mentor", 3),
+                ("Liderazgo Pedagógico y Acompañamiento a Aprendices", "Taller Docente", "https://learn.microsoft.com/es-es/training/educator-center/", "Mentor", 2)
+            ]
+            for mat_tit, mat_tipo, mat_url, mat_rol, mat_mods in materiales_mentor_base:
+                cursor.execute("SELECT id FROM material_capacitacion WHERE titulo = ?", (mat_tit,))
                 if not cursor.fetchone():
-                    if idx_m == 0: pct, mins, mods, est = 100.0, 120, total_m, 'Completado'
-                    elif idx_m == 1: pct, mins, mods, est = 75.0, 90, max(1, total_m - 1), 'En Progreso'
-                    elif idx_m == 2: pct, mins, mods, est = 50.0, 60, max(1, total_m // 2), 'En Progreso'
-                    else: pct, mins, mods, est = 0.0, 0, 0, 'No Iniciado'
                     cursor.execute("""
-                        INSERT INTO progreso_cursos (usuario_id, curso_id, porcentaje_avance, tiempo_dedicado_minutos, modulos_completados, estado)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                    """, (m_id, mat_id, pct, mins, mods, est))
+                        INSERT INTO material_capacitacion (titulo, tipo_material, enlace_url, rol_destino, total_modulos)
+                        VALUES (?, ?, ?, ?, ?)
+                    """, (mat_tit, mat_tipo, mat_url, mat_rol, mat_mods))
+            conn.commit()
+        except Exception as e_mat_men:
+            print(f">> [SEED BASE MENTORES] Error: {e_mat_men}")
+
+        # Asignar progreso de capacitación docente a mentores existentes de forma 100% segura
+        try:
+            cursor.execute("SELECT id FROM usuarios WHERE rol = 'Mentor'")
+            mentores_todos = [row[0] for row in cursor.fetchall()]
+            cursor.execute("SELECT id, total_modulos FROM material_capacitacion WHERE rol_destino = 'Mentor'")
+            mats_mentor_ids = cursor.fetchall()
+            
+            for m_id in mentores_todos:
+                for idx_m, (mat_id, total_m) in enumerate(mats_mentor_ids):
+                    cursor.execute("SELECT id FROM progreso_cursos WHERE usuario_id = ? AND curso_id = ?", (m_id, mat_id))
+                    if not cursor.fetchone():
+                        t_mod = int(total_m) if total_m is not None else 3
+                        if idx_m == 0: pct, mins, mods, est = 100.0, 120, t_mod, 'Completado'
+                        elif idx_m == 1: pct, mins, mods, est = 75.0, 90, max(1, t_mod - 1), 'En Progreso'
+                        elif idx_m == 2: pct, mins, mods, est = 50.0, 60, max(1, t_mod // 2), 'En Progreso'
+                        else: pct, mins, mods, est = 0.0, 0, 0, 'No Iniciado'
+                        cursor.execute("""
+                            INSERT INTO progreso_cursos (usuario_id, curso_id, porcentaje_avance, tiempo_dedicado_minutos, modulos_completados, estado)
+                            VALUES (?, ?, ?, ?, ?, ?)
+                        """, (m_id, mat_id, pct, mins, mods, est))
+            conn.commit()
+        except Exception as e_ment:
+            print(f">> [SEED PROGRESO MENTOR] Aviso controlado: {e_ment}")
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS historial_nuevos_integrantes (
@@ -2099,6 +2120,20 @@ def detectar_url_tunel_activa():
 def ping_keepalive():
     """Endpoint ultra-ligero (<50 bytes) para cron-job.org / monitores 24/7 sin exceder límites de tamaño"""
     return {"status": "ok", "service": "consultoria-edtech", "alive": True}
+
+@app.get("/api/version")
+def version_diagnostico():
+    """Reporta versión, usuarios precargados y estado del replicador"""
+    usuarios_db = db.execute_query("SELECT id, correo, rol FROM usuarios", fetchall=True) or []
+    return {
+        "version": "v3.0-24-7-permanente",
+        "total_usuarios": len(usuarios_db),
+        "usuarios": [u["correo"] for u in usuarios_db],
+        "correo_remitente": CORREO_APP or "alexander.nino.583@gmail.com",
+        "smtp_listo": bool(CLAVE_APP),
+        "azure_conectado": db.use_azure,
+        "ultimo_error_azure": db.last_error
+    }
 
 @app.get("/api/estado-servidor")
 def obtener_estado_servidor():
