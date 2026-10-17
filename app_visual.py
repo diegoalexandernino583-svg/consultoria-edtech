@@ -2382,9 +2382,14 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
     exito = enviar_correo_smtp(correo_limpio, asunto, cuerpo_texto, None)
     if exito:
         registrar_movimiento(correo_limpio, "Seguridad_2FA", "Envio_Codigo", "EXITO")
+        print(f">> [2FA] Código de verificación entregado a {correo_limpio}: {codigo_otp}", flush=True)
     else:
         registrar_movimiento(correo_limpio, "Seguridad_2FA", "Envio_Codigo", "FALLO")
-    print(f">> [2FA] Código de verificación entregado a {correo_limpio}: {codigo_otp}", flush=True)
+        print(f">> [2FA-ERROR] Falló el despacho de correo SMTP para {correo_limpio}", flush=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Error al enviar el correo con el código: Las credenciales de Gmail (EMAIL_PASS) configuradas en el servidor/Render fueron rechazadas por Google. Por favor verifica la contraseña de aplicación de 16 letras."
+        )
 
     return {
         "status": "success",
@@ -2459,9 +2464,14 @@ def reenviar_2fa(datos: Reenviar2FARequest):
     exito = enviar_correo_smtp(correo_limpio, asunto, cuerpo_texto, None)
     if exito:
         registrar_movimiento(correo_limpio, "Seguridad_2FA", "Reenvio_Codigo", "EXITO")
+        print(f">> [2FA-REENVIO] Código entregado a {correo_limpio}: {codigo_otp}", flush=True)
     else:
         registrar_movimiento(correo_limpio, "Seguridad_2FA", "Reenvio_Codigo", "FALLO")
-    print(f">> [2FA-REENVIO] Código entregado a {correo_limpio}: {codigo_otp}", flush=True)
+        print(f">> [2FA-REENVIO-ERROR] Falló el despacho de correo SMTP para {correo_limpio}", flush=True)
+        raise HTTPException(
+            status_code=500,
+            detail="Error al reenviar el correo: Las credenciales de Gmail (EMAIL_PASS) en el servidor/Render fueron rechazadas por Google. Verifica la contraseña de aplicación de 16 letras."
+        )
     
     return {
         "status": "success",
