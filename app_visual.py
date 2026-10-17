@@ -1297,51 +1297,51 @@ def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo
             cuerpo_ascii = cuerpo_texto.encode('ascii', 'ignore').decode('ascii')
             msg.set_content(cuerpo_ascii, charset='us-ascii')
             
-    webhook_url = os.getenv("GMAIL_WEBHOOK_URL", "").strip()
-    if webhook_url:
-        try:
-            import urllib.request, json
-            payload = json.dumps({
-                "to": destinatario,
-                "subject": asunto,
-                "body": cuerpo_texto,
-                "html": cuerpo_html or cuerpo_texto
-            }).encode('utf-8')
-            req = urllib.request.Request(webhook_url, data=payload, headers={"Content-Type": "application/json"})
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                if resp.status in (200, 201, 302):
-                    print(f">> [GMAIL-WEBHOOK] Correo entregado exitosamente vía HTTPS a {destinatario}")
-                    return True
-        except Exception as e_wh:
-            ultimo_error_smtp = f"Webhook HTTPS: {e_wh}"
-            print(f">> [GMAIL-WEBHOOK] Aviso: Falló webhook HTTPS ({e_wh}). Pasando a SMTP...")
+        webhook_url = os.getenv("GMAIL_WEBHOOK_URL", "").strip()
+        if webhook_url:
+            try:
+                import urllib.request, json
+                payload = json.dumps({
+                    "to": destinatario,
+                    "subject": asunto,
+                    "body": cuerpo_texto,
+                    "html": cuerpo_html or cuerpo_texto
+                }).encode('utf-8')
+                req = urllib.request.Request(webhook_url, data=payload, headers={"Content-Type": "application/json"})
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    if resp.status in (200, 201, 302):
+                        print(f">> [GMAIL-WEBHOOK] Correo entregado exitosamente vía HTTPS a {destinatario}")
+                        return True
+            except Exception as e_wh:
+                ultimo_error_smtp = f"Webhook HTTPS: {e_wh}"
+                print(f">> [GMAIL-WEBHOOK] Aviso: Falló webhook HTTPS ({e_wh}). Pasando a SMTP...")
 
-    enviado = False
-    # Intento 1: Puerto 465 SSL (Ultra rápido y encriptado directo)
-    try:
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=8) as smtp:
-            smtp.login(CORREO_APP, CLAVE_APP)
-            smtp.send_message(msg)
-            enviado = True
-            print(f">> [SMTP-465] Correo entregado exitosamente a {destinatario}")
-    except Exception as e_ssl:
-        ultimo_error_smtp = f"SSL 465: {e_ssl}"
-        print(f">> [SMTP-465] Aviso: Falló puerto 465 ({e_ssl}). Ejecutando fallback inmediato a puerto 587 STARTTLS...")
-        # Intento 2: Puerto 587 STARTTLS (Compatibilidad extendida con redes restringidas)
+        enviado = False
+        # Intento 1: Puerto 465 SSL (Ultra rápido y encriptado directo)
         try:
-            with smtplib.SMTP('smtp.gmail.com', 587, timeout=8) as smtp:
-                smtp.ehlo()
-                smtp.starttls()
-                smtp.ehlo()
+            with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=8) as smtp:
                 smtp.login(CORREO_APP, CLAVE_APP)
                 smtp.send_message(msg)
                 enviado = True
-                print(f">> [SMTP-587] Correo entregado exitosamente a {destinatario} vía STARTTLS")
-        except Exception as e_tls:
-            ultimo_error_smtp += f" | TLS 587: {e_tls}"
-            print(f">> [SMTP-587] Error en puerto 587: {e_tls}")
+                print(f">> [SMTP-465] Correo entregado exitosamente a {destinatario}")
+        except Exception as e_ssl:
+            ultimo_error_smtp = f"SSL 465: {e_ssl}"
+            print(f">> [SMTP-465] Aviso: Falló puerto 465 ({e_ssl}). Ejecutando fallback inmediato a puerto 587 STARTTLS...")
+            # Intento 2: Puerto 587 STARTTLS (Compatibilidad extendida con redes restringidas)
+            try:
+                with smtplib.SMTP('smtp.gmail.com', 587, timeout=8) as smtp:
+                    smtp.ehlo()
+                    smtp.starttls()
+                    smtp.ehlo()
+                    smtp.login(CORREO_APP, CLAVE_APP)
+                    smtp.send_message(msg)
+                    enviado = True
+                    print(f">> [SMTP-587] Correo entregado exitosamente a {destinatario} vía STARTTLS")
+            except Exception as e_tls:
+                ultimo_error_smtp += f" | TLS 587: {e_tls}"
+                print(f">> [SMTP-587] Error en puerto 587: {e_tls}")
 
-    return enviado
+        return enviado
     except Exception as e:
         ultimo_error_smtp = f"Error general: {e}"
         print(f">> [SMTP] Error general preparando correo para {destinatario}: {e}")
