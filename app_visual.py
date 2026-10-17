@@ -2068,6 +2068,12 @@ def detectar_url_tunel_activa():
             pass
     return ""
 
+@app.get("/ping")
+@app.get("/api/ping")
+def ping_keepalive():
+    """Endpoint ultra-ligero (<50 bytes) para cron-job.org / monitores 24/7 sin exceder límites de tamaño"""
+    return {"status": "ok", "service": "consultoria-edtech", "alive": True}
+
 @app.get("/api/estado-servidor")
 def obtener_estado_servidor():
     """Reporta el modo de base de datos, URLs de red local, enlace público de Internet y estado general"""
