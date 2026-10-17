@@ -2126,11 +2126,13 @@ def version_diagnostico():
     """Reporta versión, usuarios precargados y estado del replicador"""
     usuarios_db = db.execute_query("SELECT id, correo, rol FROM usuarios", fetchall=True) or []
     return {
-        "version": "v3.0-24-7-permanente",
+        "version": "v3.1-24-7-permanente",
         "total_usuarios": len(usuarios_db),
         "usuarios": [u["correo"] for u in usuarios_db],
         "correo_remitente": CORREO_APP or "alexander.nino.583@gmail.com",
         "smtp_listo": bool(CLAVE_APP),
+        "clave_huella": f"{CLAVE_APP[:3]}...{CLAVE_APP[-2:]} (longitud: {len(CLAVE_APP)})" if CLAVE_APP else "NO_CONFIGURADA",
+        "ultimo_error_smtp": globals().get("ultimo_error_smtp", ""),
         "azure_conectado": db.use_azure,
         "ultimo_error_azure": db.last_error
     }
