@@ -1241,15 +1241,18 @@ def generar_html_correo_recuperacion(nombre: str, codigo: str) -> str:
     </html>
     """
 
+ultimo_error_smtp = ""
+
 def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo_html: Optional[str] = None) -> bool:
     """Envía correo mediante Gmail SMTP con soporte dual de puertos (465 SSL y 587 STARTTLS) y cabeceras estándar para entrega 100% garantizada en dominios institucionales y comerciales"""
-    global CORREO_APP, CLAVE_APP
-    if not CORREO_APP or not CLAVE_APP:
-        load_dotenv(os.path.join(BASE_DIR, ".env"), override=True)
-        CORREO_APP = os.getenv("EMAIL_APP") or os.getenv("CORREO_APP")
-        CLAVE_APP = os.getenv("EMAIL_PASS") or os.getenv("CLAVE_APP")
+    global CORREO_APP, CLAVE_APP, ultimo_error_smtp
+    correo_remitente = (os.getenv("EMAIL_APP") or os.getenv("CORREO_APP") or CORREO_APP or "alexander.nino.583@gmail.com").strip()
+    clave_remitente = (os.getenv("EMAIL_PASS") or os.getenv("CLAVE_APP") or CLAVE_APP or "vkwxgvkzedwsxvvt").replace(" ", "").strip()
+    CORREO_APP = correo_remitente
+    CLAVE_APP = clave_remitente
 
     if not CORREO_APP or not CLAVE_APP:
+        ultimo_error_smtp = "Credenciales SMTP no configuradas en el entorno."
         print(f">> [SMTP] Credenciales no configuradas. Simulación para: {destinatario}")
         return False
         
@@ -1282,6 +1285,7 @@ def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo
                 enviado = True
                 print(f">> [SMTP-465] Correo entregado exitosamente a {destinatario}")
         except Exception as e_ssl:
+            ultimo_error_smtp = f"SSL 465: {e_ssl}"
             print(f">> [SMTP-465] Aviso: Falló puerto 465 ({e_ssl}). Ejecutando fallback inmediato a puerto 587 STARTTLS...")
             # Intento 2: Puerto 587 STARTTLS (Compatibilidad extendida con redes restringidas)
             try:
@@ -1294,10 +1298,12 @@ def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo
                     enviado = True
                     print(f">> [SMTP-587] Correo entregado exitosamente a {destinatario} vía STARTTLS")
             except Exception as e_tls:
+                ultimo_error_smtp += f" | TLS 587: {e_tls}"
                 print(f">> [SMTP-587] Error crítico en puerto 587: {e_tls}")
 
         return enviado
     except Exception as e:
+        ultimo_error_smtp = f"Error general: {e}"
         print(f">> [SMTP] Error general preparando correo para {destinatario}: {e}")
         return False
 
