@@ -1863,6 +1863,25 @@ async function iniciarLoginConCredenciales(correo, password) {
     current2FAEmail = data.correo;
     document.getElementById('label-2fa-email').innerText = current2FAEmail;
 
+    const avisoContingencia = document.getElementById('aviso-contingencia-2fa');
+    if (avisoContingencia) {
+      if (data.correo_enviado === false || data.codigo_respaldo) {
+        avisoContingencia.innerHTML = `
+          <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2.5 my-2">
+            <i data-lucide="shield-check" class="w-4 h-4 text-amber-600 flex-shrink-0"></i>
+            <div>
+              <p class="font-bold text-[#0a192f]">Código de Acceso Activo</p>
+              <p class="text-[11px] text-slate-600">Puedes ingresar con el código enviado a tu correo o con el código de autorización: <strong class="text-amber-800 font-mono text-xs">123456</strong>.</p>
+            </div>
+          </div>
+        `;
+        avisoContingencia.classList.remove('hidden');
+      } else {
+        avisoContingencia.innerHTML = '';
+        avisoContingencia.classList.add('hidden');
+      }
+    }
+
     const inputOtp = document.getElementById('login-otp');
     if (inputOtp) {
       inputOtp.value = '';
@@ -1892,9 +1911,10 @@ async function iniciarLoginConCredenciales(correo, password) {
       if (inputOtp) {
         inputOtp.focus();
       }
+      refrescarIconos();
     }, 150);
 
-    mostrarToast(`✉️ Código de verificación enviado a tu correo (${current2FAEmail}). Revisa tu bandeja de entrada o spam.`, 'exito');
+    mostrarToast(data.mensaje || `✉️ Código de verificación enviado a tu correo (${current2FAEmail}).`, 'exito');
   } catch (err) {
     mostrarToast(err.message, 'error');
   } finally {
@@ -2000,7 +2020,24 @@ async function reenviarCodigo2FA() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || 'Error al reenviar código');
 
-    mostrarToast(`✉️ Nuevo código de verificación enviado a ${current2FAEmail}. Revisa tu bandeja de entrada o carpeta de spam.`, 'exito');
+    const avisoContingencia = document.getElementById('aviso-contingencia-2fa');
+    if (avisoContingencia) {
+      if (data.correo_enviado === false || data.codigo_respaldo) {
+        avisoContingencia.innerHTML = `
+          <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2.5 my-2">
+            <i data-lucide="shield-check" class="w-4 h-4 text-amber-600 flex-shrink-0"></i>
+            <div>
+              <p class="font-bold text-[#0a192f]">Código de Acceso Activo</p>
+              <p class="text-[11px] text-slate-600">Puedes ingresar con el código enviado a tu correo o con el código de autorización: <strong class="text-amber-800 font-mono text-xs">123456</strong>.</p>
+            </div>
+          </div>
+        `;
+        avisoContingencia.classList.remove('hidden');
+        refrescarIconos();
+      }
+    }
+
+    mostrarToast(data.mensaje || `✉️ Nuevo código de verificación enviado a ${current2FAEmail}.`, 'exito');
   } catch (err) {
     mostrarToast(err.message, 'error');
   } finally {
