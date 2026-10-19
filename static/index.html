@@ -30,7 +30,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <link rel="stylesheet" href="/static/styles.css?v=20261012_14">
+  <link rel="stylesheet" href="/static/styles.css?v=20261019_pro">
   <style>
     /* Ocultar el icono nativo de revelar contraseña de Edge / Windows para evitar doble ojito */
     input::-ms-reveal,
@@ -349,9 +349,8 @@
           </div>
 
           <!-- Botón Rápido de Modo Oscuro / Claro en Barra Superior -->
-          <button onclick="alternarTemaVisualRapido()" class="px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200/80 hover:border-slate-300 text-slate-700 hover:text-slate-900 font-bold text-xs flex items-center gap-1.5 transition-all shadow-2xs" title="Alternar entre Modo Oscuro y Modo Claro">
-            <i data-lucide="moon" id="header-icono-tema" class="w-3.5 h-3.5 text-cyan-500"></i>
-            <span id="lbl-header-modo" class="hidden sm:inline" data-i18n="hdr_modo">Modo</span>
+          <button onclick="alternarTemaVisualRapido()" class="px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200/80 hover:border-slate-300 text-slate-700 hover:text-slate-900 font-bold text-xs flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer" title="Alternar entre Modo Claro (Blanco) y Modo Oscuro (Negro)">
+            <span id="lbl-header-modo" class="inline">☀️ Modo Claro</span>
           </button>
 
           <!-- Cargo del Usuario -->
@@ -2215,27 +2214,27 @@
 
           <!-- NAVEGACIÓN POR PESTAÑAS EN CONFIGURACIÓN -->
           <div class="flex border-b border-slate-200 gap-2 overflow-x-auto pb-1">
-            <button id="tab-btn-cfg-cuenta" onclick="cambiarTabConfiguracion('cuenta')" class="px-4 py-2.5 text-xs font-bold border-b-2 border-cyan-600 text-cyan-700 flex items-center gap-2 whitespace-nowrap transition-all">
+            <button id="tab-btn-cfg-personalizacion" onclick="cambiarTabConfiguracion('personalizacion')" class="px-4 py-2.5 text-xs font-bold border-b-2 border-cyan-600 text-cyan-700 flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer">
+              <i data-lucide="sun-moon" class="w-4 h-4 text-cyan-600"></i>
+              <span data-i18n="cfg_tab_idioma_apariencia">🌐 Idioma & Modo Visual (Claro / Oscuro)</span>
+            </button>
+            <button id="tab-btn-cfg-cuenta" onclick="cambiarTabConfiguracion('cuenta')" class="px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer">
               <i data-lucide="user" class="w-4 h-4"></i>
               <span data-i18n="cfg_tab_perfil">👤 Mi Perfil & Cuenta</span>
             </button>
-            <button id="tab-btn-cfg-personalizacion" onclick="cambiarTabConfiguracion('personalizacion')" class="px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap transition-all">
-              <i data-lucide="globe" class="w-4 h-4 text-cyan-600"></i>
-              <span data-i18n="cfg_tab_idioma_apariencia">🌐 Idioma & Apariencia</span>
-            </button>
-            <button id="tab-btn-cfg-conectividad" onclick="cambiarTabConfiguracion('conectividad')" class="px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap transition-all">
+            <button id="tab-btn-cfg-conectividad" onclick="cambiarTabConfiguracion('conectividad')" class="hidden px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 items-center gap-2 whitespace-nowrap transition-all">
               <i data-lucide="wifi" class="w-4 h-4"></i>
               <span data-i18n="cfg_tab_conectividad">🌐 Conectividad & Sistema</span>
             </button>
-            <button id="tab-btn-cfg-backups" onclick="cambiarTabConfiguracion('backups')" class="px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap transition-all">
+            <button id="tab-btn-cfg-backups" onclick="cambiarTabConfiguracion('backups')" class="hidden px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 items-center gap-2 whitespace-nowrap transition-all">
               <i data-lucide="hard-drive" class="w-4 h-4"></i>
               <span data-i18n="cfg_tab_backups">💾 Copias de Seguridad</span>
             </button>
-            <button id="tab-btn-cfg-papelera" onclick="cambiarTabConfiguracion('papelera')" class="px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap transition-all">
+            <button id="tab-btn-cfg-papelera" onclick="cambiarTabConfiguracion('papelera')" class="hidden px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 items-center gap-2 whitespace-nowrap transition-all">
               <i data-lucide="archive" class="w-4 h-4"></i>
               <span data-i18n="cfg_tab_papelera">♻️ Papelera de Integrantes</span>
             </button>
-            <button id="tab-btn-cfg-powerbi" onclick="cambiarTabConfiguracion('powerbi')" class="px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap transition-all">
+            <button id="tab-btn-cfg-powerbi" onclick="cambiarTabConfiguracion('powerbi')" class="hidden px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 items-center gap-2 whitespace-nowrap transition-all">
               <i data-lucide="bar-chart" class="w-4 h-4"></i>
               <span data-i18n="cfg_tab_powerbi">📊 Microsoft Power BI</span>
             </button>
@@ -2244,7 +2243,7 @@
           <!-- ===============================================================
                PESTAÑA 1: MI CUENTA & PERFIL
                =============================================================== -->
-          <div id="tab-content-cfg-cuenta" class="space-y-6">
+          <div id="tab-content-cfg-cuenta" class="hidden space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <!-- Tarjeta de Foto de Perfil e Identidad -->
               <div class="corp-card p-6 flex flex-col items-center text-center justify-between border border-slate-200">
@@ -2349,12 +2348,9 @@
           </div>
 
           <!-- ===============================================================
-               PESTAÑA: PERSONALIZACIÓN DEL ESPACIO DE TRABAJO & ESTILOS
-               =============================================================== -->
-          <!-- ===============================================================
                PESTAÑA: TEMAS DEL SISTEMA (MODO OSCURO & MODO CLARO)
                =============================================================== -->
-          <div id="tab-content-cfg-personalizacion" class="hidden space-y-6">
+          <div id="tab-content-cfg-personalizacion" class="space-y-6">
             <!-- SECCIÓN 1: SELECCIÓN DE IDIOMA DE LA PLATAFORMA (TIPO BOTÓN) -->
             <div class="corp-card p-6 border border-slate-200 space-y-4">
               <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
@@ -2395,23 +2391,74 @@
                 <div>
                   <h3 class="text-base font-bold text-[#0a192f] flex items-center gap-2">
                     <i data-lucide="sun-moon" class="w-5 h-5 text-cyan-600"></i>
-                    <span data-i18n="cfg_modo_titulo">Modo Visual del Sistema</span>
+                    <span data-i18n="cfg_modo_titulo">Modo Visual del Sistema (Modo Claro / Blanco & Modo Oscuro / Negro)</span>
                   </h3>
                   <p class="text-xs text-slate-500 mt-1" data-i18n="cfg_modo_desc">
-                    Alterna entre el Modo Oscuro y el Modo Claro de acuerdo a tus preferencias de visualización y confort visual.
+                    Alterna entre el Modo Claro (Blanco Ejecutivo) y el Modo Oscuro (Negro OLED) de acuerdo a tus preferencias de visualización.
                   </p>
                 </div>
               </div>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <!-- Tarjeta 1: Modo Oscuro OLED -->
+                <!-- Tarjeta 1: Modo Claro Minimalista (Blanco) -->
+                <div onclick="seleccionarTemaVisual('claro')" class="p-5 rounded-2xl border-2 border-[#E2E8F0] hover:border-[#0284c7] bg-[#FFFFFF] text-[#0F172A] cursor-pointer transition-all hover:shadow-lg flex flex-col justify-between group">
+                  <div>
+                    <div class="flex items-center justify-between mb-3">
+                      <div class="flex items-center gap-2.5">
+                        <span class="text-xl">☀️</span>
+                        <div>
+                          <strong class="text-sm font-bold text-[#0F172A] block" data-i18n="cfg_modo_claro_tit">Modo Claro (Blanco)</strong>
+                          <span class="text-[10px] text-slate-500" data-i18n="cfg_modo_claro_sub">Claridad Diurna Ejecutiva</span>
+                        </div>
+                      </div>
+                      <span id="badge-tema-claro" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-cyan-100 text-cyan-800 border border-cyan-200 hidden">Activo</span>
+                    </div>
+
+                    <p class="text-xs text-slate-600 mb-4 leading-relaxed" data-i18n="cfg_modo_claro_desc">
+                      Superficies blancas inmaculadas (#FFFFFF), tipografía con óptimo contraste diurno y acabados en azul navy corporativo para máxima nitidez y presentación profesional.
+                    </p>
+
+                    <div class="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] space-y-2 mb-4">
+                      <div class="text-[10px] uppercase font-bold tracking-wider text-[#475569] mb-1">Paleta Oficial:</div>
+                      <div class="grid grid-cols-5 gap-1.5 text-center">
+                        <div class="space-y-1">
+                          <div class="w-full h-6 rounded bg-[#FFFFFF] border border-[#CBD5E1]"></div>
+                          <span class="text-[8px] text-[#475569] block">Blanco</span>
+                        </div>
+                        <div class="space-y-1">
+                          <div class="w-full h-6 rounded bg-[#F8FAFC] border border-[#CBD5E1]"></div>
+                          <span class="text-[8px] text-[#475569] block">Fondo</span>
+                        </div>
+                        <div class="space-y-1">
+                          <div class="w-full h-6 rounded bg-[#0F172A]"></div>
+                          <span class="text-[8px] text-[#475569] block">Texto</span>
+                        </div>
+                        <div class="space-y-1">
+                          <div class="w-full h-6 rounded bg-[#0284c7]"></div>
+                          <span class="text-[8px] text-[#475569] block">Azul</span>
+                        </div>
+                        <div class="space-y-1">
+                          <div class="w-full h-6 rounded bg-[#E2E8F0]"></div>
+                          <span class="text-[8px] text-[#475569] block">Borde</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button type="button" class="w-full py-2.5 rounded-xl bg-[#F1F5F9] group-hover:bg-[#0284c7] group-hover:text-white border border-[#CBD5E1] group-hover:border-[#0284c7] text-xs font-bold text-[#0F172A] transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="sun" class="w-4 h-4"></i>
+                    <span data-i18n="cfg_btn_modo_claro">Activar Modo Claro (Blanco)</span>
+                  </button>
+                </div>
+
+                <!-- Tarjeta 2: Modo Oscuro OLED (Negro) -->
                 <div onclick="seleccionarTemaVisual('oscuro')" class="p-5 rounded-2xl border-2 border-[#444746] hover:border-[#38bdf8] bg-[#131314] text-[#E3E3E3] cursor-pointer transition-all hover:shadow-lg flex flex-col justify-between group">
                   <div>
                     <div class="flex items-center justify-between mb-3">
                       <div class="flex items-center gap-2.5">
                         <span class="text-xl">🌙</span>
                         <div>
-                          <strong class="text-sm font-bold text-[#E3E3E3] block" data-i18n="cfg_modo_oscuro_tit">Modo Oscuro</strong>
+                          <strong class="text-sm font-bold text-[#E3E3E3] block" data-i18n="cfg_modo_oscuro_tit">Modo Oscuro (Negro)</strong>
                           <span class="text-[10px] text-[#C4C7C5]" data-i18n="cfg_modo_oscuro_sub">Confort Nocturno OLED</span>
                         </div>
                       </div>
@@ -2419,7 +2466,7 @@
                     </div>
 
                     <p class="text-xs text-[#C4C7C5] mb-4 leading-relaxed" data-i18n="cfg_modo_oscuro_desc">
-                      Superficies en gris profundo OLED, alto contraste visual equilibrado y acentos cian/azul para reducir la fatiga ocular durante sesiones prolongadas.
+                      Superficies en negro/gris profundo OLED (#0E1012), alto contraste visual equilibrado y acentos cian/azul para reducir la fatiga ocular durante sesiones prolongadas.
                     </p>
 
                     <div class="p-3 rounded-xl bg-[#1E1F20] border border-[#444746] space-y-2 mb-4">
@@ -2427,7 +2474,7 @@
                       <div class="grid grid-cols-5 gap-1.5 text-center">
                         <div class="space-y-1">
                           <div class="w-full h-6 rounded bg-[#0E1012] border border-[#444746]"></div>
-                          <span class="text-[8px] text-[#C4C7C5] block">Fondo</span>
+                          <span class="text-[8px] text-[#C4C7C5] block">Negro</span>
                         </div>
                         <div class="space-y-1">
                           <div class="w-full h-6 rounded bg-[#16181B] border border-[#444746]"></div>
@@ -2451,58 +2498,7 @@
 
                   <button type="button" class="w-full py-2.5 rounded-xl bg-[#1E1F20] group-hover:bg-[#0284c7] group-hover:text-white border border-[#444746] group-hover:border-[#38bdf8] text-xs font-bold text-[#E3E3E3] transition-all flex items-center justify-center gap-2">
                     <i data-lucide="moon" class="w-4 h-4"></i>
-                    <span data-i18n="cfg_btn_modo_oscuro">Activar Modo Oscuro</span>
-                  </button>
-                </div>
-
-                <!-- Tarjeta 2: Modo Claro Minimalista -->
-                <div onclick="seleccionarTemaVisual('claro')" class="p-5 rounded-2xl border-2 border-[#E3E3E3] hover:border-[#0284c7] bg-[#FFFFFF] text-[#1F1F1F] cursor-pointer transition-all hover:shadow-lg flex flex-col justify-between group">
-                  <div>
-                    <div class="flex items-center justify-between mb-3">
-                      <div class="flex items-center gap-2.5">
-                        <span class="text-xl">☀️</span>
-                        <div>
-                          <strong class="text-sm font-bold text-[#1F1F1F] block" data-i18n="cfg_modo_claro_tit">Modo Claro</strong>
-                          <span class="text-[10px] text-slate-500" data-i18n="cfg_modo_claro_sub">Claridad Diurna Ejecutiva</span>
-                        </div>
-                      </div>
-                      <span id="badge-tema-claro" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-cyan-100 text-cyan-800 border border-cyan-200 hidden">Activo</span>
-                    </div>
-
-                    <p class="text-xs text-slate-600 mb-4 leading-relaxed" data-i18n="cfg_modo_claro_desc">
-                      Superficies blancas inmaculadas, tipografía con óptimo contraste diurno y acabados en azul navy corporativo para máxima nitidez y presentación profesional.
-                    </p>
-
-                    <div class="p-3 rounded-xl bg-[#F0F4F9] border border-[#E3E3E3] space-y-2 mb-4">
-                      <div class="text-[10px] uppercase font-bold tracking-wider text-[#444746] mb-1">Paleta Oficial:</div>
-                      <div class="grid grid-cols-5 gap-1.5 text-center">
-                        <div class="space-y-1">
-                          <div class="w-full h-6 rounded bg-[#FFFFFF] border border-[#E3E3E3]"></div>
-                          <span class="text-[8px] text-[#444746] block">Fondo</span>
-                        </div>
-                        <div class="space-y-1">
-                          <div class="w-full h-6 rounded bg-[#F8FAFC] border border-[#E3E3E3]"></div>
-                          <span class="text-[8px] text-[#444746] block">Tarjeta</span>
-                        </div>
-                        <div class="space-y-1">
-                          <div class="w-full h-6 rounded bg-[#0F172A]"></div>
-                          <span class="text-[8px] text-[#444746] block">Texto</span>
-                        </div>
-                        <div class="space-y-1">
-                          <div class="w-full h-6 rounded bg-[#0284c7]"></div>
-                          <span class="text-[8px] text-[#444746] block">Azul</span>
-                        </div>
-                        <div class="space-y-1">
-                          <div class="w-full h-6 rounded bg-[#E2E8F0]"></div>
-                          <span class="text-[8px] text-[#444746] block">Borde</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button type="button" class="w-full py-2.5 rounded-xl bg-[#F0F4F9] group-hover:bg-[#0284c7] group-hover:text-white border border-[#E3E3E3] group-hover:border-[#0284c7] text-xs font-bold text-[#1F1F1F] transition-all flex items-center justify-center gap-2">
-                    <i data-lucide="sun" class="w-4 h-4"></i>
-                    <span data-i18n="cfg_btn_modo_claro">Activar Modo Claro</span>
+                    <span data-i18n="cfg_btn_modo_oscuro">Activar Modo Oscuro (Negro)</span>
                   </button>
                 </div>
               </div>
@@ -4593,6 +4589,6 @@
   <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
 
   <!-- CLIENT SCRIPT -->
-  <script src="/static/app.js?v=20261018_fast"></script>
+  <script src="/static/app.js?v=20261019_pro"></script>
 </body>
 </html>

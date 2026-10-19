@@ -787,39 +787,36 @@ class DatabaseManager:
             );
         """)
         
-        # Inyectar organizaciones iniciales si está vacía
+        # Inyectar y autorreparar organización institucional oficial (ID 13: Corporación Universitaria Minuto de Dios)
         try:
-            cursor.execute("SELECT COUNT(*) FROM organizaciones")
-            if cursor.fetchone()[0] == 0:
-                cursor.execute("""
-                    INSERT INTO organizaciones (id, nombre, tipo_organizacion, dominio_permitido, licencias_asignadas, max_administradores, max_mentores, color_primario, color_secundario, color_acento)
-                    VALUES 
-                    (13, 'Corporación Universitaria Minuto de Dios', 'Educativa', 'uniminuto.edu.co', 500, 2, 20, '#0a192f', '#0f273f', '#06b6d4'),
-                    (1, 'UNIMINUTO', 'Educativa', 'uniminuto.edu.co', 500, 2, 20),
-                    (2, 'Hotmart', 'Empresa', 'hotmart.com', 100, 1, 5),
-                    (3, 'Comunidad EdTech Libre', 'Comunidad', 'LIBRE', 50, 1, 3);
-                """)
-                conn.commit()
+            cursor.execute("""
+                INSERT OR IGNORE INTO organizaciones (id, nombre, tipo_organizacion, dominio_permitido, licencias_asignadas, max_administradores, max_mentores, color_primario, color_secundario, color_acento)
+                VALUES (13, 'Corporación Universitaria Minuto de Dios', 'Educativa', 'uniminuto.edu.co', 500, 2, 20, '#0a192f', '#0f273f', '#06b6d4')
+            """)
+            # Si existía un duplicado vacío con ID 1 de migraciones previas, migrar referencias a ID 13 y limpiar duplicado vacío
+            cursor.execute("UPDATE usuarios SET organizacion_id = 13 WHERE organizacion_id IS NULL OR organizacion_id = 1")
+            cursor.execute("DELETE FROM organizaciones WHERE id = 1 AND (SELECT COUNT(*) FROM usuarios WHERE organizacion_id = 1) = 0")
+            conn.commit()
         except Exception as e_org:
             print(f">> [SEED ORGS] Error: {e_org}")
 
         usuarios_reales_seed = [
             (1, 13, None, 'Diego Alexander Niño Niño', 'alexander.nino.583@gmail.com', 'Super Administrador', '$2b$12$Nh5npfN6/cCS8MBclXRVNueVPr.MzcVGn4hq58M4ZfDNzndP3MzOu'),
-            (1437, 13, None, 'David Santiago Alfonso Muñoz', 'david.alfonso-m@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1438, 13, None, 'Sebastian Arevalo Matiz', 'sebastian.arevalo-m@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1439, 13, None, 'Luis Eduardo Castillo Hernandez', 'luis.castillo-h@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1440, 13, None, 'Jose Santiago Lemus Duran', 'jose.lemus-d@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1442, 13, None, 'Cristian Danilo Mendez Ortiz', 'cristian.mendez-o@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1443, 13, None, 'Juan David Narciso Posada', 'juan.narciso-p@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1444, 13, None, 'Diego Alexander Niño Niño', 'diego.nino-n@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1445, 13, None, 'Liseth Sudiany Perez Moreno', 'liseth.perez-m@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1446, 13, None, 'Andres David Prada Opayome', 'andres.prada-o@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1447, 13, None, 'Diana Katerin Ramirez Nieto', 'diana.ramirez-n@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1448, 13, None, 'Cristian Camilo Rozo Castro', 'cristian.rozo-c@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1449, 13, None, 'Juan Camilo Rozo Penagos', 'juan.rozo-p@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1450, 13, None, 'Jose Manuel Toro Garzon', 'jose.toro-g@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1451, 13, None, 'Christian David Torres Rivero', 'christian.torres-r@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1452, 13, None, 'Juan Camilo Urrego Romero', 'juan.urrego-r@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1437, 13, 1455, 'David Santiago Alfonso Muñoz', 'david.alfonso-m@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1438, 13, 1455, 'Sebastian Arevalo Matiz', 'sebastian.arevalo-m@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1439, 13, 1455, 'Luis Eduardo Castillo Hernandez', 'luis.castillo-h@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1440, 13, 1455, 'Jose Santiago Lemus Duran', 'jose.lemus-d@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1442, 13, 1455, 'Cristian Danilo Mendez Ortiz', 'cristian.mendez-o@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1443, 13, 1455, 'Juan David Narciso Posada', 'juan.narciso-p@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1444, 13, 1455, 'Diego Alexander Niño Niño', 'diego.nino-n@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1445, 13, 1455, 'Liseth Sudiany Perez Moreno', 'liseth.perez-m@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1446, 13, 1455, 'Andres David Prada Opayome', 'andres.prada-o@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1447, 13, 1455, 'Diana Katerin Ramirez Nieto', 'diana.ramirez-n@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1448, 13, 1455, 'Cristian Camilo Rozo Castro', 'cristian.rozo-c@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1449, 13, 1455, 'Juan Camilo Rozo Penagos', 'juan.rozo-p@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1450, 13, 1455, 'Jose Manuel Toro Garzon', 'jose.toro-g@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1451, 13, 1455, 'Christian David Torres Rivero', 'christian.torres-r@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
+            (1452, 13, 1455, 'Juan Camilo Urrego Romero', 'juan.urrego-r@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
             (1453, 13, None, 'alejito', 'alejandro.mejia-a@uniminuto.edu.co', 'Administrador', '$2b$12$z9QOq8wkA/wy8rvrCkbR4eVgvgu6wg1cnSn7FEV4Ru2D5ry2195Yq'),
             (1454, 13, None, 'camilo', 'diego.alexander.nino.583@hotmail.com', 'Administrador', '$2b$12$DHqMgJKlq4NBlrQP7Lm9gu1aifoXt4e3fhOV33IxzQZJd0SjgSG9a'),
             (1455, 13, None, 'alvaro Niño', 'ninod9716@gmail.com', 'Mentor', '$2b$12$81MVkQbBYUpwFB3wJtpQ3u78FuFqpohbGc5rKN7BwORbP/GIj7B5m')
@@ -834,6 +831,9 @@ class DatabaseManager:
                     """, u)
                 except Exception:
                     pass
+            # Vincular automáticamente los aprendices de la sede 13 al Mentor alvaro Niño (1455) si estaban sin mentor
+            cursor.execute("UPDATE usuarios SET organizacion_id = 13 WHERE organizacion_id IS NULL OR organizacion_id = 1")
+            cursor.execute("UPDATE usuarios SET mentor_id = 1455 WHERE rol = 'Aprendiz' AND organizacion_id = 13 AND mentor_id IS NULL")
             conn.commit()
         except Exception as e_seed_u:
             print(f">> [SEED USUARIOS] Error: {e_seed_u}")
@@ -853,14 +853,17 @@ class DatabaseManager:
                 cursor.execute("""
                     INSERT INTO asignacion_material (material_id, organizacion_id)
                     VALUES 
-                    (1, 1),
-                    (2, 1),
-                    (3, 1),
-                    (4, 1),
-                    (5, 1),
+                    (1, 13),
+                    (2, 13),
+                    (3, 13),
+                    (4, 13),
+                    (5, 13),
                     (4, NULL),
                     (5, NULL)
                 """)
+                conn.commit()
+            else:
+                cursor.execute("UPDATE asignacion_material SET organizacion_id = 13 WHERE organizacion_id = 1")
                 conn.commit()
         except Exception as e_mat:
             print(f">> [SEED MATERIALES] Error: {e_mat}")
@@ -938,7 +941,9 @@ class DatabaseManager:
                     INSERT INTO historial_nuevos_integrantes 
                     (usuario_id, nombre, correo, rol, organizacion_id, organizacion_nombre, origen_registro, fecha_registro, fecha_dia)
                     VALUES (?, ?, ?, ?, ?, ?, 'Registro en Plataforma', DATETIME('now', 'localtime'), DATE('now', 'localtime'))
-                """, (ex[0], ex[1], ex[2], ex[3], ex[4], ex[5] or "Institución General"))
+                """, (ex[0], ex[1], ex[2], ex[3], ex[4], ex[5] or "Corporación Universitaria Minuto de Dios"))
+        else:
+            cursor.execute("UPDATE historial_nuevos_integrantes SET organizacion_id = 13, organizacion_nombre = 'Corporación Universitaria Minuto de Dios' WHERE organizacion_id = 13 OR organizacion_nombre IS NULL OR organizacion_nombre = 'Institución General'")
 
         # Asegurar colecciones de formación oficial con módulos
         cursor.execute("SELECT id FROM material_capacitacion WHERE titulo LIKE '%IA responsable%'")
@@ -959,7 +964,7 @@ class DatabaseManager:
         cursor.execute("UPDATE material_capacitacion SET total_modulos = 4 WHERE (titulo LIKE '%Análisis%' OR titulo LIKE '%Power BI%') AND total_modulos < 4")
 
         # Asignar colecciones a organizaciones existentes si asignacion_material está vacía
-        cursor.execute("SELECT COUNT(*) FROM asignacion_material")
+        cursor.execute("SELECT COUNT(*) FROM asignacion_material WHERE organizacion_id = 13")
         if cursor.fetchone()[0] == 0:
             cursor.execute("SELECT id FROM organizaciones")
             todas_orgs = [r[0] for r in cursor.fetchall()]
@@ -970,7 +975,7 @@ class DatabaseManager:
                     cursor.execute("INSERT INTO asignacion_material (material_id, organizacion_id, fecha_asignacion) VALUES (?, ?, DATETIME('now', 'localtime'))", (m_id, o_id))
 
         # Sembrar progreso demostrativo en módulos para aprendices (ej: 2 de 3 módulos completados = 66.7%)
-        cursor.execute("SELECT COUNT(*) FROM progreso_cursos WHERE modulos_completados > 0")
+        cursor.execute("SELECT COUNT(*) FROM progreso_cursos p JOIN usuarios u ON p.usuario_id = u.id WHERE u.rol = 'Aprendiz' AND p.modulos_completados > 0")
         if cursor.fetchone()[0] == 0:
             cursor.execute("SELECT u.id, u.organizacion_id FROM usuarios u WHERE u.rol = 'Aprendiz' LIMIT 25")
             alumnos = cursor.fetchall()
@@ -1357,39 +1362,141 @@ def generar_html_correo_2fa(nombre: str, codigo: str, rol: str = "Integrante Ins
 </body>
 </html>"""
 
-def generar_html_correo_bienvenida(nombre: str, rol: str, correo: str) -> str:
-    """Genera plantilla de correo de bienvenida corporativa"""
-    return f"""
-    <!DOCTYPE html>
-    <html lang="es">
-    <head><meta charset="UTF-8"></head>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px; color: #1e293b;">
-      <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-        <tr>
-          <td style="background-color: #091b2c; padding: 28px 24px; text-align: center;">
-            <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 800;">Consultoría EdTech</h1>
-            <p style="color: #38bdf8; margin: 4px 0 0 0; font-size: 12px; font-weight: 600; text-transform: uppercase;">Cuenta Creada Exitosamente</p>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding: 32px 28px;">
-            <p style="margin: 0 0 16px 0; font-size: 15px; color: #334155;">Hola <strong>{nombre}</strong>,</p>
-            <p style="margin: 0 0 24px 0; font-size: 14px; color: #64748b; line-height: 1.5;">
-              Te damos la bienvenida al Centro de Comando EdTech. Tu cuenta institucional ha sido registrada con el rol de <strong>{rol}</strong>.
-            </p>
-            <div style="background-color: #f1f5f9; border-radius: 10px; padding: 14px 18px; margin-bottom: 20px;">
-              <p style="margin: 0; font-size: 13px; color: #334155;"><strong>Usuario:</strong> {correo}</p>
-              <p style="margin: 4px 0 0 0; font-size: 13px; color: #334155;"><strong>Rol:</strong> {rol}</p>
-            </div>
-            <p style="margin: 0; font-size: 12px; color: #94a3b8; text-align: center;">
-              Cada vez que inicies sesión se te enviará un código de verificación 2FA a esta dirección de correo.
-            </p>
-          </td>
-        </tr>
-      </table>
-    </body>
-    </html>
-    """
+def generar_html_correo_bienvenida(
+    nombre: str,
+    rol: str,
+    correo: str,
+    institucion_nombre: str = "Corporación Universitaria Minuto de Dios",
+    password_inicial: str = "123456"
+) -> str:
+    """Genera plantilla de correo de bienvenida ejecutiva con Institución, Nombre, Cargo (Administrador/Mentor/Aprendiz) y credenciales"""
+    fecha_actual = datetime.now().strftime("%d/%m/%Y · %H:%M")
+    rol_limpio = (rol or "Aprendiz").strip()
+    institucion_limpia = (institucion_nombre or "Corporación Universitaria Minuto de Dios").strip()
+    color_rol_bg = "#ecfeff"
+    color_rol_txt = "#0e7490"
+    color_rol_borde = "#a5f3fc"
+    icono_rol = "🎓"
+    if "admin" in rol_limpio.lower():
+        color_rol_bg = "#f0f9ff"
+        color_rol_txt = "#0369a1"
+        color_rol_borde = "#bae6fd"
+        icono_rol = "🏛️"
+    elif "mentor" in rol_limpio.lower() or "docente" in rol_limpio.lower():
+        color_rol_bg = "#f5f3ff"
+        color_rol_txt = "#6d28d9"
+        color_rol_borde = "#ddd6fe"
+        icono_rol = "👨‍🏫"
+
+    return f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bienvenido a Consultoría EdTech</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #0f172a;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f1f5f9; padding: 36px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 580px; background-color: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);">
+          
+          <!-- FRANJA SUPERIOR DE ACENTO -->
+          <tr>
+            <td style="height: 6px; background: linear-gradient(90deg, #06b6d4 0%, #0284c7 50%, #1e3a8a 100%);"></td>
+          </tr>
+
+          <!-- CABECERA CORPORATIVA -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #091b2c 0%, #0f273f 100%); padding: 34px 32px; text-align: center;">
+              <div style="display: inline-block; padding: 6px 16px; border-radius: 999px; background-color: rgba(56, 189, 248, 0.14); border: 1px solid rgba(56, 189, 248, 0.35); margin-bottom: 14px;">
+                <span style="color: #38bdf8; font-size: 11px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;">🎉 CREDENCIAL OFICIAL DE INCORPORACIÓN</span>
+              </div>
+              <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">Bienvenido a Consultoría EdTech</h1>
+              <p style="color: #cbd5e1; margin: 8px 0 0 0; font-size: 13px; font-weight: 600;">
+                🏛️ {institucion_limpia}
+              </p>
+            </td>
+          </tr>
+
+          <!-- CUERPO PRINCIPAL -->
+          <tr>
+            <td style="padding: 36px 32px 28px 32px;">
+              <p style="margin: 0 0 12px 0; font-size: 16px; color: #0f172a;">
+                Hola <strong style="color: #091b2c;">{nombre}</strong>,
+              </p>
+              <p style="margin: 0 0 24px 0; font-size: 14px; color: #475569; line-height: 1.65;">
+                Te damos una cordial bienvenida a <strong>Consultoría EdTech</strong>. Tu cuenta institucional ha sido dada de alta exitosamente dentro del convenio de <strong>{institucion_limpia}</strong> con el cargo oficial de <strong>{rol_limpio}</strong>.
+              </p>
+
+              <!-- TARJETA DE IDENTIDAD INSTITUCIONAL Y CARGO -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: linear-gradient(180deg, #f8fafc 0%, #f0f9ff 100%); border: 1.5px solid #bae6fd; border-radius: 16px; margin-bottom: 24px;">
+                <tr>
+                  <td style="padding: 22px 24px;">
+                    <div style="font-size: 11px; font-weight: 800; color: #0369a1; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 14px;">
+                      📋 FICHA OFICIAL DEL INTEGRANTE
+                    </div>
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size: 13px; color: #334155;">
+                      <tr>
+                        <td style="padding: 7px 0; color: #64748b; width: 42%;"><strong>Institución:</strong></td>
+                        <td style="padding: 7px 0; font-weight: 800; color: #0f172a;">🏛️ {institucion_limpia}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 7px 0; color: #64748b; border-top: 1px solid #e2e8f0;"><strong>Nombre Completo:</strong></td>
+                        <td style="padding: 7px 0; font-weight: 700; color: #0f172a; border-top: 1px solid #e2e8f0;">👤 {nombre}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; color: #64748b; border-top: 1px solid #e2e8f0;"><strong>Cargo / Rol Asignado:</strong></td>
+                        <td style="padding: 8px 0; border-top: 1px solid #e2e8f0;">
+                          <span style="display: inline-block; padding: 4px 12px; border-radius: 999px; background-color: {color_rol_bg}; color: {color_rol_txt}; border: 1px solid {color_rol_borde}; font-weight: 800; font-size: 12px;">
+                            {icono_rol} {rol_limpio}
+                          </span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 7px 0; color: #64748b; border-top: 1px solid #e2e8f0;"><strong>Correo Registrado:</strong></td>
+                        <td style="padding: 7px 0; font-family: monospace; font-weight: 700; color: #0369a1; border-top: 1px solid #e2e8f0;">{correo}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 7px 0; color: #64748b; border-top: 1px solid #e2e8f0;"><strong>Contraseña Inicial:</strong></td>
+                        <td style="padding: 7px 0; font-family: monospace; font-weight: 800; color: #0f172a; border-top: 1px solid #e2e8f0;">{password_inicial}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 7px 0; color: #64748b; border-top: 1px solid #e2e8f0;"><strong>Fecha de Alta:</strong></td>
+                        <td style="padding: 7px 0; color: #475569; border-top: 1px solid #e2e8f0;">{fecha_actual}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- AVISO DE SEGURIDAD 2FA -->
+              <div style="background-color: #f8fafc; border-left: 4px solid #0284c7; border-radius: 8px; padding: 14px 16px;">
+                <p style="margin: 0; font-size: 12px; color: #334155; line-height: 1.5;">
+                  🔒 <strong>Seguridad 2FA Activada:</strong> Cada vez que inicies sesión en la plataforma con tu correo y contraseña, recibirás automáticamente en este correo un <strong>código de seguridad de 6 dígitos</strong> para verificar tu identidad.
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- PIE DE PÁGINA -->
+          <tr>
+            <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px 32px; text-align: center;">
+              <p style="margin: 0 0 4px 0; font-size: 12px; font-weight: 700; color: #334155;">
+                Consultoría EdTech · {institucion_limpia}
+              </p>
+              <p style="margin: 0; font-size: 11px; color: #94a3b8;">
+                Notificación oficial de incorporación ({CORREO_APP or 'alexander.nino.583@gmail.com'}).
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
 
 def generar_html_correo_recuperacion(nombre: str, codigo: str) -> str:
     """Genera plantilla de correo corporativa para recuperación de contraseña"""
@@ -2553,6 +2660,10 @@ def _fusionar_usuarios_recibidos(lista_usuarios: Optional[List[Dict[str, Any]]])
     conn = sqlite3.connect(SQLITE_DB, timeout=10)
     try:
         cur = conn.cursor()
+        cur.execute("""
+            INSERT OR IGNORE INTO organizaciones (id, nombre, tipo_organizacion, dominio_permitido, licencias_asignadas, max_administradores, max_mentores, color_primario, color_secundario, color_acento)
+            VALUES (13, 'Corporación Universitaria Minuto de Dios', 'Educativa', 'uniminuto.edu.co', 500, 2, 20, '#0a192f', '#0f273f', '#06b6d4')
+        """)
         cambios = 0
         for u in lista_usuarios:
             correo_u = (u.get("correo") or "").strip().lower()
@@ -2560,13 +2671,17 @@ def _fusionar_usuarios_recibidos(lista_usuarios: Optional[List[Dict[str, Any]]])
                 continue
             cur.execute("SELECT id, rol, nombre, organizacion_id, mentor_id, password_hash FROM usuarios WHERE LOWER(TRIM(correo)) = ?", (correo_u,))
             ex = cur.fetchone()
+            org_u = u.get("organizacion_id") or 13
+            if org_u == 1:
+                org_u = 13
+            mentor_u = u.get("mentor_id")
             if not ex:
                 cur.execute(
                     """INSERT OR IGNORE INTO usuarios (organizacion_id, mentor_id, nombre, correo, rol, password_hash)
                        VALUES (?, ?, ?, ?, ?, ?)""",
                     (
-                        u.get("organizacion_id") or 13,
-                        u.get("mentor_id"),
+                        org_u,
+                        mentor_u,
                         (u.get("nombre") or "Integrante").strip(),
                         correo_u,
                         u.get("rol") or "Aprendiz",
@@ -2574,6 +2689,14 @@ def _fusionar_usuarios_recibidos(lista_usuarios: Optional[List[Dict[str, Any]]])
                     )
                 )
                 cambios += 1
+            else:
+                ex_id, ex_rol, ex_nom, ex_org, ex_mentor, _ = ex
+                if (not ex_org or ex_org == 1) or (ex_mentor is None and mentor_u is not None):
+                    cur.execute(
+                        "UPDATE usuarios SET organizacion_id = ?, mentor_id = COALESCE(mentor_id, ?) WHERE id = ?",
+                        (org_u, mentor_u, ex_id)
+                    )
+                    cambios += 1
         if cambios > 0:
             conn.commit()
     except Exception:
@@ -3402,7 +3525,10 @@ def crear_integrante_manual(datos: CrearIntegranteManualReq, background_tasks: B
         
     org = db.execute_query("SELECT id, nombre, max_administradores, max_mentores, licencias_asignadas FROM organizaciones WHERE id = ?", (datos.organizacion_id,), fetchone=True)
     if not org:
+        org = db.execute_query("SELECT id, nombre, max_administradores, max_mentores, licencias_asignadas FROM organizaciones ORDER BY id ASC LIMIT 1", fetchone=True)
+    if not org:
         raise HTTPException(status_code=404, detail="La institución u organización seleccionada no fue encontrada.")
+    org_id_real = org["id"]
         
     rol_normalizado = datos.rol.strip()
     if rol_normalizado not in ["Aprendiz", "Mentor", "Administrador"]:
@@ -3416,14 +3542,19 @@ def crear_integrante_manual(datos: CrearIntegranteManualReq, background_tasks: B
     
     # Validar mentor si se especificó para un aprendiz
     mentor_id_val = None
-    if rol_normalizado == "Aprendiz" and datos.mentor_id:
-        mentor = db.execute_query("SELECT id, nombre FROM usuarios WHERE id = ? AND rol = 'Mentor'", (datos.mentor_id,), fetchone=True)
-        if mentor:
-            mentor_id_val = mentor["id"]
+    if rol_normalizado == "Aprendiz":
+        if datos.mentor_id:
+            mentor = db.execute_query("SELECT id, nombre FROM usuarios WHERE id = ? AND rol = 'Mentor'", (datos.mentor_id,), fetchone=True)
+            if mentor:
+                mentor_id_val = mentor["id"]
+        if not mentor_id_val:
+            mentor_def = db.execute_query("SELECT id FROM usuarios WHERE organizacion_id = ? AND rol = 'Mentor' ORDER BY id ASC LIMIT 1", (org_id_real,), fetchone=True)
+            if mentor_def:
+                mentor_id_val = mentor_def["id"]
             
     db.execute_query(
         "INSERT INTO usuarios (nombre, correo, password_hash, rol, organizacion_id, mentor_id) VALUES (?, ?, ?, ?, ?, ?)",
-        (datos.nombre.strip(), correo_limpio, pwd_hash, rol_normalizado, datos.organizacion_id, mentor_id_val),
+        (datos.nombre.strip(), correo_limpio, pwd_hash, rol_normalizado, org_id_real, mentor_id_val),
         commit=True
     )
     
@@ -3435,7 +3566,7 @@ def crear_integrante_manual(datos: CrearIntegranteManualReq, background_tasks: B
         nombre=datos.nombre.strip(),
         correo=correo_limpio,
         rol=rol_normalizado,
-        organizacion_id=datos.organizacion_id,
+        organizacion_id=org_id_real,
         origen="Registro Manual",
         usuario_id=u_id_val
     )
@@ -3444,7 +3575,7 @@ def crear_integrante_manual(datos: CrearIntegranteManualReq, background_tasks: B
     if rol_normalizado == "Aprendiz" and u_id_val:
         colecciones_org = db.execute_query(
             "SELECT material_id FROM asignacion_material WHERE organizacion_id = ?",
-            (datos.organizacion_id,),
+            (org_id_real,),
             fetchall=True
         ) or []
         for c in colecciones_org:
@@ -3462,21 +3593,41 @@ def crear_integrante_manual(datos: CrearIntegranteManualReq, background_tasks: B
         f"Usuario '{datos.nombre.strip()}' ({rol_normalizado}) creado en '{org['nombre']}'. Clave inicial: {pwd_raw}"
     )
     
-    # Correo informativo en background
-    asunto = f"🎉 Bienvenido a {org['nombre']} - Consultoría EdTech"
-    cuerpo_txt = f"Hola {datos.nombre},\n\nHas sido registrado en {org['nombre']} con el rol de {rol_normalizado}.\nUsuario: {correo_limpio}\nContraseña provisional: {pwd_raw}\n\nPodrás cambiar tu contraseña una vez ingreses al sistema."
-    cuerpo_html = generar_html_correo_bienvenida(datos.nombre.strip(), rol_normalizado, correo_limpio)
-    background_tasks.add_task(enviar_correo_smtp, correo_limpio, asunto, cuerpo_txt, cuerpo_html)
+    # Sincronizar de inmediato entre Local y Render Cloud y enviar correo de bienvenida ejecutivo
+    _disparar_sync_usuarios_nube()
+    asunto = f"🎉 Bienvenido a Consultoría EdTech · {org['nombre']} ({rol_normalizado})"
+    cuerpo_txt = (
+        f"Bienvenido a Consultoría EdTech\n\n"
+        f"Hola {datos.nombre.strip()},\n"
+        f"Institución: {org['nombre']}\n"
+        f"Nombre: {datos.nombre.strip()}\n"
+        f"Cargo / Rol: {rol_normalizado}\n"
+        f"Correo registrado: {correo_limpio}\n"
+        f"Contraseña inicial: {pwd_raw}\n\n"
+        f"Tu código de seguridad 2FA de 6 dígitos se encuentra activo para cada inicio de sesión."
+    )
+    cuerpo_html = generar_html_correo_bienvenida(
+        nombre=datos.nombre.strip(),
+        rol=rol_normalizado,
+        correo=correo_limpio,
+        institucion_nombre=org["nombre"],
+        password_inicial=pwd_raw
+    )
+    threading.Thread(
+        target=enviar_correo_smtp,
+        args=(correo_limpio, asunto, cuerpo_txt, cuerpo_html),
+        daemon=True
+    ).start()
     
     return {
         "status": "success",
-        "mensaje": f"✓ Integrante '{datos.nombre}' ({rol_normalizado}) incorporado exitosamente a '{org['nombre']}'. Contraseña asignada: {pwd_raw}.",
+        "mensaje": f"✓ Integrante '{datos.nombre}' ({rol_normalizado}) incorporado exitosamente a '{org['nombre']}'. Correo de bienvenida enviado a {correo_limpio}.",
         "usuario": {
             "id": u_id_val,
             "nombre": datos.nombre.strip(),
             "correo": correo_limpio,
             "rol": rol_normalizado,
-            "organizacion_id": datos.organizacion_id,
+            "organizacion_id": org_id_real,
             "mentor_id": mentor_id_val
         }
     }
@@ -4711,7 +4862,17 @@ def obtener_datos_convenio_admin(organizacion_id: int):
         WHERE id = ?
     """, (organizacion_id,), fetchone=True)
     if not org:
+        org = db.execute_query("""
+            SELECT id, nombre, tipo_organizacion, dominio_permitido, licencias_asignadas,
+                   max_administradores, max_mentores, estado_activo,
+                   color_primario, color_secundario, color_acento, color_personalizado, logo_url
+            FROM organizaciones
+            ORDER BY id ASC LIMIT 1
+        """, fetchone=True)
+    if not org:
         raise HTTPException(status_code=404, detail="La organización en convenio no fue encontrada.")
+
+    org_id_real = org["id"]
 
     # 1. Mentores de esta organización
     mentores = db.execute_query("""
@@ -4719,7 +4880,7 @@ def obtener_datos_convenio_admin(organizacion_id: int):
         FROM usuarios u
         WHERE u.organizacion_id = ? AND u.rol = 'Mentor'
         ORDER BY u.nombre ASC
-    """, (organizacion_id,), fetchall=True) or []
+    """, (org_id_real,), fetchall=True) or []
 
     # 2. Conteo de aprendices por mentor
     aprendices_count_raw = db.execute_query("""
@@ -4727,7 +4888,7 @@ def obtener_datos_convenio_admin(organizacion_id: int):
         FROM usuarios
         WHERE organizacion_id = ? AND rol = 'Aprendiz' AND mentor_id IS NOT NULL
         GROUP BY mentor_id
-    """, (organizacion_id,), fetchall=True) or []
+    """, (org_id_real,), fetchall=True) or []
     aprendices_por_mentor = {r["mentor_id"]: r["conteo"] for r in aprendices_count_raw}
 
     for m in mentores:
@@ -4747,7 +4908,7 @@ def obtener_datos_convenio_admin(organizacion_id: int):
         WHERE u.organizacion_id = ? AND u.rol = 'Aprendiz'
         GROUP BY u.id, u.nombre, u.correo, u.rol, u.mentor_id, u.foto_perfil, m.nombre, m.correo, m.foto_perfil
         ORDER BY u.nombre ASC
-    """, (organizacion_id,), fetchall=True) or []
+    """, (org_id_real,), fetchall=True) or []
 
     for a in aprendices:
         a["promedio_avance"] = round(float(a["promedio_avance"]), 1)
@@ -4761,7 +4922,7 @@ def obtener_datos_convenio_admin(organizacion_id: int):
         FROM usuarios
         WHERE organizacion_id = ? AND rol = 'Administrador'
         ORDER BY nombre ASC
-    """, (organizacion_id,), fetchall=True) or []
+    """, (org_id_real,), fetchall=True) or []
 
     # Totales y KPIs
     total_estudiantes = len(aprendices)
@@ -4972,7 +5133,7 @@ async def cargar_usuarios_excel(
     conteo_aprendices = 0
     alertas = []
     dominio_org = (org["dominio_permitido"] or "").strip().lower()
-    hash_generico = bcrypt.hashpw("123456789".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    hash_generico = bcrypt.hashpw("123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     usuarios_insertados = []
 
     # PASO 1: Validación y registro de usuarios
@@ -5040,15 +5201,34 @@ async def cargar_usuarios_excel(
             usuario_id=u_id_val
         )
 
-    # PASO 2: Vinculación relacional de mentores para aprendices
+    # PASO 2: Vinculación relacional de mentores para aprendices y envío de correo ejecutivo de bienvenida
+    mentor_defecto = db.execute_query(
+        "SELECT id FROM usuarios WHERE organizacion_id = ? AND rol = 'Mentor' ORDER BY id ASC LIMIT 1",
+        (final_org_id,), fetchone=True
+    )
     for u in usuarios_insertados:
+        m_id_asignar = None
         if u["mentor_correo"]:
             m_user = db.execute_query("SELECT id FROM usuarios WHERE correo = ?", (u["mentor_correo"],), fetchone=True)
             if m_user:
-                db.execute_query("UPDATE usuarios SET mentor_id = ? WHERE correo = ?", (m_user["id"], u["correo"]), commit=True)
+                m_id_asignar = m_user["id"]
+        if not m_id_asignar and u["rol"] == "Aprendiz" and mentor_defecto:
+            m_id_asignar = mentor_defecto["id"]
+        if m_id_asignar:
+            db.execute_query("UPDATE usuarios SET mentor_id = ? WHERE correo = ?", (m_id_asignar, u["correo"]), commit=True)
 
-        cuerpo = f"Hola {u['nombre']},\n\nHas sido registrado en {org['nombre']} en la plataforma Consultoría EdTech con el rol de {u['rol']}.\nCredenciales:\n- Usuario: {u['correo']}\n- Contraseña: 123456789"
-        background_tasks.add_task(enviar_correo_smtp, u["correo"], "¡Bienvenido a Consultoría EdTech!", cuerpo)
+        cuerpo_html = generar_html_correo_bienvenida(
+            nombre=u["nombre"],
+            rol=u["rol"],
+            correo=u["correo"],
+            institucion_nombre=org["nombre"],
+            password_inicial="123456"
+        )
+        asunto_bienvenida = f"✨ Bienvenido a Consultoría EdTech | {org['nombre']} ({u['rol']})"
+        background_tasks.add_task(enviar_correo_smtp, u["correo"], asunto_bienvenida, cuerpo_html)
+
+    if registrados > 0:
+        _disparar_sync_usuarios_nube()
 
     modo_legible = "Flexible (Multi-dominio)" if final_modo == "flexible" else "Estricto (Dominio Institucional)"
     return {
@@ -5349,6 +5529,7 @@ async def cargar_aprendices_mentor_excel(
     
     total_nuevos = 0
     total_reasignados = 0
+    nuevos_para_correo = []
     
     for nombre_est, correo_est in filas_estudiantes:
         u_existente = db.execute_query("SELECT id, rol, organizacion_id, mentor_id FROM usuarios WHERE LOWER(correo) = ?", (correo_est,), fetchone=True)
@@ -5360,6 +5541,7 @@ async def cargar_aprendices_mentor_excel(
         else:
             u_id = db.execute_query("INSERT INTO usuarios (nombre, correo, rol, organizacion_id, mentor_id, password_hash) VALUES (?, ?, 'Aprendiz', ?, ?, ?)", (nombre_est, correo_est, org_id, mentor_id, hash_defecto))
             total_nuevos += 1
+            nuevos_para_correo.append((nombre_est, correo_est))
             
             db.execute_query("""
                 INSERT INTO historial_nuevos_integrantes (
@@ -5378,6 +5560,24 @@ async def cargar_aprendices_mentor_excel(
                 db.execute_query("INSERT INTO progreso_cursos (usuario_id, curso_id, porcentaje_avance, tiempo_dedicado_minutos, modulos_completados, estado, fecha_actualizacion) VALUES (?, ?, 0.0, 0, 0, 'No Iniciado', ?)", (u_id, mat_id, fecha_actual_str), commit=True)
                 
     db.commit()
+    _disparar_sync_usuarios_nube()
+
+    if nuevos_para_correo:
+        def _enviar_bienvenidas_mentor_bg(lista_est, inst_nom):
+            for nom_e, corr_e in lista_est:
+                try:
+                    html_b = generar_html_correo_bienvenida(
+                        nombre=nom_e,
+                        rol="Aprendiz",
+                        correo=corr_e,
+                        institucion_nombre=inst_nom,
+                        password_inicial="123456"
+                    )
+                    asunto_b = f"✨ Bienvenido a Consultoría EdTech | {inst_nom} (Aprendiz)"
+                    enviar_correo_smtp(corr_e, asunto_b, html_b)
+                except Exception as e_mail:
+                    print(f"[BIENVENIDA MENTOR EXCEL ERROR] {e_mail}")
+        threading.Thread(target=_enviar_bienvenidas_mentor_bg, args=(nuevos_para_correo, org_nombre), daemon=True).start()
     
     detalle_msg = f"Mentor: {mentor['nombre']} - Total procesados: {len(filas_estudiantes)} ({total_nuevos} nuevos con clave 123456, {total_reasignados} reasignados)."
     registrar_movimiento("SuperAdmin", "Grupos", "Carga_Excel_Mentor", "EXITO", detalle_msg)

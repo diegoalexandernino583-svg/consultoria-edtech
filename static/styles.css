@@ -422,63 +422,79 @@ body.tema-minimalista .sidebar-link.active {
    ===================================================================== */
 
 /* 1. MODO CLARO MINIMALISTA
-   Fondo principal: #FFFFFF
-   Superficies (Burbujas / Tarjetas): #F0F4F9
-   Texto principal: #1F1F1F
-   Texto secundario: #444746
-   Bordes y separadores: #E3E3E3 */
+   Fondo principal: #F8FAFC
+   Superficies (Tarjetas / Header / Sidebar): #FFFFFF
+   Texto principal: #0F172A
+   Texto secundario: #475569
+   Bordes y separadores: #E2E8F0 */
 body.tema-claro,
 body.tema-predeterminado {
-  background-color: #FFFFFF !important;
-  color: #1F1F1F !important;
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
 }
 
 body.tema-claro header,
 body.tema-predeterminado header {
-  background-color: #F0F4F9 !important;
-  border-bottom: 1px solid #E3E3E3 !important;
-  color: #1F1F1F !important;
+  background-color: #FFFFFF !important;
+  border-bottom: 1px solid #E2E8F0 !important;
+  color: #0F172A !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04) !important;
 }
 
 body.tema-claro .sidebar-container,
 body.tema-predeterminado .sidebar-container {
-  background-color: #F0F4F9 !important;
-  border-right: 1px solid #E3E3E3 !important;
-  color: #1F1F1F !important;
+  background-color: #FFFFFF !important;
+  border-right: 1px solid #E2E8F0 !important;
+  color: #0F172A !important;
+}
+
+body.tema-claro #sidebar-user-title,
+body.tema-claro #sidebar-org-nombre,
+body.tema-predeterminado #sidebar-user-title,
+body.tema-predeterminado #sidebar-org-nombre {
+  color: #0F172A !important;
 }
 
 body.tema-claro .sidebar-link,
 body.tema-predeterminado .sidebar-link {
-  color: #444746 !important;
+  color: #475569 !important;
 }
 
 body.tema-claro .sidebar-link:hover,
 body.tema-predeterminado .sidebar-link:hover {
-  background-color: #E3E3E3 !important;
-  color: #1F1F1F !important;
+  background-color: #F1F5F9 !important;
+  color: #0F172A !important;
 }
 
 body.tema-claro .sidebar-link.active,
 body.tema-predeterminado .sidebar-link.active {
-  background-color: #FFFFFF !important;
-  color: #1F1F1F !important;
-  border-color: #E3E3E3 !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  background-color: #ECFEFF !important;
+  color: #0E7490 !important;
+  border: 1px solid #A5F3FC !important;
+  box-shadow: 0 1px 2px rgba(6, 182, 212, 0.08) !important;
 }
 
 body.tema-claro .corp-card,
+body.tema-claro .nodo-card,
+body.tema-claro .jerarquia-col,
+body.tema-claro .card-jerarquia,
+body.tema-claro .chart-container-card,
 body.tema-predeterminado .corp-card {
-  background-color: #F0F4F9 !important;
-  border: 1px solid #E3E3E3 !important;
-  color: #1F1F1F !important;
-  box-shadow: none !important;
+  background-color: #FFFFFF !important;
+  border: 1px solid #E2E8F0 !important;
+  color: #0F172A !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
 }
 
-body.tema-claro .bg-white,
+body.tema-claro .bg-white {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+}
+
 body.tema-claro .bg-slate-50,
 body.tema-claro .bg-slate-100 {
-  background-color: #F0F4F9 !important;
-  color: #1F1F1F !important;
+  background-color: #F8FAFC !important;
+  color: #0F172A !important;
 }
 
 body.tema-claro h1,
@@ -489,48 +505,48 @@ body.tema-claro [class*="text-[#0a192f]"],
 body.tema-claro .text-slate-900,
 body.tema-claro .text-slate-800,
 body.tema-claro .text-slate-700 {
-  color: #1F1F1F !important;
+  color: #0F172A !important;
 }
 
 body.tema-claro .text-slate-600,
 body.tema-claro .text-slate-500,
 body.tema-claro .text-slate-400 {
-  color: #444746 !important;
+  color: #475569 !important;
 }
 
 body.tema-claro .border-slate-100,
 body.tema-claro .border-slate-200,
 body.tema-claro .border-slate-300 {
-  border-color: #E3E3E3 !important;
+  border-color: #E2E8F0 !important;
 }
 
 body.tema-claro input,
 body.tema-claro select,
 body.tema-claro textarea {
   background-color: #FFFFFF !important;
-  color: #1F1F1F !important;
-  border: 1px solid #E3E3E3 !important;
+  color: #0F172A !important;
+  border: 1px solid #CBD5E1 !important;
 }
 
 body.tema-claro input:focus,
 body.tema-claro select:focus,
 body.tema-claro textarea:focus {
-  border-color: #444746 !important;
-  box-shadow: none !important;
+  border-color: #0891B2 !important;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.12) !important;
   outline: none !important;
 }
 
 body.tema-claro table thead {
-  background-color: #FFFFFF !important;
-  color: #444746 !important;
+  background-color: #F8FAFC !important;
+  color: #334155 !important;
 }
 
 body.tema-claro table tbody tr {
-  border-color: #E3E3E3 !important;
+  border-color: #E2E8F0 !important;
 }
 
 body.tema-claro table tbody tr:hover {
-  background-color: rgba(0, 0, 0, 0.02) !important;
+  background-color: #F1F5F9 !important;
 }
 
 /* =====================================================================

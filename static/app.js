@@ -963,16 +963,9 @@ function seleccionarTemaVisual(modo) {
     else badgeClaro.classList.add('hidden');
   }
 
-  const iconoHeader = document.getElementById('header-icono-tema');
   const lblHeaderModo = document.getElementById('lbl-header-modo');
-  if (iconoHeader) {
-    if (modo === 'oscuro') {
-      iconoHeader.setAttribute('data-lucide', 'sun');
-      if (lblHeaderModo) lblHeaderModo.innerText = 'Modo Claro';
-    } else {
-      iconoHeader.setAttribute('data-lucide', 'moon');
-      if (lblHeaderModo) lblHeaderModo.innerText = 'Modo Oscuro';
-    }
+  if (lblHeaderModo) {
+    lblHeaderModo.innerText = (modo === 'oscuro') ? '☀️ Modo Claro' : '🌙 Modo Oscuro';
   }
 
   refrescarIconos();
@@ -982,7 +975,7 @@ function alternarTemaVisualRapido() {
   const actual = localStorage.getItem('edtech_tema_visual') || 'claro';
   const nuevo = (actual === 'oscuro') ? 'claro' : 'oscuro';
   seleccionarTemaVisual(nuevo);
-  mostrarToast(nuevo === 'oscuro' ? '🌙 Modo Oscuro activado' : '☀️ Modo Claro activado', 'info');
+  mostrarToast(nuevo === 'oscuro' ? '🌙 Modo Oscuro (Negro) activado' : '☀️ Modo Claro (Blanco) activado', 'info');
 }
 
 function actualizarVisibilidadTemasSegunRol() {
@@ -8309,15 +8302,17 @@ function cambiarTabConfiguracion(tabId) {
   if (tabId === 'espacio' || tabId === 'colorimetria' || tabId === 'temas') {
     tabId = 'personalizacion';
   }
-  const tabs = ['cuenta', 'personalizacion', 'conectividad', 'backups', 'papelera', 'powerbi'];
-  tabs.forEach(t => {
+  const tabsVisibles = ['personalizacion', 'cuenta'];
+  const tabsOcultas = ['conectividad', 'backups', 'papelera', 'powerbi'];
+
+  tabsVisibles.forEach(t => {
     const btn = document.getElementById(`tab-btn-cfg-${t}`);
     const content = document.getElementById(`tab-content-cfg-${t}`);
     if (btn) {
       if (t === tabId) {
-        btn.className = 'px-4 py-2.5 text-xs font-bold border-b-2 border-cyan-600 text-cyan-700 flex items-center gap-2 whitespace-nowrap transition-all';
+        btn.className = 'px-4 py-2.5 text-xs font-bold border-b-2 border-cyan-600 text-cyan-700 flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer';
       } else {
-        btn.className = 'px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap transition-all';
+        btn.className = 'px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer';
       }
     }
     if (content) {
@@ -8326,14 +8321,15 @@ function cambiarTabConfiguracion(tabId) {
     }
   });
 
+  tabsOcultas.forEach(t => {
+    const btn = document.getElementById(`tab-btn-cfg-${t}`);
+    const content = document.getElementById(`tab-content-cfg-${t}`);
+    if (btn) btn.classList.add('hidden');
+    if (content) content.classList.add('hidden');
+  });
+
   if (tabId === 'personalizacion') {
     cargarEstadoEspacioTrabajo();
-  } else if (tabId === 'conectividad') {
-    cargarDatosConectividadConfiguracion();
-  } else if (tabId === 'backups') {
-    cargarHistorialBackups();
-  } else if (tabId === 'papelera') {
-    cargarPapeleraUsuarios();
   }
   refrescarIconos();
 }
@@ -8384,7 +8380,7 @@ function inicializarVistaConfiguraciones(subTabApertura = null) {
   if (inCorreo) inCorreo.value = currentUser.correo;
   if (inRol) inRol.value = currentUser.rol;
 
-  const orgNombre = currentUser.organizacion?.nombre || (allOrganizations.find(o => o.id === currentUser.organizacion_id)?.nombre) || 'Sede Central (Global)';
+  const orgNombre = currentUser.organizacion?.nombre || (allOrganizations.find(o => o.id === currentUser.organizacion_id)?.nombre) || 'Corporación Universitaria Minuto de Dios';
   if (inOrg) inOrg.value = orgNombre;
 
   if (dispNombre) dispNombre.innerText = currentUser.nombre;
@@ -8404,38 +8400,20 @@ function inicializarVistaConfiguraciones(subTabApertura = null) {
     }
   }
 
-  // Filtrado de pestañas según rol: Mentores y Aprendices solo ven Perfil y Personalización de su espacio
-  const esRestringido = (currentUser.rol === 'Mentor' || currentUser.rol === 'Aprendiz' || currentUser.rol === 'Estudiante');
-  const tabsAdminOnly = ['conectividad', 'backups', 'papelera', 'powerbi'];
-  tabsAdminOnly.forEach(t => {
+  // En Configuración dejamos exclusivamente Idioma & Apariencia (Claro/Oscuro) y Mi Perfil & Cuenta
+  const tabsOcultas = ['conectividad', 'backups', 'papelera', 'powerbi'];
+  tabsOcultas.forEach(t => {
     const btn = document.getElementById(`tab-btn-cfg-${t}`);
-    if (btn) {
-      if (esRestringido) btn.classList.add('hidden');
-      else btn.classList.remove('hidden');
-    }
+    if (btn) btn.classList.add('hidden');
   });
 
   const btnPersonalizacion = document.getElementById('tab-btn-cfg-personalizacion');
   if (btnPersonalizacion) btnPersonalizacion.classList.remove('hidden');
 
-  // Sub-pestaña de organización restringida para estudiantes/mentores
-  const subOrg = document.getElementById('subtab-btn-personal-org');
-  if (subOrg) {
-    if (esRestringido) subOrg.classList.add('hidden');
-    else subOrg.classList.remove('hidden');
-  }
-
-  if (subTabApertura === 'personalizacion' || subTabApertura === 'temas') {
-    cambiarTabConfiguracion('personalizacion');
-  } else if (subTabApertura) {
-    cambiarTabConfiguracion(subTabApertura);
-  } else {
+  if (subTabApertura === 'cuenta') {
     cambiarTabConfiguracion('cuenta');
-  }
-
-  if (!esRestringido) {
-    cargarSelectorOrgsColorimetria();
-    cargarDatosConectividadConfiguracion();
+  } else {
+    cambiarTabConfiguracion('personalizacion');
   }
 
   refrescarIconos();
@@ -9410,15 +9388,10 @@ async function cargarEstadoEspacioTrabajo() {
   // Cargar galería dinámica de sugerencias y opciones de diseño
   cargarOpcionesDisenosTemas();
 
-  // Mostrar panel de entorno e identidad institucional para Administradores y Super Administradores
-  const esAdminOSuperAdmin = (currentUser.rol === 'Super Administrador' || currentUser.rol === 'Administrador');
+  // Mantener oculto el panel complejo de colorimetría para dejar solo Idioma y Modo Claro (Blanco) / Modo Oscuro (Negro)
   const panelEntornoAdmin = document.getElementById('panel-personalizacion-entorno-admin');
   if (panelEntornoAdmin) {
-    if (esAdminOSuperAdmin) {
-      panelEntornoAdmin.classList.remove('hidden');
-    } else {
-      panelEntornoAdmin.classList.add('hidden');
-    }
+    panelEntornoAdmin.classList.add('hidden');
   }
 
   aplicarEstilosTemaWeb(currentUser.tema_decorativo || 'estandar', currentUser.fondo_personalizado);
