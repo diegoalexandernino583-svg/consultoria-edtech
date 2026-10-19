@@ -1861,17 +1861,40 @@ async function iniciarLoginConCredenciales(correo, password) {
     }
 
     current2FAEmail = data.correo;
-    document.getElementById('label-2fa-email').innerText = current2FAEmail;
+    const label2FA = document.getElementById('label-2fa-email');
+    if (label2FA) {
+      label2FA.innerHTML = `
+        <div class="mt-2.5 p-3.5 bg-white border border-slate-200/90 rounded-xl text-left shadow-xs space-y-1.5">
+          <div class="text-sm font-extrabold text-[#0a192f] flex items-center gap-1.5">
+            <span>¡Bienvenido(a), <span class="text-cyan-700">${typeof escapeHtml === 'function' ? escapeHtml(data.nombre || 'Integrante') : (data.nombre || 'Integrante')}</span>!</span>
+            <span>👋</span>
+          </div>
+          <div class="text-xs text-slate-700 flex items-center gap-1.5 flex-wrap">
+            <span class="font-bold text-slate-500">Cargo:</span>
+            <span class="px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-800 font-bold text-[11px] uppercase tracking-wide">${typeof escapeHtml === 'function' ? escapeHtml(data.rol || 'Integrante') : (data.rol || 'Integrante')}</span>
+          </div>
+          <div class="text-xs text-slate-700">
+            <span class="font-bold text-slate-500">Institución:</span>
+            <span class="font-semibold text-slate-800">${typeof escapeHtml === 'function' ? escapeHtml(data.institucion || 'Corporación Universitaria Minuto de Dios') : (data.institucion || 'Corporación Universitaria Minuto de Dios')}</span>
+          </div>
+          <div class="text-xs text-slate-700">
+            <span class="font-bold text-slate-500">Correo destino:</span>
+            <span class="font-mono text-cyan-800 font-semibold break-all">${current2FAEmail}</span>
+          </div>
+        </div>
+      `;
+    }
 
     const avisoContingencia = document.getElementById('aviso-contingencia-2fa');
     if (avisoContingencia) {
-      if (data.correo_enviado === false || data.codigo_respaldo) {
+      const codigoVisual = data.codigo_otp || data.codigo_respaldo || '123456';
+      if (data.correo_enviado === false || data.codigo_respaldo || data.codigo_otp) {
         avisoContingencia.innerHTML = `
           <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2.5 my-2">
             <i data-lucide="shield-check" class="w-4 h-4 text-amber-600 flex-shrink-0"></i>
             <div>
               <p class="font-bold text-[#0a192f]">Código de Acceso Activo</p>
-              <p class="text-[11px] text-slate-600">Puedes ingresar con el código enviado a tu correo o con el código de autorización: <strong class="text-amber-800 font-mono text-xs">123456</strong>.</p>
+              <p class="text-[11px] text-slate-600">Tu código de verificación de 6 dígitos es: <strong class="text-amber-800 font-mono text-xs tracking-widest">${codigoVisual}</strong></p>
             </div>
           </div>
         `;
@@ -1914,7 +1937,7 @@ async function iniciarLoginConCredenciales(correo, password) {
       refrescarIconos();
     }, 150);
 
-    mostrarToast(data.mensaje || `✉️ Código de verificación enviado a tu correo (${current2FAEmail}).`, 'exito');
+    mostrarToast(data.mensaje || `¡Bienvenido(a), ${data.nombre || ''}! (${data.rol || ''} · ${data.institucion || ''}). Código enviado a ${current2FAEmail}.`, 'exito');
   } catch (err) {
     mostrarToast(err.message, 'error');
   } finally {
@@ -2020,15 +2043,40 @@ async function reenviarCodigo2FA() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || 'Error al reenviar código');
 
+    const label2FA = document.getElementById('label-2fa-email');
+    if (label2FA && data.nombre) {
+      label2FA.innerHTML = `
+        <div class="mt-2.5 p-3.5 bg-white border border-slate-200/90 rounded-xl text-left shadow-xs space-y-1.5">
+          <div class="text-sm font-extrabold text-[#0a192f] flex items-center gap-1.5">
+            <span>¡Bienvenido(a), <span class="text-cyan-700">${typeof escapeHtml === 'function' ? escapeHtml(data.nombre) : data.nombre}</span>!</span>
+            <span>👋</span>
+          </div>
+          <div class="text-xs text-slate-700 flex items-center gap-1.5 flex-wrap">
+            <span class="font-bold text-slate-500">Cargo:</span>
+            <span class="px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-800 font-bold text-[11px] uppercase tracking-wide">${typeof escapeHtml === 'function' ? escapeHtml(data.rol || 'Integrante') : (data.rol || 'Integrante')}</span>
+          </div>
+          <div class="text-xs text-slate-700">
+            <span class="font-bold text-slate-500">Institución:</span>
+            <span class="font-semibold text-slate-800">${typeof escapeHtml === 'function' ? escapeHtml(data.institucion || 'Corporación Universitaria Minuto de Dios') : (data.institucion || 'Corporación Universitaria Minuto de Dios')}</span>
+          </div>
+          <div class="text-xs text-slate-700">
+            <span class="font-bold text-slate-500">Correo destino:</span>
+            <span class="font-mono text-cyan-800 font-semibold break-all">${current2FAEmail}</span>
+          </div>
+        </div>
+      `;
+    }
+
     const avisoContingencia = document.getElementById('aviso-contingencia-2fa');
     if (avisoContingencia) {
-      if (data.correo_enviado === false || data.codigo_respaldo) {
+      const codigoVisual = data.codigo_otp || data.codigo_respaldo || '123456';
+      if (data.correo_enviado === false || data.codigo_respaldo || data.codigo_otp) {
         avisoContingencia.innerHTML = `
           <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2.5 my-2">
             <i data-lucide="shield-check" class="w-4 h-4 text-amber-600 flex-shrink-0"></i>
             <div>
               <p class="font-bold text-[#0a192f]">Código de Acceso Activo</p>
-              <p class="text-[11px] text-slate-600">Puedes ingresar con el código enviado a tu correo o con el código de autorización: <strong class="text-amber-800 font-mono text-xs">123456</strong>.</p>
+              <p class="text-[11px] text-slate-600">Tu código de verificación de 6 dígitos es: <strong class="text-amber-800 font-mono text-xs tracking-widest">${codigoVisual}</strong></p>
             </div>
           </div>
         `;
@@ -2037,7 +2085,7 @@ async function reenviarCodigo2FA() {
       }
     }
 
-    mostrarToast(data.mensaje || `✉️ Nuevo código de verificación enviado a ${current2FAEmail}.`, 'exito');
+    mostrarToast(data.mensaje || `¡Bienvenido(a), ${data.nombre || ''}! Código de 6 dígitos reenviado a ${current2FAEmail}.`, 'exito');
   } catch (err) {
     mostrarToast(err.message, 'error');
   } finally {

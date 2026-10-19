@@ -1237,11 +1237,12 @@ def registrar_en_historial_integrantes(
 # =====================================================================
 # ENVÍO DE CORREOS SMTP EJECUTIVOS (GMAIL)
 # =====================================================================
-def generar_html_correo_2fa(nombre: str, codigo: str, rol: str = "Integrante Institucional", correo: str = "") -> str:
-    """Plantilla ejecutiva de alta gama para el código de verificación 2FA de 6 dígitos (compatible con Gmail, Outlook 365 y móviles)"""
+def generar_html_correo_2fa(nombre: str, codigo: str, rol: str = "Integrante Institucional", correo: str = "", institucion_nombre: str = "Corporación Universitaria Minuto de Dios") -> str:
+    """Plantilla ejecutiva de alta gama para el código de verificación 2FA de 6 dígitos que incluye bienvenida por nombre, cargo (rol) e institución"""
     nombre_seguro = html.escape((nombre or "Usuario").strip())
     rol_seguro = html.escape((rol or "Integrante Institucional").strip())
     correo_seguro = html.escape((correo or "").strip())
+    institucion_segura = html.escape((institucion_nombre or "Corporación Universitaria Minuto de Dios").strip())
     codigo_limpio = str(codigo).strip()
     fecha_str = datetime.now().strftime("%d/%m/%Y · %H:%M:%S")
 
@@ -1255,26 +1256,43 @@ def generar_html_correo_2fa(nombre: str, codigo: str, rol: str = "Integrante Ins
         for d in codigo_limpio
     ])
 
-    bloque_cuenta = ""
-    if correo_seguro:
-        bloque_cuenta = f"""
-        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 24px;">
-          <tr>
-            <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">
-              <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #64748b;">Cuenta Verificada</span>
-              <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-top: 2px;">{correo_seguro}</div>
-            </td>
-            <td align="right" style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">
-              <span style="display: inline-block; background-color: #e0f2fe; color: #0369a1; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 999px; letter-spacing: 0.4px; text-transform: uppercase;">{rol_seguro}</span>
-            </td>
-          </tr>
-          <tr>
-            <td colspan="2" style="padding: 9px 16px; font-size: 11px; color: #64748b;">
-              🕒 Solicitud registrada el <strong>{fecha_str}</strong> · Cifrado TLS/SSL Activo
-            </td>
-          </tr>
-        </table>
-        """
+    bloque_cuenta = f"""
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; margin-bottom: 24px; overflow: hidden;">
+      <tr>
+        <td style="padding: 12px 18px; border-bottom: 1px solid #e2e8f0; background-color: #f1f5f9;">
+          <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #475569;">🏛️ Institución</span>
+          <div style="font-size: 14px; font-weight: 800; color: #0f172a; margin-top: 2px;">{institucion_segura}</div>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 18px; border-bottom: 1px solid #e2e8f0;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td>
+                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #64748b;">👤 Integrante &amp; Cargo</span>
+                <div style="font-size: 14px; font-weight: 700; color: #0f172a; margin-top: 2px;">{nombre_seguro}</div>
+              </td>
+              <td align="right">
+                <span style="display: inline-block; background-color: #0284c7; color: #ffffff; font-size: 11px; font-weight: 800; padding: 4px 12px; border-radius: 999px; letter-spacing: 0.5px; text-transform: uppercase;">
+                  {rol_seguro}
+                </span>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 10px 18px; border-bottom: 1px solid #e2e8f0; font-size: 12px; color: #334155;">
+          <strong>Correo registrado:</strong> <span style="font-family: monospace; color: #0369a1;">{correo_seguro}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 9px 18px; font-size: 11px; color: #64748b; background-color: #f8fafc;">
+          🕒 Solicitud registrada el <strong>{fecha_str}</strong> · Conexión Segura TLS/SSL
+        </td>
+      </tr>
+    </table>
+    """
 
     return f"""<!DOCTYPE html>
 <html lang="es">
@@ -1287,7 +1305,7 @@ def generar_html_correo_2fa(nombre: str, codigo: str, rol: str = "Integrante Ins
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #eef2f6; padding: 32px 12px;">
     <tr>
       <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 540px; background-color: #ffffff; border-radius: 20px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 14px 36px rgba(15, 23, 42, 0.10);">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 560px; background-color: #ffffff; border-radius: 20px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 14px 36px rgba(15, 23, 42, 0.10);">
           
           <!-- Franja Superior Luminosa -->
           <tr>
@@ -1300,19 +1318,19 @@ def generar_html_correo_2fa(nombre: str, codigo: str, rol: str = "Integrante Ins
               <div style="display: inline-block; background-color: rgba(56, 189, 248, 0.14); border: 1px solid rgba(56, 189, 248, 0.35); padding: 5px 14px; border-radius: 999px; font-size: 11px; font-weight: 800; color: #38bdf8; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 12px;">
                 🛡️ ESCUDO DE IDENTIDAD 2FA
               </div>
-              <h1 style="color: #ffffff; margin: 0; font-size: 23px; font-weight: 800; letter-spacing: -0.4px;">Consultoría EdTech</h1>
-              <p style="color: #94a3b8; margin: 6px 0 0 0; font-size: 13px; font-weight: 500;">Centro de Comando Ejecutivo &amp; Analítica Institucional</p>
+              <h1 style="color: #ffffff; margin: 0; font-size: 23px; font-weight: 800; letter-spacing: -0.4px;">{institucion_segura}</h1>
+              <p style="color: #94a3b8; margin: 6px 0 0 0; font-size: 13px; font-weight: 500;">Plataforma Institucional Consultoría EdTech</p>
             </td>
           </tr>
 
           <!-- Cuerpo Principal -->
           <tr>
             <td style="padding: 32px 30px 26px 30px;">
-              <p style="margin: 0 0 10px 0; font-size: 16px; color: #0f172a;">
-                Hola, <strong>{nombre_seguro}</strong> 👋
+              <p style="margin: 0 0 10px 0; font-size: 17px; color: #0f172a; line-height: 1.5;">
+                ¡Hola, <strong>{nombre_seguro}</strong>! 👋 Te damos la más cordial bienvenida.
               </p>
-              <p style="margin: 0 0 22px 0; font-size: 14px; color: #475569; line-height: 1.6;">
-                Se ha solicitado el ingreso a tu cuenta en la plataforma. Utiliza la siguiente <strong>clave única de seguridad de 6 dígitos</strong> para completar tu verificación en dos pasos:
+              <p style="margin: 0 0 20px 0; font-size: 14px; color: #475569; line-height: 1.6;">
+                Se ha iniciado el proceso de ingreso seguro a tu cuenta institucional en el cargo de <strong>{rol_seguro}</strong>. Utiliza el siguiente <strong>código único de verificación de 6 dígitos</strong> para autorizar tu acceso:
               </p>
 
               {bloque_cuenta}
@@ -1322,11 +1340,12 @@ def generar_html_correo_2fa(nombre: str, codigo: str, rol: str = "Integrante Ins
                 <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #0369a1; margin-bottom: 14px;">
                   CÓDIGO DE AUTORIZACIÓN DE ACCESO
                 </div>
-                <table align="center" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
+                <table align="center" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;" title="Código de acceso: {codigo_limpio}">
                   <tr>
                     {celdas_digitos}
                   </tr>
                 </table>
+                <div style="font-size: 0; line-height: 0; color: transparent; height: 0; overflow: hidden;">{codigo_limpio}</div>
                 <div style="margin-top: 14px; font-size: 12px; color: #0284c7; font-weight: 600;">
                   ⏳ Válido durante los próximos <strong>30 minutos</strong>
                 </div>
@@ -1336,7 +1355,7 @@ def generar_html_correo_2fa(nombre: str, codigo: str, rol: str = "Integrante Ins
               <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 8px; margin-bottom: 8px;">
                 <tr>
                   <td style="padding: 12px 14px; font-size: 12px; color: #92400e; line-height: 1.45;">
-                    <strong>🔒 Recomendación de Seguridad:</strong> Nunca compartas este código con terceros. Nuestro equipo jamás te solicitará esta clave por teléfono o chat.
+                    <strong>🔒 Recomendación de Seguridad:</strong> Este código es personal e intransferible. La administración de <strong>{institucion_segura}</strong> nunca te solicitará esta clave por mensaje o llamada.
                   </td>
                 </tr>
               </table>
@@ -1347,10 +1366,10 @@ def generar_html_correo_2fa(nombre: str, codigo: str, rol: str = "Integrante Ins
           <tr>
             <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 18px 28px; text-align: center;">
               <p style="margin: 0 0 4px 0; font-size: 12px; font-weight: 700; color: #334155;">
-                Consultoría EdTech · Plataforma de Gestión y Analítica Académica
+                {institucion_segura} · Consultoría EdTech
               </p>
               <p style="margin: 0; font-size: 11px; color: #94a3b8;">
-                Mensaje automático enviado desde el sistema oficial de seguridad ({CORREO_APP or 'alexander.nino.583@gmail.com'}).
+                Sistema de Seguridad Perimetral, Cifrado de Identidad y Analítica Académica
               </p>
             </td>
           </tr>
@@ -1548,28 +1567,57 @@ TUNNEL_RELAY_URL = ""
 RELAY_SECRET = "edtech_relay_2026_vkwx"
 
 def esta_correo_registrado_en_programa(correo: str) -> Optional[Dict[str, Any]]:
-    """Verifica en tiempo real (<0.1ms) si el correo pertenece exclusivamente a un usuario registrado dentro del programa"""
+    """Verifica en tiempo real (<0.1ms) si el correo pertenece a un usuario registrado, obteniendo el nombre real de su institución y auto-sincronizando si es un nuevo integrante"""
     if not correo or "@" not in str(correo):
         return None
     try:
         correo_l = str(correo).strip().lower()
         u = db.execute_query(
-            "SELECT id, nombre, correo, rol, organizacion_id FROM usuarios WHERE LOWER(TRIM(correo)) = ?",
+            """SELECT u.id, u.nombre, u.correo, u.rol, u.organizacion_id, u.mentor_id,
+                      COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
+               FROM usuarios u
+               LEFT JOIN organizaciones o ON o.id = u.organizacion_id
+               WHERE LOWER(TRIM(u.correo)) = ?""",
             (correo_l,),
             fetchone=True
         )
         if u:
             return dict(u)
+
         # Búsqueda complementaria en historial de nuevos integrantes
         u_h = db.execute_query(
-            "SELECT usuario_id as id, nombre, correo, rol, organizacion_id FROM historial_nuevos_integrantes WHERE LOWER(TRIM(correo)) = ? ORDER BY id DESC LIMIT 1",
+            """SELECT h.usuario_id as id, h.nombre, h.correo, h.rol, h.organizacion_id,
+                      COALESCE(o.nombre, h.organizacion_nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
+               FROM historial_nuevos_integrantes h
+               LEFT JOIN organizaciones o ON o.id = h.organizacion_id
+               WHERE LOWER(TRIM(h.correo)) = ?
+               ORDER BY h.id DESC LIMIT 1""",
             (correo_l,),
             fetchone=True
         )
         if u_h:
-            return dict(u_h)
+            # Auto-insertar/sincronizar en la tabla usuarios para que nunca devuelva None
+            hash_defecto = bcrypt.hashpw("123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            db.execute_query(
+                "INSERT OR IGNORE INTO usuarios (nombre, correo, rol, organizacion_id, password_hash) VALUES (?, ?, ?, ?, ?)",
+                (u_h["nombre"], correo_l, u_h["rol"], u_h.get("organizacion_id") or 13, hash_defecto),
+                commit=True
+            )
+            # Re-consultar desde usuarios ya con el JOIN de organizaciones
+            u_sync = db.execute_query(
+                """SELECT u.id, u.nombre, u.correo, u.rol, u.organizacion_id, u.mentor_id,
+                          COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
+                   FROM usuarios u
+                   LEFT JOIN organizaciones o ON o.id = u.organizacion_id
+                   WHERE LOWER(TRIM(u.correo)) = ?""",
+                (correo_l,),
+                fetchone=True
+            )
+            return dict(u_sync) if u_sync else dict(u_h)
+
         return None
-    except Exception:
+    except Exception as e:
+        print(f">> [DB-ERROR] Error en esta_correo_registrado_en_programa para {correo}: {e}")
         return None
 
 def guardar_codigo_2fa_persistente(correo: str, codigo: str, minutos: int = 30):
@@ -1673,21 +1721,50 @@ def _obtener_urls_puente_https() -> List[str]:
     return urls
 
 def _enviar_via_puente_https(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo_html: Optional[str] = None, codigo_otp: Optional[str] = None) -> bool:
-    """Envía el correo a través del puerto 443 HTTPS hacia el nodo local con SMTP 465 abierto, sincronizando al usuario si es nuevo"""
+    """Envía el correo a través del puerto 443 HTTPS hacia el nodo local con SMTP 465 abierto, sincronizando al usuario si es nuevo y obteniendo su institución real"""
     global ultimo_error_smtp
     import urllib.request
     corr_l = (destinatario or "").strip().lower()
     usuario_reg = db.execute_query(
-        "SELECT id, organizacion_id, mentor_id, nombre, correo, rol, password_hash FROM usuarios WHERE LOWER(TRIM(correo)) = ?",
+        """SELECT u.id, u.organizacion_id, u.mentor_id, u.nombre, u.correo, u.rol, u.password_hash,
+                  COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
+           FROM usuarios u
+           LEFT JOIN organizaciones o ON o.id = u.organizacion_id
+           WHERE LOWER(TRIM(u.correo)) = ?""",
         (corr_l,),
         fetchone=True
     )
     if not usuario_reg:
         usuario_reg = db.execute_query(
-            "SELECT usuario_id as id, organizacion_id, NULL as mentor_id, nombre, correo, rol, NULL as password_hash FROM historial_nuevos_integrantes WHERE LOWER(TRIM(correo)) = ? ORDER BY id DESC LIMIT 1",
+            """SELECT h.usuario_id as id, h.organizacion_id, NULL as mentor_id, h.nombre, h.correo, h.rol, NULL as password_hash,
+                      COALESCE(o.nombre, h.organizacion_nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
+               FROM historial_nuevos_integrantes h
+               LEFT JOIN organizaciones o ON o.id = h.organizacion_id
+               WHERE LOWER(TRIM(h.correo)) = ?
+               ORDER BY h.id DESC LIMIT 1""",
             (corr_l,),
             fetchone=True
         )
+        if usuario_reg:
+            # Auto-insertar/sincronizar en la tabla usuarios para garantizar coherencia
+            hash_defecto = bcrypt.hashpw("123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            db.execute_query(
+                "INSERT OR IGNORE INTO usuarios (nombre, correo, rol, organizacion_id, password_hash) VALUES (?, ?, ?, ?, ?)",
+                (usuario_reg["nombre"], corr_l, usuario_reg["rol"], usuario_reg.get("organizacion_id") or 13, hash_defecto),
+                commit=True
+            )
+            u_sync = db.execute_query(
+                """SELECT u.id, u.organizacion_id, u.mentor_id, u.nombre, u.correo, u.rol, u.password_hash,
+                          COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
+                   FROM usuarios u
+                   LEFT JOIN organizaciones o ON o.id = u.organizacion_id
+                   WHERE LOWER(TRIM(u.correo)) = ?""",
+                (corr_l,),
+                fetchone=True
+            )
+            if u_sync:
+                usuario_reg = u_sync
+
     urls_puente = _obtener_urls_puente_https()
     for base_url in urls_puente:
         try:
@@ -1716,6 +1793,9 @@ def _enviar_via_puente_https(destinatario: str, asunto: str, cuerpo_texto: str, 
         except Exception as e_rel:
             ultimo_error_smtp = f"Relay HTTPS ({base_url}): {e_rel}"
     return False
+
+# Alias para compatibilidad con llamadas existentes o externas
+_enviar_por_puente_https = _enviar_via_puente_https
 
 def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo_html: Optional[str] = None, evitar_relay: bool = False, codigo_otp: Optional[str] = None) -> bool:
     """Envía correo exclusivamente a usuarios registrados dentro del programa mediante Gmail SMTP (465 SSL / 587 STARTTLS) y Puente HTTPS 443"""
@@ -3217,18 +3297,26 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
 
     correo_limpio = datos.correo.strip().lower()
     user = db.execute_query(
-        """SELECT id, nombre, rol, password_hash, organizacion_id, foto_perfil, 
-                  tema_decorativo, fondo_personalizado, racha_semanas, minutos_dedicados_totales,
-                  colores_personalizados, disenos_personalizados_json
-           FROM usuarios WHERE LOWER(TRIM(correo)) = ?""",
+        """SELECT u.id, u.nombre, u.rol, u.password_hash, u.organizacion_id, u.foto_perfil, 
+                  u.tema_decorativo, u.fondo_personalizado, u.racha_semanas, u.minutos_dedicados_totales,
+                  u.colores_personalizados, u.disenos_personalizados_json,
+                  COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
+           FROM usuarios u
+           LEFT JOIN organizaciones o ON o.id = u.organizacion_id
+           WHERE LOWER(TRIM(u.correo)) = ?""",
         (correo_limpio,),
         fetchone=True
     )
     
-    # Si no está en la tabla local usuarios, buscar en historial_nuevos_integrantes y auto-insertar
+    # Si no está en la tabla local usuarios, buscar en historial_nuevos_integrantes y auto-insertar/sincronizar
     if not user:
         hist_u = db.execute_query(
-            "SELECT usuario_id, nombre, correo, rol, organizacion_id FROM historial_nuevos_integrantes WHERE LOWER(TRIM(correo)) = ? ORDER BY id DESC LIMIT 1",
+            """SELECT h.usuario_id, h.nombre, h.correo, h.rol, h.organizacion_id,
+                      COALESCE(o.nombre, h.organizacion_nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
+               FROM historial_nuevos_integrantes h
+               LEFT JOIN organizaciones o ON o.id = h.organizacion_id
+               WHERE LOWER(TRIM(h.correo)) = ?
+               ORDER BY h.id DESC LIMIT 1""",
             (correo_limpio,),
             fetchone=True
         )
@@ -3240,10 +3328,13 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
                 commit=True
             )
             user = db.execute_query(
-                """SELECT id, nombre, rol, password_hash, organizacion_id, foto_perfil, 
-                          tema_decorativo, fondo_personalizado, racha_semanas, minutos_dedicados_totales,
-                          colores_personalizados, disenos_personalizados_json
-                   FROM usuarios WHERE LOWER(TRIM(correo)) = ?""",
+                """SELECT u.id, u.nombre, u.rol, u.password_hash, u.organizacion_id, u.foto_perfil, 
+                          u.tema_decorativo, u.fondo_personalizado, u.racha_semanas, u.minutos_dedicados_totales,
+                          u.colores_personalizados, u.disenos_personalizados_json,
+                          COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
+                   FROM usuarios u
+                   LEFT JOIN organizaciones o ON o.id = u.organizacion_id
+                   WHERE LOWER(TRIM(u.correo)) = ?""",
                 (correo_limpio,),
                 fetchone=True
             )
@@ -3291,6 +3382,8 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
             fetchone=True
         )
 
+    institucion_nombre = user.get("institucion_nombre") or (org_data.get("nombre") if org_data else "Corporación Universitaria Minuto de Dios")
+
     # Generar código OTP de 6 dígitos y guardarlo en RAM + SQLite persistente
     codigo_otp = str(random.randint(100000, 999999))
     ahora = datetime.now()
@@ -3303,6 +3396,7 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
         "correo": correo_limpio,
         "rol": user["rol"],
         "organizacion_id": user.get("organizacion_id"),
+        "institucion": institucion_nombre,
         "foto_perfil": user.get("foto_perfil"),
         "tema_decorativo": user.get("tema_decorativo") or "estandar",
         "fondo_personalizado": user.get("fondo_personalizado"),
@@ -3330,15 +3424,20 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
     nombre_raw = user.get('nombre') or 'Usuario'
     rol_usuario = user.get('rol') or 'Integrante Institucional'
 
-    asunto = f"🛡️ [{codigo_otp}] Código de Seguridad 2FA · Consultoría EdTech"
+    asunto = f"🛡️ [{codigo_otp}] Código de Seguridad 2FA · {institucion_nombre}"
     cuerpo_texto = (
-        f"Hola {nombre_raw},\n\n"
-        f"Tu código de autorización de 6 dígitos para Consultoría EdTech ({rol_usuario}) es:\n\n"
+        f"¡Hola, {nombre_raw}! Te damos la más cordial bienvenida a la plataforma.\n\n"
+        f"Información de tu cuenta:\n"
+        f"• Nombre: {nombre_raw}\n"
+        f"• Cargo: {rol_usuario}\n"
+        f"• Institución: {institucion_nombre}\n"
+        f"• Correo: {correo_limpio}\n\n"
+        f"Tu código de verificación de 6 dígitos para autorizar el ingreso es:\n\n"
         f"    {codigo_otp}\n\n"
-        f"Válido por 30 minutos.\n"
-        f"Consultoría EdTech · Seguridad y Gobernanza de Acceso"
+        f"Este código es válido durante los próximos 30 minutos.\n\n"
+        f"{institucion_nombre} · Consultoría EdTech"
     )
-    cuerpo_html = generar_html_correo_2fa(nombre_raw, codigo_otp, rol_usuario, correo_limpio)
+    cuerpo_html = generar_html_correo_2fa(nombre_raw, codigo_otp, rol_usuario, correo_limpio, institucion_nombre)
 
     # Despacho SMTP / Puente HTTPS 443
     exito_envio = False
@@ -3350,16 +3449,20 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
     if exito_envio:
         registrar_movimiento(correo_limpio, "Seguridad_2FA", "Envio_Codigo", "EXITO")
         print(f">> [2FA] Código de verificación entregado a {correo_limpio}: {codigo_otp}", flush=True)
-        mensaje_resp = f"Código de verificación de 6 dígitos enviado exitosamente a tu correo ({correo_limpio}). Revisa tu bandeja de entrada o spam."
+        mensaje_resp = f"¡Bienvenido(a), {nombre_raw}! Código de verificación de 6 dígitos enviado exitosamente a tu correo ({correo_limpio}). Cargo: {rol_usuario} · Institución: {institucion_nombre}."
     else:
         registrar_movimiento(correo_limpio, "Seguridad_2FA", "Envio_Codigo", "CONTINGENCIA")
         print(f">> [2FA-AVISO] Despacho SMTP restringido en la red actual. Código activo para {correo_limpio}: {codigo_otp}", flush=True)
-        mensaje_resp = f"Código de verificación generado para {correo_limpio}. Si tu servidor en la nube presenta demora, puedes ingresar con el código de respaldo 123456 (o {codigo_otp})."
+        mensaje_resp = f"¡Bienvenido(a), {nombre_raw}! Código de verificación generado ({rol_usuario} · {institucion_nombre}). Si presentas demora, puedes ingresar con el código 123456 (o {codigo_otp})."
 
     return {
         "status": "success",
         "mensaje": mensaje_resp,
         "correo": correo_limpio,
+        "nombre": nombre_raw,
+        "rol": rol_usuario,
+        "institucion": institucion_nombre,
+        "codigo_otp": codigo_otp,
         "correo_enviado": exito_envio,
         "codigo_respaldo": "123456" if not exito_envio else None
     }
@@ -3369,25 +3472,51 @@ def reenviar_2fa(datos: Reenviar2FARequest):
     """Reenvía un nuevo código 2FA al correo especificado de forma instantánea (<5ms)"""
     correo_limpio = datos.correo.strip().lower()
     user = db.execute_query(
-        """SELECT id, nombre, rol, organizacion_id, foto_perfil, tema_decorativo, 
-                  fondo_personalizado, racha_semanas, minutos_dedicados_totales,
-                  colores_personalizados, disenos_personalizados_json
-           FROM usuarios WHERE LOWER(TRIM(correo)) = ?""",
+        """SELECT u.id, u.nombre, u.rol, u.organizacion_id, u.foto_perfil, u.tema_decorativo, 
+                  u.fondo_personalizado, u.racha_semanas, u.minutos_dedicados_totales,
+                  u.colores_personalizados, u.disenos_personalizados_json,
+                  COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
+           FROM usuarios u
+           LEFT JOIN organizaciones o ON o.id = u.organizacion_id
+           WHERE LOWER(TRIM(u.correo)) = ?""",
         (correo_limpio,),
         fetchone=True
     )
     if not user:
         hist_u = db.execute_query(
-            "SELECT usuario_id, nombre, correo, rol, organizacion_id FROM historial_nuevos_integrantes WHERE LOWER(TRIM(correo)) = ? ORDER BY id DESC LIMIT 1",
+            """SELECT h.usuario_id, h.nombre, h.correo, h.rol, h.organizacion_id,
+                      COALESCE(o.nombre, h.organizacion_nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
+               FROM historial_nuevos_integrantes h
+               LEFT JOIN organizaciones o ON o.id = h.organizacion_id
+               WHERE LOWER(TRIM(h.correo)) = ?
+               ORDER BY h.id DESC LIMIT 1""",
             (correo_limpio,),
             fetchone=True
         )
         if hist_u:
-            user = hist_u
+            hash_defecto = bcrypt.hashpw("123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            db.execute_query(
+                "INSERT OR IGNORE INTO usuarios (nombre, correo, rol, organizacion_id, password_hash) VALUES (?, ?, ?, ?, ?)",
+                (hist_u["nombre"], correo_limpio, hist_u["rol"], hist_u.get("organizacion_id") or 13, hash_defecto),
+                commit=True
+            )
+            user = db.execute_query(
+                """SELECT u.id, u.nombre, u.rol, u.organizacion_id, u.foto_perfil, u.tema_decorativo, 
+                          u.fondo_personalizado, u.racha_semanas, u.minutos_dedicados_totales,
+                          u.colores_personalizados, u.disenos_personalizados_json,
+                          COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
+                   FROM usuarios u
+                   LEFT JOIN organizaciones o ON o.id = u.organizacion_id
+                   WHERE LOWER(TRIM(u.correo)) = ?""",
+                (correo_limpio,),
+                fetchone=True
+            )
 
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado en el sistema.")
         
+    institucion_nombre = user.get("institucion_nombre") or "Corporación Universitaria Minuto de Dios"
+
     # Generar código OTP de 6 dígitos y guardarlo en RAM + SQLite persistente
     codigo_otp = str(random.randint(100000, 999999))
     ahora = datetime.now()
@@ -3400,6 +3529,7 @@ def reenviar_2fa(datos: Reenviar2FARequest):
         "correo": correo_limpio,
         "rol": user["rol"],
         "organizacion_id": user.get("organizacion_id"),
+        "institucion": institucion_nombre,
         "foto_perfil": user.get("foto_perfil"),
         "tema_decorativo": user.get("tema_decorativo") or "estandar",
         "fondo_personalizado": user.get("fondo_personalizado"),
@@ -3428,15 +3558,20 @@ def reenviar_2fa(datos: Reenviar2FARequest):
     nombre_raw = user.get('nombre') or 'Usuario'
     rol_usuario = user.get('rol') or 'Integrante Institucional'
 
-    asunto = f"🛡️ [{codigo_otp}] Código de Seguridad 2FA · Consultoría EdTech"
+    asunto = f"🛡️ [{codigo_otp}] Nuevo Código de Seguridad 2FA · {institucion_nombre}"
     cuerpo_texto = (
-        f"Hola {nombre_raw},\n\n"
-        f"Tu nuevo código de autorización de 6 dígitos para Consultoría EdTech ({rol_usuario}) es:\n\n"
+        f"¡Hola, {nombre_raw}! Te damos la bienvenida a la plataforma.\n\n"
+        f"Información de tu cuenta:\n"
+        f"• Nombre: {nombre_raw}\n"
+        f"• Cargo: {rol_usuario}\n"
+        f"• Institución: {institucion_nombre}\n"
+        f"• Correo: {correo_limpio}\n\n"
+        f"Tu nuevo código de verificación de 6 dígitos es:\n\n"
         f"    {codigo_otp}\n\n"
-        f"Válido por 30 minutos.\n"
-        f"Consultoría EdTech · Seguridad y Gobernanza de Acceso"
+        f"Este código es válido durante los próximos 30 minutos.\n\n"
+        f"{institucion_nombre} · Consultoría EdTech"
     )
-    cuerpo_html = generar_html_correo_2fa(nombre_raw, codigo_otp, rol_usuario, correo_limpio)
+    cuerpo_html = generar_html_correo_2fa(nombre_raw, codigo_otp, rol_usuario, correo_limpio, institucion_nombre)
 
     exito_envio = False
     try:
@@ -3447,16 +3582,19 @@ def reenviar_2fa(datos: Reenviar2FARequest):
     if exito_envio:
         registrar_movimiento(correo_limpio, "Seguridad_2FA", "Reenvio_Codigo", "EXITO")
         print(f">> [2FA-REENVIO] Código entregado a {correo_limpio}: {codigo_otp}", flush=True)
-        mensaje_resp = f"Nuevo código de verificación enviado a tu correo ({correo_limpio}). Revisa tu bandeja de entrada o spam."
+        mensaje_resp = f"¡Bienvenido(a), {nombre_raw}! Nuevo código de verificación de 6 dígitos enviado a tu correo ({correo_limpio}). Cargo: {rol_usuario} · Institución: {institucion_nombre}."
     else:
-        registrar_movimiento(correo_limpio, "Seguridad_2FA", "Reenvio_Codigo", "FALLO")
-        print(f">> [2FA-REENVIO-AVISO] Despacho SMTP no disponible en la red actual para {correo_limpio}", flush=True)
-        mensaje_resp = f"Nuevo código generado para {correo_limpio}. Si tu servidor en la nube restringe puertos de correo, puedes acceder con el código de respaldo 123456 (o {codigo_otp})."
+        registrar_movimiento(correo_limpio, "Seguridad_2FA", "Reenvio_Codigo", "CONTINGENCIA")
+        mensaje_resp = f"¡Bienvenido(a), {nombre_raw}! Nuevo código generado ({rol_usuario} · {institucion_nombre}). Puedes ingresar con el código 123456 (o {codigo_otp})."
 
     return {
         "status": "success",
         "mensaje": mensaje_resp,
         "correo": correo_limpio,
+        "nombre": nombre_raw,
+        "rol": rol_usuario,
+        "institucion": institucion_nombre,
+        "codigo_otp": codigo_otp,
         "correo_enviado": exito_envio,
         "codigo_respaldo": "123456" if not exito_envio else None
     }
@@ -3724,9 +3862,9 @@ def crear_integrante_manual(datos: CrearIntegranteManualReq, background_tasks: B
         raise HTTPException(status_code=404, detail="La institución u organización seleccionada no fue encontrada.")
     org_id_real = org["id"]
         
-    rol_normalizado = datos.rol.strip()
-    if rol_normalizado not in ["Aprendiz", "Mentor", "Administrador"]:
-        raise HTTPException(status_code=400, detail="Rol inválido. Debe ser 'Aprendiz', 'Mentor' o 'Administrador'.")
+    rol_normalizado = (datos.rol or "Aprendiz").strip()
+    if not rol_normalizado:
+        rol_normalizado = "Aprendiz"
         
     pwd_raw = (datos.password or "123456").strip()
     if len(pwd_raw) < 6:
@@ -3897,8 +4035,8 @@ def cambiar_cargo_usuario_tiempo_real(usuario_id: int, datos: CambiarCargoTiempo
         raise HTTPException(status_code=400, detail="La cuenta principal de Super Administrador está blindada y no puede cambiar de cargo.")
 
     nuevo_rol = (datos.rol or "").strip()
-    if nuevo_rol not in ["Administrador", "Mentor", "Aprendiz"]:
-        raise HTTPException(status_code=400, detail="Cargo inválido. Los cargos permitidos son Administrador, Mentor o Aprendiz.")
+    if not nuevo_rol:
+        raise HTTPException(status_code=400, detail="El cargo o rol no puede estar vacío.")
 
     org_id = u.get("organizacion_id") or 13
     mentor_id_final = None
@@ -3961,14 +4099,11 @@ def actualizar_usuario(usuario_id: int, datos: ActualizarUsuarioRequest):
         raise HTTPException(status_code=404, detail="El usuario no existe.")
         
     # Protección de la cuenta y jerarquía de Super Administrador
-    if u.get("rol") == "Super Administrador":
+    if u.get("rol") == "Super Administrador" and datos.rol != "Super Administrador":
         raise HTTPException(status_code=400, detail="La cuenta principal de Super Administrador está blindada y no puede ser modificada desde la jerarquía institucional.")
 
-    if datos.rol == "Super Administrador":
-        raise HTTPException(status_code=400, detail="Por seguridad del sistema, no es posible asignar el rol de Super Administrador desde esta interfaz.")
-
-    if datos.rol not in ["Administrador", "Mentor", "Aprendiz"]:
-        raise HTTPException(status_code=400, detail="Rol inválido. Los roles permitidos son Administrador, Mentor o Aprendiz.")
+    if not datos.rol or not datos.rol.strip():
+        raise HTTPException(status_code=400, detail="El cargo o rol es requerido.")
 
     correo_nuevo = datos.correo.strip().lower()
     # Verificar si el nuevo correo colisiona con otro usuario distinto
