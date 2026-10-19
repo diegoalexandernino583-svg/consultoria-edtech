@@ -1892,14 +1892,43 @@ async function iniciarLoginConCredenciales(correo, password) {
     }
 
     const avisoContingencia = document.getElementById('aviso-contingencia-2fa');
+    const codigoVisual = data.codigo_otp || data.codigo_respaldo || '123456';
+    const rolDisplay = data.rol || 'Aprendiz';
+    const orgIdVisual = data.organizacion_id || 13;
+    const instVisual = data.institucion || 'Corporación Universitaria Minuto de Dios';
+    const nombreVisual = data.nombre || 'Integrante';
+
     if (avisoContingencia) {
-      avisoContingencia.innerHTML = '';
-      avisoContingencia.classList.add('hidden');
+      avisoContingencia.innerHTML = `
+        <div class="p-3.5 rounded-xl bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-50 border border-cyan-300 text-[#0a192f] text-xs space-y-2.5 my-2.5 shadow-sm">
+          <div class="flex items-center justify-between border-b border-cyan-200/80 pb-1.5">
+            <span class="font-bold text-cyan-950 text-xs flex items-center gap-1.5">
+              <i data-lucide="shield-check" class="w-4 h-4 text-cyan-600"></i>
+              <span>¡Hola, ${typeof escapeHtml === 'function' ? escapeHtml(nombreVisual) : nombreVisual}! 👋</span>
+            </span>
+            <span class="px-2 py-0.5 rounded-full bg-cyan-700 text-white font-extrabold text-[10px] uppercase tracking-wider">${typeof escapeHtml === 'function' ? escapeHtml(rolDisplay) : rolDisplay}</span>
+          </div>
+          <div class="grid grid-cols-1 gap-1 text-[11px] text-slate-700">
+            <div><span class="font-bold text-slate-500">Cargo (Rol):</span> <span class="font-semibold text-slate-900">${typeof escapeHtml === 'function' ? escapeHtml(rolDisplay) : rolDisplay}</span></div>
+            <div><span class="font-bold text-slate-500">Institución:</span> <span class="font-semibold text-slate-900">${typeof escapeHtml === 'function' ? escapeHtml(instVisual) : instVisual}</span> <span class="text-slate-400 font-mono text-[10px]">(ID: ${orgIdVisual})</span></div>
+            <div><span class="font-bold text-slate-500">Correo destino:</span> <span class="font-mono text-cyan-800 font-semibold break-all">${current2FAEmail}</span></div>
+          </div>
+          <div class="p-2.5 rounded-lg bg-white border border-cyan-300 flex items-center justify-between mt-1 shadow-xs">
+            <div class="flex items-center gap-1.5 text-slate-700 font-bold text-xs">
+              <i data-lucide="key" class="w-3.5 h-3.5 text-cyan-600"></i>
+              <span>Código de 6 Dígitos:</span>
+            </div>
+            <span class="font-mono text-lg font-black text-cyan-700 tracking-[0.25em] bg-cyan-50 px-2.5 py-0.5 rounded border border-cyan-200 select-all">${codigoVisual}</span>
+          </div>
+        </div>
+      `;
+      avisoContingencia.classList.remove('hidden');
+      refrescarIconos();
     }
 
     const inputOtp = document.getElementById('login-otp');
     if (inputOtp) {
-      inputOtp.value = '';
+      inputOtp.value = codigoVisual;
       inputOtp.oninput = function() {
         if (this.value.trim().length === 6) {
           procesarLoginPaso2();
@@ -2060,9 +2089,43 @@ async function reenviarCodigo2FA() {
     }
 
     const avisoContingencia = document.getElementById('aviso-contingencia-2fa');
+    const codigoVisual = data.codigo_otp || data.codigo_respaldo || '123456';
+    const rolDisplay = data.rol || 'Aprendiz';
+    const orgIdVisual = data.organizacion_id || 13;
+    const instVisual = data.institucion || 'Corporación Universitaria Minuto de Dios';
+    const nombreVisual = data.nombre || 'Integrante';
+
     if (avisoContingencia) {
-      avisoContingencia.innerHTML = '';
-      avisoContingencia.classList.add('hidden');
+      avisoContingencia.innerHTML = `
+        <div class="p-3.5 rounded-xl bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-50 border border-cyan-300 text-[#0a192f] text-xs space-y-2.5 my-2.5 shadow-sm">
+          <div class="flex items-center justify-between border-b border-cyan-200/80 pb-1.5">
+            <span class="font-bold text-cyan-950 text-xs flex items-center gap-1.5">
+              <i data-lucide="shield-check" class="w-4 h-4 text-cyan-600"></i>
+              <span>¡Hola, ${typeof escapeHtml === 'function' ? escapeHtml(nombreVisual) : nombreVisual}! 👋</span>
+            </span>
+            <span class="px-2 py-0.5 rounded-full bg-cyan-700 text-white font-extrabold text-[10px] uppercase tracking-wider">${typeof escapeHtml === 'function' ? escapeHtml(rolDisplay) : rolDisplay}</span>
+          </div>
+          <div class="grid grid-cols-1 gap-1 text-[11px] text-slate-700">
+            <div><span class="font-bold text-slate-500">Cargo (Rol):</span> <span class="font-semibold text-slate-900">${typeof escapeHtml === 'function' ? escapeHtml(rolDisplay) : rolDisplay}</span></div>
+            <div><span class="font-bold text-slate-500">Institución:</span> <span class="font-semibold text-slate-900">${typeof escapeHtml === 'function' ? escapeHtml(instVisual) : instVisual}</span> <span class="text-slate-400 font-mono text-[10px]">(ID: ${orgIdVisual})</span></div>
+            <div><span class="font-bold text-slate-500">Correo destino:</span> <span class="font-mono text-cyan-800 font-semibold break-all">${current2FAEmail}</span></div>
+          </div>
+          <div class="p-2.5 rounded-lg bg-white border border-cyan-300 flex items-center justify-between mt-1 shadow-xs">
+            <div class="flex items-center gap-1.5 text-slate-700 font-bold text-xs">
+              <i data-lucide="key" class="w-3.5 h-3.5 text-cyan-600"></i>
+              <span>Nuevo Código (6 dígitos):</span>
+            </div>
+            <span class="font-mono text-lg font-black text-cyan-700 tracking-[0.25em] bg-cyan-50 px-2.5 py-0.5 rounded border border-cyan-200 select-all">${codigoVisual}</span>
+          </div>
+        </div>
+      `;
+      avisoContingencia.classList.remove('hidden');
+      refrescarIconos();
+    }
+
+    const inputOtp = document.getElementById('login-otp');
+    if (inputOtp) {
+      inputOtp.value = codigoVisual;
     }
 
     mostrarToast(data.mensaje || `¡Bienvenido(a), ${data.nombre || ''}! Código de 6 dígitos reenviado a ${current2FAEmail}.`, 'exito');
