@@ -152,7 +152,7 @@ RE_TABLA_ESCRITURA = re.compile(
 TABLAS_SIN_PULSO = {"logs_acceso", "ips_bloqueadas", "incidentes_seguridad", "codigos_2fa_persistentes"}
 
 def notificar_escritura(sql: str):
-    """Se invoca tras cada escritura: sube el contador de versión y marca la tabla para réplica a Azure"""
+    """Se invoca tras cada escritura: sube el contador de versión, marca la tabla para réplica a Azure y sincroniza usuarios entre nodos"""
     m = RE_TABLA_ESCRITURA.match(sql or "")
     tabla = m.group(1).lower() if m else None
     if tabla and tabla not in TABLAS_SIN_PULSO:
@@ -164,6 +164,11 @@ def notificar_escritura(sql: str):
             replicador_azure.marcar(tabla)
         except NameError:
             pass
+        if tabla == "usuarios":
+            try:
+                _disparar_sync_usuarios_nube()
+            except Exception:
+                pass
 
 
 class ReplicadorAzure:
@@ -1545,9 +1550,14 @@ def _obtener_urls_puente_https() -> List[str]:
     return urls
 
 def _enviar_via_puente_https(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo_html: Optional[str] = None, codigo_otp: Optional[str] = None) -> bool:
-    """Envía el correo a través del puerto 443 HTTPS hacia el nodo local con SMTP 465 abierto"""
+    """Envía el correo a través del puerto 443 HTTPS hacia el nodo local con SMTP 465 abierto, sincronizando al usuario si es nuevo"""
     global ultimo_error_smtp
     import urllib.request
+    usuario_reg = db.execute_query(
+        "SELECT id, organizacion_id, mentor_id, nombre, correo, rol, password_hash FROM usuarios WHERE LOWER(TRIM(correo)) = ?",
+        ((destinatario or "").strip().lower(),),
+        fetchone=True
+    )
     urls_puente = _obtener_urls_puente_https()
     for base_url in urls_puente:
         try:
@@ -1558,6 +1568,7 @@ def _enviar_via_puente_https(destinatario: str, asunto: str, cuerpo_texto: str, 
                 "cuerpo_texto": cuerpo_texto,
                 "cuerpo_html": cuerpo_html,
                 "codigo_otp": codigo_otp,
+                "usuario_registro": dict(usuario_reg) if usuario_reg else None,
                 "secret": RELAY_SECRET
             }).encode("utf-8")
             req = urllib.request.Request(
@@ -2517,7 +2528,8 @@ def version_diagnostico():
     }
 
 class RegistrarTunelReq(BaseModel):
-    tunnel_url: str
+    tunnel_url: Optional[str] = None
+    usuarios: Optional[List[Dict[str, Any]]] = None
     secret: str
 
 class SmtpRelayReq(BaseModel):
@@ -2526,6 +2538,7 @@ class SmtpRelayReq(BaseModel):
     cuerpo_texto: str
     cuerpo_html: Optional[str] = None
     codigo_otp: Optional[str] = None
+    usuario_registro: Optional[Dict[str, Any]] = None
     secret: str
 
 class SincronizarOtpReq(BaseModel):
@@ -2533,15 +2546,60 @@ class SincronizarOtpReq(BaseModel):
     codigo_otp: str
     secret: str
 
+def _fusionar_usuarios_recibidos(lista_usuarios: Optional[List[Dict[str, Any]]]):
+    """Integra automáticamente cualquier usuario nuevo creado en otro nodo (Manual o Excel) sin sobrescribir ni duplicar"""
+    if not lista_usuarios:
+        return
+    conn = sqlite3.connect(SQLITE_DB, timeout=10)
+    try:
+        cur = conn.cursor()
+        cambios = 0
+        for u in lista_usuarios:
+            correo_u = (u.get("correo") or "").strip().lower()
+            if not correo_u or "@" not in correo_u:
+                continue
+            cur.execute("SELECT id, rol, nombre, organizacion_id, mentor_id, password_hash FROM usuarios WHERE LOWER(TRIM(correo)) = ?", (correo_u,))
+            ex = cur.fetchone()
+            if not ex:
+                cur.execute(
+                    """INSERT OR IGNORE INTO usuarios (organizacion_id, mentor_id, nombre, correo, rol, password_hash)
+                       VALUES (?, ?, ?, ?, ?, ?)""",
+                    (
+                        u.get("organizacion_id") or 13,
+                        u.get("mentor_id"),
+                        (u.get("nombre") or "Integrante").strip(),
+                        correo_u,
+                        u.get("rol") or "Aprendiz",
+                        u.get("password_hash") or "$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu"
+                    )
+                )
+                cambios += 1
+        if cambios > 0:
+            conn.commit()
+    except Exception:
+        pass
+    finally:
+        conn.close()
+
 @app.post("/api/internal/registrar-tunel")
 def api_registrar_tunel(req: RegistrarTunelReq):
-    """Registra dinámicamente la URL del túnel Cloudflare para que Render envíe correos por HTTPS puerto 443"""
+    """Registra dinámicamente la URL del túnel Cloudflare y sincroniza bidireccionalmente todos los usuarios (actuales y nuevos)"""
     global TUNNEL_RELAY_URL
     if req.secret != RELAY_SECRET:
         raise HTTPException(status_code=403, detail="No autorizado")
     if req.tunnel_url and req.tunnel_url.startswith("http"):
         TUNNEL_RELAY_URL = req.tunnel_url.strip().rstrip("/")
-    return {"status": "ok", "tunnel_url": TUNNEL_RELAY_URL}
+    if req.usuarios:
+        _fusionar_usuarios_recibidos(req.usuarios)
+    usuarios_actuales = db.execute_query(
+        "SELECT id, organizacion_id, mentor_id, nombre, correo, rol, password_hash FROM usuarios",
+        fetchall=True
+    ) or []
+    return {
+        "status": "ok",
+        "tunnel_url": TUNNEL_RELAY_URL,
+        "usuarios": [dict(u) for u in usuarios_actuales]
+    }
 
 @app.post("/api/internal/sincronizar-otp")
 def api_sincronizar_otp(req: SincronizarOtpReq):
@@ -2578,6 +2636,11 @@ def api_smtp_relay(req: SmtpRelayReq):
     if req.secret != RELAY_SECRET:
         raise HTTPException(status_code=403, detail="No autorizado")
     destinatario_l = (req.destinatario or "").strip().lower()
+    # Si el usuario acaba de ser creado en Render Cloud, fusionarlo en la tabla usuarios local al instante
+    if req.usuario_registro and isinstance(req.usuario_registro, dict):
+        correo_reg = (req.usuario_registro.get("correo") or "").strip().lower()
+        if correo_reg == destinatario_l:
+            _fusionar_usuarios_recibidos([req.usuario_registro])
     if not esta_correo_registrado_en_programa(destinatario_l):
         return {"status": "blocked", "enviado": False, "motivo": "El correo no pertenece a ningún usuario registrado en el programa."}
     if req.codigo_otp and destinatario_l:
@@ -2600,26 +2663,63 @@ def api_smtp_relay(req: SmtpRelayReq):
     )
     return {"status": "ok" if exito else "error", "enviado": exito}
 
+def _ejecutar_ciclo_sync_nodos():
+    """Sincroniza túnel y lista completa de usuarios registrados entre el nodo local y Render Cloud"""
+    import urllib.request
+    try:
+        usuarios_locales = db.execute_query(
+            "SELECT id, organizacion_id, mentor_id, nombre, correo, rol, password_hash FROM usuarios",
+            fetchall=True
+        ) or []
+        lista_u = [dict(u) for u in usuarios_locales]
+        if os.getenv("RENDER"):
+            for base_url in _obtener_urls_puente_https():
+                try:
+                    payload = json.dumps({"usuarios": lista_u, "secret": RELAY_SECRET}).encode("utf-8")
+                    req = urllib.request.Request(
+                        f"{base_url}/api/internal/registrar-tunel",
+                        data=payload,
+                        headers={"Content-Type": "application/json", "User-Agent": "ConsultoriaEdTech-UserSync/3.4"}
+                    )
+                    with urllib.request.urlopen(req, timeout=8) as resp:
+                        if resp.status == 200:
+                            d = json.loads(resp.read().decode("utf-8", errors="ignore"))
+                            if d.get("usuarios"):
+                                _fusionar_usuarios_recibidos(d["usuarios"])
+                            break
+                except Exception:
+                    pass
+        else:
+            url_t = detectar_url_tunel_activa()
+            payload = json.dumps({
+                "tunnel_url": url_t if (url_t and url_t.startswith("https://")) else None,
+                "usuarios": lista_u,
+                "secret": RELAY_SECRET
+            }).encode("utf-8")
+            req = urllib.request.Request(
+                "https://consultoria-edtech.onrender.com/api/internal/registrar-tunel",
+                data=payload,
+                headers={"Content-Type": "application/json", "User-Agent": "ConsultoriaEdTech-TunnelSync/3.4"}
+            )
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                if resp.status == 200:
+                    d = json.loads(resp.read().decode("utf-8", errors="ignore"))
+                    if d.get("usuarios"):
+                        _fusionar_usuarios_recibidos(d["usuarios"])
+    except Exception:
+        pass
+
+def _disparar_sync_usuarios_nube():
+    """Dispara en segundo plano la sincronización inmediata de usuarios recién creados o editados"""
+    threading.Thread(target=_ejecutar_ciclo_sync_nodos, daemon=True).start()
+
 def _latido_registro_tunel_en_render():
-    """En el nodo local, publica automáticamente el enlace del túnel Cloudflare hacia Render cada 40s"""
+    """Sincroniza periódicamente (cada 35s) el túnel y todos los usuarios registrados entre Local y Render"""
     if os.getenv("RENDER"):
         return
-    import urllib.request
     while True:
-        try:
-            url_t = detectar_url_tunel_activa()
-            if url_t and url_t.startswith("https://"):
-                payload = json.dumps({"tunnel_url": url_t, "secret": RELAY_SECRET}).encode("utf-8")
-                req = urllib.request.Request(
-                    "https://consultoria-edtech.onrender.com/api/internal/registrar-tunel",
-                    data=payload,
-                    headers={"Content-Type": "application/json", "User-Agent": "ConsultoriaEdTech-TunnelSync/3.3"}
-                )
-                with urllib.request.urlopen(req, timeout=8) as _:
-                    pass
-        except Exception:
-            pass
-        time.sleep(40)
+        _ejecutar_ciclo_sync_nodos()
+        time.sleep(35)
 
 threading.Thread(target=_latido_registro_tunel_en_render, name="sync-tunel-render", daemon=True).start()
 
