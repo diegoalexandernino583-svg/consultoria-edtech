@@ -1214,13 +1214,14 @@ function actualizarEstiloModoDominio(nameGroup) {
 // 2. SEPARACIÓN ESTRICTA DE VISTAS Y MENÚ POR ROL
 // =====================================================================
 function configurarVistasSegunRol(forzarNavegacionInicial = false) {
-  const rol = currentUser ? currentUser.rol : '';
+  const rolRaw = currentUser ? String(currentUser.rol || '').trim() : '';
+  const rol = rolRaw.toLowerCase().trim();
   const navContainer = document.getElementById('sidebar-nav-container');
   if (!navContainer) return;
 
   let linksHtml = '';
 
-  if (rol === 'Super Administrador') {
+  if (rol.includes('super')) {
     linksHtml = `
       <div class="px-3 pt-1 pb-1">
         <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">${t('side_sec_entornos', 'Entornos & Institución')}</span>
@@ -1380,7 +1381,7 @@ function configurarVistasSegunRol(forzarNavegacionInicial = false) {
   // Visibilidad de botones del catálogo según rol (Aprendices no suben material ni envían colecciones)
   const contAccionesCat = document.getElementById('contenedor-acciones-catalogo');
   if (contAccionesCat) {
-    if (rol === 'Aprendiz' || rol === 'Estudiante') {
+    if (rol.includes('aprendiz') || rol.includes('estudiante')) {
       contAccionesCat.classList.add('hidden');
     } else {
       contAccionesCat.classList.remove('hidden');
@@ -1394,15 +1395,15 @@ function configurarVistasSegunRol(forzarNavegacionInicial = false) {
   });
 
   if (forzarNavegacionInicial || !vistaActivaActual) {
-    // Selección de vista de aterrizaje inicial según rol
-    if (rol === 'Super Administrador') {
+    // Selección de vista de aterrizaje inicial según rol normalizado
+    if (rol.includes('super')) {
       navegarVista('nodos');
-    } else if (rol === 'Mentor') {
+    } else if (rol.includes('mentor')) {
       navegarVista('mentor-clase');
-    } else if (rol === 'Aprendiz' || rol === 'Estudiante') {
+    } else if (rol.includes('aprendiz') || rol.includes('estudiante')) {
       navegarVista('aprendiz');
     } else {
-      // Administrador Institucional
+      // Administrador Institucional y cualquier rol nuevo
       navegarVista('admin-convenio');
     }
   } else {
@@ -1415,12 +1416,12 @@ function configurarVistasSegunRol(forzarNavegacionInicial = false) {
 }
 
 function volverDesdeConfiguraciones() {
-  const rol = currentUser ? currentUser.rol : '';
-  if (rol === 'Super Administrador') {
+  const rol = currentUser ? String(currentUser.rol || '').toLowerCase().trim() : '';
+  if (rol.includes('super')) {
     navegarVista('nodos');
-  } else if (rol === 'Mentor') {
+  } else if (rol.includes('mentor')) {
     navegarVista('mentor-clase');
-  } else if (rol === 'Aprendiz' || rol === 'Estudiante') {
+  } else if (rol.includes('aprendiz') || rol.includes('estudiante')) {
     navegarVista('aprendiz');
   } else {
     navegarVista('admin-convenio');
@@ -1831,6 +1832,11 @@ async function procesarLoginPaso1(event) {
   await iniciarLoginConCredenciales(correo, password);
 }
 
+async function solicitarCodigo2FA(correo, password) {
+  return await iniciarLoginConCredenciales(correo, password);
+}
+window.solicitarCodigo2FA = solicitarCodigo2FA;
+
 async function iniciarLoginConCredenciales(correo, password) {
   const btnSubmit = document.getElementById('btn-login-submit');
   if (btnSubmit) {
@@ -1888,21 +1894,36 @@ async function iniciarLoginConCredenciales(correo, password) {
     const avisoContingencia = document.getElementById('aviso-contingencia-2fa');
     if (avisoContingencia) {
       const codigoVisual = data.codigo_otp || data.codigo_respaldo || '123456';
-      if (data.correo_enviado === false || data.codigo_respaldo || data.codigo_otp) {
-        avisoContingencia.innerHTML = `
-          <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2.5 my-2">
-            <i data-lucide="shield-check" class="w-4 h-4 text-amber-600 flex-shrink-0"></i>
-            <div>
-              <p class="font-bold text-[#0a192f]">Código de Acceso Activo</p>
-              <p class="text-[11px] text-slate-600">Tu código de verificación de 6 dígitos es: <strong class="text-amber-800 font-mono text-xs tracking-widest">${codigoVisual}</strong></p>
-            </div>
+      const rolDisplay = data.rol || 'Aprendiz';
+      const orgIdVisual = data.organizacion_id || 13;
+      const instVisual = data.institucion || 'Corporación Universitaria Minuto de Dios';
+      const nombreVisual = data.nombre || 'Integrante';
+
+      avisoContingencia.innerHTML = `
+        <div class="p-3.5 rounded-xl bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-50 border border-cyan-300/80 text-[#0a192f] text-xs space-y-2 my-2.5 shadow-sm">
+          <div class="flex items-center justify-between border-b border-cyan-200/60 pb-1.5">
+            <span class="font-bold text-cyan-950 text-xs flex items-center gap-1.5">
+              <i data-lucide="shield-check" class="w-4 h-4 text-cyan-600"></i>
+              <span>¡Hola, ${typeof escapeHtml === 'function' ? escapeHtml(nombreVisual) : nombreVisual}! 👋</span>
+            </span>
+            <span class="px-2 py-0.5 rounded-full bg-cyan-700 text-white font-extrabold text-[10px] uppercase tracking-wider">${typeof escapeHtml === 'function' ? escapeHtml(rolDisplay) : rolDisplay}</span>
           </div>
-        `;
-        avisoContingencia.classList.remove('hidden');
-      } else {
-        avisoContingencia.innerHTML = '';
-        avisoContingencia.classList.add('hidden');
-      }
+          <div class="grid grid-cols-1 gap-1 text-[11px] text-slate-700">
+            <div><span class="font-bold text-slate-500">Cargo (Rol):</span> <span class="font-semibold text-slate-900">${typeof escapeHtml === 'function' ? escapeHtml(rolDisplay) : rolDisplay}</span></div>
+            <div><span class="font-bold text-slate-500">Institución:</span> <span class="font-semibold text-slate-900">${typeof escapeHtml === 'function' ? escapeHtml(instVisual) : instVisual}</span> <span class="text-slate-400 font-mono text-[10px]">(ID: ${orgIdVisual})</span></div>
+            <div><span class="font-bold text-slate-500">Correo:</span> <span class="font-mono text-cyan-800 font-semibold break-all">${current2FAEmail}</span></div>
+          </div>
+          <div class="p-2.5 rounded-lg bg-white border border-cyan-300 flex items-center justify-between mt-1 shadow-xs">
+            <div class="flex items-center gap-1.5 text-slate-700 font-bold text-xs">
+              <i data-lucide="key" class="w-3.5 h-3.5 text-cyan-600"></i>
+              <span>Código de 6 Dígitos:</span>
+            </div>
+            <span class="font-mono text-lg font-black text-cyan-700 tracking-[0.25em] bg-cyan-50 px-2.5 py-0.5 rounded border border-cyan-200">${codigoVisual}</span>
+          </div>
+        </div>
+      `;
+      avisoContingencia.classList.remove('hidden');
+      refrescarIconos();
     }
 
     const inputOtp = document.getElementById('login-otp');
@@ -2070,19 +2091,36 @@ async function reenviarCodigo2FA() {
     const avisoContingencia = document.getElementById('aviso-contingencia-2fa');
     if (avisoContingencia) {
       const codigoVisual = data.codigo_otp || data.codigo_respaldo || '123456';
-      if (data.correo_enviado === false || data.codigo_respaldo || data.codigo_otp) {
-        avisoContingencia.innerHTML = `
-          <div class="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2.5 my-2">
-            <i data-lucide="shield-check" class="w-4 h-4 text-amber-600 flex-shrink-0"></i>
-            <div>
-              <p class="font-bold text-[#0a192f]">Código de Acceso Activo</p>
-              <p class="text-[11px] text-slate-600">Tu código de verificación de 6 dígitos es: <strong class="text-amber-800 font-mono text-xs tracking-widest">${codigoVisual}</strong></p>
-            </div>
+      const rolDisplay = data.rol || 'Aprendiz';
+      const orgIdVisual = data.organizacion_id || 13;
+      const instVisual = data.institucion || 'Corporación Universitaria Minuto de Dios';
+      const nombreVisual = data.nombre || 'Integrante';
+
+      avisoContingencia.innerHTML = `
+        <div class="p-3.5 rounded-xl bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-50 border border-cyan-300/80 text-[#0a192f] text-xs space-y-2 my-2.5 shadow-sm">
+          <div class="flex items-center justify-between border-b border-cyan-200/60 pb-1.5">
+            <span class="font-bold text-cyan-950 text-xs flex items-center gap-1.5">
+              <i data-lucide="shield-check" class="w-4 h-4 text-cyan-600"></i>
+              <span>¡Hola, ${typeof escapeHtml === 'function' ? escapeHtml(nombreVisual) : nombreVisual}! 👋</span>
+            </span>
+            <span class="px-2 py-0.5 rounded-full bg-cyan-700 text-white font-extrabold text-[10px] uppercase tracking-wider">${typeof escapeHtml === 'function' ? escapeHtml(rolDisplay) : rolDisplay}</span>
           </div>
-        `;
-        avisoContingencia.classList.remove('hidden');
-        refrescarIconos();
-      }
+          <div class="grid grid-cols-1 gap-1 text-[11px] text-slate-700">
+            <div><span class="font-bold text-slate-500">Cargo (Rol):</span> <span class="font-semibold text-slate-900">${typeof escapeHtml === 'function' ? escapeHtml(rolDisplay) : rolDisplay}</span></div>
+            <div><span class="font-bold text-slate-500">Institución:</span> <span class="font-semibold text-slate-900">${typeof escapeHtml === 'function' ? escapeHtml(instVisual) : instVisual}</span> <span class="text-slate-400 font-mono text-[10px]">(ID: ${orgIdVisual})</span></div>
+            <div><span class="font-bold text-slate-500">Correo:</span> <span class="font-mono text-cyan-800 font-semibold break-all">${current2FAEmail}</span></div>
+          </div>
+          <div class="p-2.5 rounded-lg bg-white border border-cyan-300 flex items-center justify-between mt-1 shadow-xs">
+            <div class="flex items-center gap-1.5 text-slate-700 font-bold text-xs">
+              <i data-lucide="key" class="w-3.5 h-3.5 text-cyan-600"></i>
+              <span>Código de 6 Dígitos:</span>
+            </div>
+            <span class="font-mono text-lg font-black text-cyan-700 tracking-[0.25em] bg-cyan-50 px-2.5 py-0.5 rounded border border-cyan-200">${codigoVisual}</span>
+          </div>
+        </div>
+      `;
+      avisoContingencia.classList.remove('hidden');
+      refrescarIconos();
     }
 
     mostrarToast(data.mensaje || `¡Bienvenido(a), ${data.nombre || ''}! Código de 6 dígitos reenviado a ${current2FAEmail}.`, 'exito');
@@ -2122,12 +2160,16 @@ async function procesarLoginPaso2() {
     if (!res.ok) throw new Error(data.detail || 'Código inválido');
 
     currentUser = data.usuario;
+    if (currentUser) {
+      currentUser.rol_normalizado = String(currentUser.rol || 'aprendiz').toLowerCase().trim();
+    }
     localStorage.setItem('edtech_usuario', JSON.stringify(currentUser));
     sessionStorage.setItem('edtech_usuario', JSON.stringify(currentUser));
     if (typeof aplicarEstilosTemaWeb === 'function') {
       aplicarEstilosTemaWeb(currentUser.tema_decorativo || 'estandar', currentUser.fondo_personalizado);
     }
-    mostrarToast(`¡Bienvenido, ${currentUser.nombre}!`, 'exito');
+    const orgNombre = currentUser.organizacion?.nombre || currentUser.organizacion_nombre || 'Corporación Universitaria Minuto de Dios';
+    mostrarToast(`¡Bienvenido(a), ${currentUser.nombre}! (${currentUser.rol} · ${orgNombre})`, 'exito');
     mostrarDashboardPrincipal();
   } catch (err) {
     mostrarToast(err.message, 'error');

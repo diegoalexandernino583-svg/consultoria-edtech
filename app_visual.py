@@ -1237,12 +1237,13 @@ def registrar_en_historial_integrantes(
 # =====================================================================
 # ENVÍO DE CORREOS SMTP EJECUTIVOS (GMAIL)
 # =====================================================================
-def generar_html_correo_2fa(nombre: str, codigo: str, rol: str = "Integrante Institucional", correo: str = "", institucion_nombre: str = "Corporación Universitaria Minuto de Dios") -> str:
-    """Plantilla ejecutiva de alta gama para el código de verificación 2FA de 6 dígitos que incluye bienvenida por nombre, cargo (rol) e institución"""
+def generar_html_correo_2fa(nombre: str, codigo: str, rol: str = "Integrante Institucional", correo: str = "", institucion_nombre: str = "Corporación Universitaria Minuto de Dios", organizacion_id: Optional[int] = None) -> str:
+    """Plantilla ejecutiva de alta gama para el código de verificación 2FA de 6 dígitos que incluye bienvenida por nombre, cargo (rol), ID de institución e institución"""
     nombre_seguro = html.escape((nombre or "Usuario").strip())
     rol_seguro = html.escape((rol or "Integrante Institucional").strip())
     correo_seguro = html.escape((correo or "").strip())
     institucion_segura = html.escape((institucion_nombre or "Corporación Universitaria Minuto de Dios").strip())
+    org_id_txt = f" (ID: {organizacion_id})" if organizacion_id else ""
     codigo_limpio = str(codigo).strip()
     fecha_str = datetime.now().strftime("%d/%m/%Y · %H:%M:%S")
 
@@ -1261,7 +1262,7 @@ def generar_html_correo_2fa(nombre: str, codigo: str, rol: str = "Integrante Ins
       <tr>
         <td style="padding: 12px 18px; border-bottom: 1px solid #e2e8f0; background-color: #f1f5f9;">
           <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #475569;">🏛️ Institución</span>
-          <div style="font-size: 14px; font-weight: 800; color: #0f172a; margin-top: 2px;">{institucion_segura}</div>
+          <div style="font-size: 14px; font-weight: 800; color: #0f172a; margin-top: 2px;">{institucion_segura}{org_id_txt}</div>
         </td>
       </tr>
       <tr>
@@ -3423,6 +3424,7 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
 
     nombre_raw = user.get('nombre') or 'Usuario'
     rol_usuario = user.get('rol') or 'Integrante Institucional'
+    org_id_val = user.get("organizacion_id") or 13
 
     asunto = f"🛡️ [{codigo_otp}] Código de Seguridad 2FA · {institucion_nombre}"
     cuerpo_texto = (
@@ -3430,14 +3432,14 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
         f"Información de tu cuenta:\n"
         f"• Nombre: {nombre_raw}\n"
         f"• Cargo: {rol_usuario}\n"
-        f"• Institución: {institucion_nombre}\n"
+        f"• Institución: {institucion_nombre} (ID: {org_id_val})\n"
         f"• Correo: {correo_limpio}\n\n"
         f"Tu código de verificación de 6 dígitos para autorizar el ingreso es:\n\n"
         f"    {codigo_otp}\n\n"
         f"Este código es válido durante los próximos 30 minutos.\n\n"
         f"{institucion_nombre} · Consultoría EdTech"
     )
-    cuerpo_html = generar_html_correo_2fa(nombre_raw, codigo_otp, rol_usuario, correo_limpio, institucion_nombre)
+    cuerpo_html = generar_html_correo_2fa(nombre_raw, codigo_otp, rol_usuario, correo_limpio, institucion_nombre, organizacion_id=org_id_val)
 
     # Despacho SMTP / Puente HTTPS 443
     exito_envio = False
@@ -3462,6 +3464,7 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
         "nombre": nombre_raw,
         "rol": rol_usuario,
         "institucion": institucion_nombre,
+        "organizacion_id": org_id_val,
         "codigo_otp": codigo_otp,
         "correo_enviado": exito_envio,
         "codigo_respaldo": "123456" if not exito_envio else None
@@ -3516,6 +3519,7 @@ def reenviar_2fa(datos: Reenviar2FARequest):
         raise HTTPException(status_code=404, detail="Usuario no encontrado en el sistema.")
         
     institucion_nombre = user.get("institucion_nombre") or "Corporación Universitaria Minuto de Dios"
+    org_id_val = user.get("organizacion_id") or 13
 
     # Generar código OTP de 6 dígitos y guardarlo en RAM + SQLite persistente
     codigo_otp = str(random.randint(100000, 999999))
@@ -3528,7 +3532,7 @@ def reenviar_2fa(datos: Reenviar2FARequest):
         "nombre": user["nombre"],
         "correo": correo_limpio,
         "rol": user["rol"],
-        "organizacion_id": user.get("organizacion_id"),
+        "organizacion_id": org_id_val,
         "institucion": institucion_nombre,
         "foto_perfil": user.get("foto_perfil"),
         "tema_decorativo": user.get("tema_decorativo") or "estandar",
@@ -3564,14 +3568,14 @@ def reenviar_2fa(datos: Reenviar2FARequest):
         f"Información de tu cuenta:\n"
         f"• Nombre: {nombre_raw}\n"
         f"• Cargo: {rol_usuario}\n"
-        f"• Institución: {institucion_nombre}\n"
+        f"• Institución: {institucion_nombre} (ID: {org_id_val})\n"
         f"• Correo: {correo_limpio}\n\n"
         f"Tu nuevo código de verificación de 6 dígitos es:\n\n"
         f"    {codigo_otp}\n\n"
         f"Este código es válido durante los próximos 30 minutos.\n\n"
         f"{institucion_nombre} · Consultoría EdTech"
     )
-    cuerpo_html = generar_html_correo_2fa(nombre_raw, codigo_otp, rol_usuario, correo_limpio, institucion_nombre)
+    cuerpo_html = generar_html_correo_2fa(nombre_raw, codigo_otp, rol_usuario, correo_limpio, institucion_nombre, organizacion_id=org_id_val)
 
     exito_envio = False
     try:
@@ -3594,6 +3598,7 @@ def reenviar_2fa(datos: Reenviar2FARequest):
         "nombre": nombre_raw,
         "rol": rol_usuario,
         "institucion": institucion_nombre,
+        "organizacion_id": org_id_val,
         "codigo_otp": codigo_otp,
         "correo_enviado": exito_envio,
         "codigo_respaldo": "123456" if not exito_envio else None
@@ -3824,6 +3829,11 @@ def cambiar_password(datos: CambiarPasswordRequest):
     nueva_hash = bcrypt.hashpw(datos.nueva_password.strip().encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     db.execute_query("UPDATE usuarios SET password_hash = ? WHERE correo = ?", (nueva_hash, correo_limpio), commit=True)
     
+    # Sincronizar de inmediato con Render Cloud y Azure SQL
+    u_updated = db.execute_query("SELECT id FROM usuarios WHERE correo = ?", (correo_limpio,), fetchone=True)
+    if u_updated:
+        _empujar_cambio_usuario_remoto(u_updated["id"])
+        
     if correo_limpio in codigos_recuperacion:
         del codigos_recuperacion[correo_limpio]
         

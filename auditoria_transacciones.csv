@@ -1199,3 +1199,46 @@ Fecha_Hora,Correo_Usuario,Modulo,Operacion,Estado,Detalles_Error
 2026-10-14 21:38:45,diego.nino-n@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz
 2026-10-14 21:48:59,alexander.nino.583@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
 2026-10-14 21:49:09,alexander.nino.583@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Super Administrador
+2026-10-16 08:21:53,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-16 08:36:06,alexander.nino.583@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-16 08:36:22,alexander.nino.583@gmail.com,Seguridad_2FA,Verificacion_OTP,FALLO,Código ingresado inválido: 6151
+2026-10-16 08:36:26,alexander.nino.583@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Super Administrador
+2026-10-16 08:46:26,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-16 21:43:21,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-16 21:57:32,alexander.nino.583@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-16 21:57:39,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-16 21:57:52,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-16 21:59:23,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-16 22:00:34,alexander.nino.583@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-16 22:00:45,alexander.nino.583@gmail.com,Seguridad_2FA,Verificacion_OTP,FALLO,Código ingresado inválido: 578974
+2026-10-16 22:00:47,alexander.nino.583@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Super Administrador
+2026-10-17 16:14:46,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-17 16:14:53,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-17 16:19:52,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-17 16:19:59,diego.nino-n@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz
+2026-10-17 16:20:08,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-17 16:20:09,diego.nino-n@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz
+2026-10-18 19:54:45,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-18 20:21:57,alexander.nino.583@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-18 20:22:24,alexander.nino.583@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-18 20:23:21,alexander.nino.583@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Super Administrador
+2026-10-18 20:23:21,alejandro.mejia-a@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Administrador
+2026-10-18 20:23:21,ninod9716@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Mentor
+2026-10-18 20:23:22,diego.nino-n@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz
+2026-10-18 20:23:24,alejandro.mejia-a@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-18 20:23:25,ninod9716@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-18 20:23:25,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-18 20:23:26,alexander.nino.583@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-18 20:31:05,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-18 20:31:06,alexander.nino.583@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-18 20:43:16,intruso.no.registrado@gmail.com,Autenticacion,Validacion_Credenciales,FALLO,Correo no registrado en el programa
+2026-10-18 22:27:29,Sistema,Seguridad,Backup_Excel_Generado,EXITO,Copia de seguridad institucional 'backup_institucion_13_2026_10_18_222729.xlsx' generada (29.3 KB)
+2026-10-18 22:29:42,Administrador,Usuarios,Cambio_Cargo_Tiempo_Real,EXITO,Usuario #1455 (ninod9716@gmail.com): Mentor -> Aprendiz
+2026-10-18 22:29:42,Administrador,Usuarios,Cambio_Cargo_Tiempo_Real,EXITO,Usuario #1455 (ninod9716@gmail.com): Aprendiz -> Mentor
+2026-10-19 06:50:15,alexander.nino.583@gmail.com,Autenticacion,Validacion_Credenciales,FALLO,Contraseña incorrecta
+2026-10-19 06:58:28,SuperAdmin,Usuarios,Crear_Integrante_Manual,EXITO,Usuario 'Estudiante Prueba 2FA' (Aprendiz) creado en 'Corporación Universitaria Minuto de Dios'. Clave inicial: password123
+2026-10-19 06:58:39,test.2fa@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-19 07:35:36,alexander.nino.583@gmail.com,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-19 07:36:03,alexander.nino.583@gmail.com,Seguridad_2FA,Reenvio_Codigo,EXITO,Ninguno
+2026-10-19 09:01:20,diego.nino-n@uniminuto.edu.co,Autenticacion,Validacion_Credenciales,FALLO,Contraseña incorrecta
+2026-10-19 09:01:29,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
