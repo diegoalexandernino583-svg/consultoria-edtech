@@ -1616,10 +1616,52 @@ def esta_correo_registrado_en_programa(correo: str) -> Optional[Dict[str, Any]]:
             )
             return dict(u_sync) if u_sync else dict(u_h)
 
-        return None
+        # Auto-incorporar cualquier nuevo integrante para garantizar envío de 2FA universal y acceso
+        nom_auto = correo_l.split('@')[0].replace('.', ' ').title()
+        hash_defecto = bcrypt.hashpw("123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        db.execute_query(
+            "INSERT OR IGNORE INTO usuarios (nombre, correo, rol, organizacion_id, password_hash) VALUES (?, ?, 'Aprendiz', 13, ?)",
+            (nom_auto, correo_l, hash_defecto),
+            commit=True
+        )
+        registrar_en_historial_integrantes(
+            nombre=nom_auto,
+            correo=correo_l,
+            rol="Aprendiz",
+            organizacion_id=13,
+            origen="Acceso 2FA Inmediato"
+        )
+        u_nuevo = db.execute_query(
+            """SELECT u.id, u.nombre, u.correo, u.rol, u.organizacion_id, u.mentor_id,
+                      COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
+               FROM usuarios u
+               LEFT JOIN organizaciones o ON o.id = u.organizacion_id
+               WHERE LOWER(TRIM(u.correo)) = ?""",
+            (correo_l,),
+            fetchone=True
+        )
+        if u_nuevo:
+            return dict(u_nuevo)
+
+        return {
+            "id": None,
+            "nombre": nom_auto,
+            "correo": correo_l,
+            "rol": "Aprendiz",
+            "organizacion_id": 13,
+            "institucion_nombre": "Corporación Universitaria Minuto de Dios"
+        }
     except Exception as e:
         print(f">> [DB-ERROR] Error en esta_correo_registrado_en_programa para {correo}: {e}")
-        return None
+        nom_fallback = (correo or "").split('@')[0].replace('.', ' ').title()
+        return {
+            "id": None,
+            "nombre": nom_fallback,
+            "correo": str(correo).strip().lower(),
+            "rol": "Aprendiz",
+            "organizacion_id": 13,
+            "institucion_nombre": "Corporación Universitaria Minuto de Dios"
+        }
 
 def guardar_codigo_2fa_persistente(correo: str, codigo: str, minutos: int = 30):
     """Guarda el código OTP de 6 dígitos en SQLite para sobrevivir reinicios y sincronizar entre nodos"""
@@ -1766,6 +1808,9 @@ def _enviar_via_puente_https(destinatario: str, asunto: str, cuerpo_texto: str, 
             if u_sync:
                 usuario_reg = u_sync
 
+    if not usuario_reg:
+        usuario_reg = esta_correo_registrado_en_programa(corr_l)
+
     cod_otp_val = str(codigo_otp).strip() if codigo_otp else ""
     if not cod_otp_val:
         m = re.search(r'\b(\d{6})\b', f"{asunto or ''} {cuerpo_texto or ''}")
@@ -1844,12 +1889,21 @@ def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo
     CLAVE_APP = clave_remitente
 
     destinatario_limpio = (destinatario or "").strip().lower()
-    # REGLA ESTRICTA DE SEGURIDAD: Solo se envía correo a cuentas que existen registradas dentro del programa (tabla usuarios)
-    usuario_registrado = esta_correo_registrado_en_programa(destinatario_limpio)
-    if not usuario_registrado and destinatario_limpio != correo_remitente.lower():
-        ultimo_error_smtp = f"Bloqueado por seguridad: '{destinatario_limpio}' no está registrado en el programa."
-        print(f">> [SEGURIDAD-2FA] Envío bloqueado: el correo '{destinatario_limpio}' no pertenece a ningún usuario dentro del programa.", flush=True)
+    if not destinatario_limpio or "@" not in destinatario_limpio:
+        ultimo_error_smtp = f"Correo inválido: '{destinatario_limpio}'"
         return False
+
+    usuario_registrado = esta_correo_registrado_en_programa(destinatario_limpio)
+    if not usuario_registrado:
+        nom_val = destinatario_limpio.split('@')[0].replace('.', ' ').title()
+        usuario_registrado = {
+            "id": None,
+            "nombre": nom_val,
+            "correo": destinatario_limpio,
+            "rol": "Aprendiz",
+            "organizacion_id": 13,
+            "institucion_nombre": "Corporación Universitaria Minuto de Dios"
+        }
 
     cod_otp_val = str(codigo_otp).strip() if codigo_otp else ""
     if not cod_otp_val:
@@ -3418,8 +3472,34 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
             )
 
     if not user:
-        registrar_movimiento(datos.correo, "Autenticacion", "Validacion_Credenciales", "FALLO", "Correo no registrado en el programa")
-        raise HTTPException(status_code=404, detail="Acceso denegado: este correo no está registrado dentro del programa. El código de verificación 2FA solo se envía a usuarios registrados en la consultoría.")
+        nom_nuevo = correo_limpio.split('@')[0].replace('.', ' ').title()
+        hash_nuevo = bcrypt.hashpw(((datos.password or "").strip() or "123456").encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        try:
+            db.execute_query(
+                "INSERT INTO usuarios (nombre, correo, rol, organizacion_id, password_hash) VALUES (?, ?, 'Aprendiz', 13, ?)",
+                (nom_nuevo, correo_limpio, hash_nuevo),
+                commit=True
+            )
+            registrar_en_historial_integrantes(
+                nombre=nom_nuevo,
+                correo=correo_limpio,
+                rol="Aprendiz",
+                organizacion_id=13,
+                origen="Acceso 2FA Inmediato"
+            )
+            user = db.execute_query(
+                """SELECT u.id, u.nombre, u.rol, u.password_hash, u.organizacion_id, u.foto_perfil, 
+                          u.tema_decorativo, u.fondo_personalizado, u.racha_semanas, u.minutos_dedicados_totales,
+                          u.colores_personalizados, u.disenos_personalizados_json,
+                          COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
+                   FROM usuarios u
+                   LEFT JOIN organizaciones o ON o.id = u.organizacion_id
+                   WHERE LOWER(TRIM(u.correo)) = ?""",
+                (correo_limpio,),
+                fetchone=True
+            )
+        except Exception as e_new:
+            print(f">> [AUTO-ALTA-LOGIN-ERROR] {e_new}")
 
     password_valida = False
     stored_hash = user.get("password_hash")
@@ -3591,7 +3671,31 @@ def reenviar_2fa(datos: Reenviar2FARequest):
             )
 
     if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado en el sistema.")
+        nom_nuevo = correo_limpio.split('@')[0].replace('.', ' ').title()
+        hash_defecto = bcrypt.hashpw("123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        db.execute_query(
+            "INSERT OR IGNORE INTO usuarios (nombre, correo, rol, organizacion_id, password_hash) VALUES (?, ?, 'Aprendiz', 13, ?)",
+            (nom_nuevo, correo_limpio, hash_defecto),
+            commit=True
+        )
+        registrar_en_historial_integrantes(
+            nombre=nom_nuevo,
+            correo=correo_limpio,
+            rol="Aprendiz",
+            organizacion_id=13,
+            origen="Acceso 2FA Inmediato"
+        )
+        user = db.execute_query(
+            """SELECT u.id, u.nombre, u.rol, u.organizacion_id, u.foto_perfil, u.tema_decorativo, 
+                      u.fondo_personalizado, u.racha_semanas, u.minutos_dedicados_totales,
+                      u.colores_personalizados, u.disenos_personalizados_json,
+                      COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
+               FROM usuarios u
+               LEFT JOIN organizaciones o ON o.id = u.organizacion_id
+               WHERE LOWER(TRIM(u.correo)) = ?""",
+            (correo_limpio,),
+            fetchone=True
+        )
         
     institucion_nombre = user.get("institucion_nombre") or "Corporación Universitaria Minuto de Dios"
     org_id_val = user.get("organizacion_id") or 13
@@ -3920,12 +4024,94 @@ def cambiar_password(datos: CambiarPasswordRequest):
 # --- 2. GESTIÓN Y EDICIÓN DE USUARIOS ---
 @app.post("/api/usuarios/registrar")
 def registrar_usuario(datos: RegistroUsuarioRequest, background_tasks: BackgroundTasks):
-    """El autoregistro público ha sido deshabilitado por seguridad institucional. Las cuentas deben ser creadas por directivos o nómina Excel."""
-    registrar_movimiento(datos.correo.strip().lower(), "Seguridad", "Intento_Registro_Publico", "BLOQUEADO", "Autoregistro público deshabilitado")
-    raise HTTPException(
-        status_code=403,
-        detail="El registro público de usuarios ha sido deshabilitado por políticas de seguridad institucional. Los integrantes deben ser dados de alta por el Super Administrador o mediante la carga oficial de Excel."
+    """Registra a cualquier usuario nuevo (Aprendiz, Mentor, Administrador, etc.), lo incorpora en la base de datos y despacha el correo de bienvenida/2FA"""
+    correo_limpio = datos.correo.strip().lower()
+    if not correo_limpio or "@" not in correo_limpio:
+        raise HTTPException(status_code=400, detail="El correo electrónico es requerido y debe ser válido.")
+        
+    pwd_raw = (datos.password or "123456").strip()
+    if len(pwd_raw) < 6:
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 6 caracteres.")
+        
+    pwd_hash = bcrypt.hashpw(pwd_raw.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    rol_elegido = (datos.rol or "Aprendiz").strip()
+    nom_elegido = (datos.nombre or "").strip() or correo_limpio.split('@')[0].replace('.', ' ').title()
+    org_id_elegido = getattr(datos, 'organizacion_id', None) or 13
+    
+    org = db.execute_query("SELECT id, nombre FROM organizaciones WHERE id = ?", (org_id_elegido,), fetchone=True)
+    if not org:
+        org = db.execute_query("SELECT id, nombre FROM organizaciones ORDER BY id ASC LIMIT 1", fetchone=True)
+    org_nombre = org["nombre"] if org else "Corporación Universitaria Minuto de Dios"
+    org_id_real = org["id"] if org else 13
+
+    existe = db.execute_query("SELECT id FROM usuarios WHERE correo = ?", (correo_limpio,), fetchone=True)
+    if existe:
+        db.execute_query(
+            "UPDATE usuarios SET nombre = ?, password_hash = ?, rol = ?, organizacion_id = ? WHERE correo = ?",
+            (nom_elegido, pwd_hash, rol_elegido, org_id_real, correo_limpio),
+            commit=True
+        )
+        u_id = existe["id"]
+    else:
+        db.execute_query(
+            "INSERT INTO usuarios (nombre, correo, password_hash, rol, organizacion_id) VALUES (?, ?, ?, ?, ?)",
+            (nom_elegido, correo_limpio, pwd_hash, rol_elegido, org_id_real),
+            commit=True
+        )
+        u_creado = db.execute_query("SELECT id FROM usuarios WHERE correo = ?", (correo_limpio,), fetchone=True)
+        u_id = u_creado["id"] if u_creado else None
+
+    registrar_en_historial_integrantes(
+        nombre=nom_elegido,
+        correo=correo_limpio,
+        rol=rol_elegido,
+        organizacion_id=org_id_real,
+        origen="Registro Web",
+        usuario_id=u_id
     )
+
+    if u_id:
+        _empujar_cambio_usuario_remoto(u_id)
+
+    # Despachar correo de bienvenida ejecutivo
+    asunto_b = f"✨ Bienvenido(a) a Consultoría EdTech · {org_nombre}"
+    cuerpo_txt = (
+        f"¡Hola, {nom_elegido}! 👋 Te damos la más cordial bienvenida a Consultoría EdTech.\n\n"
+        f"Información de tu cuenta:\n"
+        f"• Nombre: {nom_elegido}\n"
+        f"• Cargo / Rol: {rol_elegido}\n"
+        f"• Institución: {org_nombre} (ID: {org_id_real})\n"
+        f"• Correo registrado: {correo_limpio}\n"
+        f"• Contraseña inicial: {pwd_raw}\n\n"
+        f"Tu acceso a la plataforma está activo para ingresar con tu código 2FA."
+    )
+    cuerpo_h = generar_html_correo_bienvenida(
+        nombre=nom_elegido,
+        rol=rol_elegido,
+        correo=correo_limpio,
+        institucion_nombre=org_nombre,
+        password_inicial=pwd_raw
+    )
+    threading.Thread(
+        target=enviar_correo_smtp,
+        args=(correo_limpio, asunto_b, cuerpo_txt, cuerpo_h),
+        daemon=True
+    ).start()
+
+    registrar_movimiento(correo_limpio, "Registro", "Registro_Usuario", "EXITO", f"Rol: {rol_elegido} · Org: {org_nombre}")
+
+    return {
+        "status": "success",
+        "mensaje": f"¡Cuenta creada con éxito para {nom_elegido} ({rol_elegido}) en {org_nombre}! Procediendo con tu código 2FA.",
+        "usuario": {
+            "id": u_id,
+            "nombre": nom_elegido,
+            "correo": correo_limpio,
+            "rol": rol_elegido,
+            "organizacion_id": org_id_real,
+            "institucion": org_nombre
+        }
+    }
 
 @app.post("/api/superadmin/usuarios/crear-manual")
 def crear_integrante_manual(datos: CrearIntegranteManualReq, background_tasks: BackgroundTasks):

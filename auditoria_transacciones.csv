@@ -1243,3 +1243,7 @@ Fecha_Hora,Correo_Usuario,Modulo,Operacion,Estado,Detalles_Error
 2026-10-19 09:01:20,diego.nino-n@uniminuto.edu.co,Autenticacion,Validacion_Credenciales,FALLO,Contraseña incorrecta
 2026-10-19 09:01:29,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
 2026-10-19 09:39:54,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-19 10:18:52,diego.nino-n@uniminuto.edu.co,Autenticacion,Validacion_Credenciales,FALLO,Contraseña incorrecta
+2026-10-19 10:18:53,aprendiz.prueba.2fa@uniminuto.edu.co,Registro,Registro_Usuario,EXITO,Rol: Aprendiz · Org: Corporación Universitaria Minuto de Dios
+2026-10-19 10:19:06,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
+2026-10-19 10:19:17,aprendiz.prueba.2fa@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
