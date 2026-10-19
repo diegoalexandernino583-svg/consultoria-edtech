@@ -30,7 +30,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <link rel="stylesheet" href="/static/styles.css?v=20261019_pro">
+  <link rel="stylesheet" href="/static/styles.css?v=20261019_v3">
   <style>
     /* Ocultar el icono nativo de revelar contraseña de Edge / Windows para evitar doble ojito */
     input::-ms-reveal,
@@ -2212,15 +2212,15 @@
             </div>
           </div>
 
-          <!-- NAVEGACIÓN POR PESTAÑAS EN CONFIGURACIÓN -->
+          <!-- NAVEGACIÓN EN CONFIGURACIÓN DE PERFIL -->
           <div class="flex border-b border-slate-200 gap-2 overflow-x-auto pb-1">
-            <button id="tab-btn-cfg-personalizacion" onclick="cambiarTabConfiguracion('personalizacion')" class="px-4 py-2.5 text-xs font-bold border-b-2 border-cyan-600 text-cyan-700 flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer">
-              <i data-lucide="sun-moon" class="w-4 h-4 text-cyan-600"></i>
-              <span data-i18n="cfg_tab_idioma_apariencia">🌐 Idioma & Modo Visual (Claro / Oscuro)</span>
+            <button id="tab-btn-cfg-cuenta" onclick="cambiarTabConfiguracion('cuenta')" class="px-4 py-2.5 text-xs font-bold border-b-2 border-cyan-600 text-cyan-700 flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer">
+              <i data-lucide="user-check" class="w-4 h-4 text-cyan-600"></i>
+              <span data-i18n="cfg_tab_perfil">👤 Configuración de Perfil & Preferencias</span>
             </button>
-            <button id="tab-btn-cfg-cuenta" onclick="cambiarTabConfiguracion('cuenta')" class="px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer">
-              <i data-lucide="user" class="w-4 h-4"></i>
-              <span data-i18n="cfg_tab_perfil">👤 Mi Perfil & Cuenta</span>
+            <button id="tab-btn-cfg-personalizacion" onclick="cambiarTabConfiguracion('personalizacion')" class="hidden px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 items-center gap-2 whitespace-nowrap transition-all cursor-pointer">
+              <i data-lucide="sun-moon" class="w-4 h-4 text-cyan-600"></i>
+              <span data-i18n="cfg_tab_idioma_apariencia">🌐 Idioma & Modo Visual</span>
             </button>
             <button id="tab-btn-cfg-conectividad" onclick="cambiarTabConfiguracion('conectividad')" class="hidden px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 items-center gap-2 whitespace-nowrap transition-all">
               <i data-lucide="wifi" class="w-4 h-4"></i>
@@ -2241,9 +2241,9 @@
           </div>
 
           <!-- ===============================================================
-               PESTAÑA 1: MI CUENTA & PERFIL
+               VISTA UNIFICADA: MI CUENTA, CONTRASEÑA, IDIOMA, MODO CLARO/OSCURO & BACKUP INSTITUCIONAL (SOLO ADMIN)
                =============================================================== -->
-          <div id="tab-content-cfg-cuenta" class="hidden space-y-6">
+          <div id="tab-content-cfg-cuenta" class="space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <!-- Tarjeta de Foto de Perfil e Identidad -->
               <div class="corp-card p-6 flex flex-col items-center text-center justify-between border border-slate-200">
@@ -2258,77 +2258,94 @@
                     <h3 id="cfg-perfil-nombre-display" class="text-base font-bold text-[#0a192f]">Usuario</h3>
                     <p id="cfg-perfil-correo-display" class="text-xs text-slate-400 font-mono mt-0.5">correo@institucion.edu.co</p>
                     <span id="cfg-perfil-rol-badge" class="badge-corp badge-corp-superadmin font-bold mt-2 inline-block">Super Administrador</span>
+                    <p id="cfg-perfil-org-display" class="text-[11px] font-semibold text-cyan-700 mt-1.5">🏛️ Corporación Universitaria Minuto de Dios</p>
                   </div>
                 </div>
 
                 <div class="pt-6 border-t border-slate-100 w-full space-y-2">
                   <input type="file" id="input-archivo-foto-perfil" accept="image/*" onchange="procesarSubidaFotoPerfil(event)" class="hidden">
-                  <button onclick="document.getElementById('input-archivo-foto-perfil').click()" class="w-full py-2 px-3 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5">
+                  <button onclick="document.getElementById('input-archivo-foto-perfil').click()" class="w-full py-2 px-3 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer">
                     <i data-lucide="camera" class="w-3.5 h-3.5"></i>
                     <span>Subir Foto de Perfil</span>
                   </button>
-                  <button onclick="eliminarFotoPerfil()" class="w-full py-1.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold transition-all flex items-center justify-center gap-1.5">
+                  <button onclick="eliminarFotoPerfil()" class="w-full py-1.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer">
                     <i data-lucide="trash" class="w-3.5 h-3.5 text-rose-500"></i>
                     <span>Quitar Foto</span>
                   </button>
                 </div>
               </div>
 
-              <!-- Tarjeta de Datos Personales y Cambio de Contraseña -->
+              <!-- Tarjeta de Datos Personales (Bloqueados) y Cambio de Contraseña -->
               <div class="lg:col-span-2 space-y-6">
-                <!-- Datos Personales -->
+                <!-- Datos Institucionales de la Cuenta (NO MODIFICABLES) -->
                 <div class="corp-card p-6 border border-slate-200">
-                  <h3 class="text-sm font-bold text-[#0a192f] mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
-                    <i data-lucide="user-check" class="w-4 h-4 text-cyan-600"></i>
-                    <span>Información Personal de la Cuenta</span>
-                  </h3>
+                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-2 border-b border-slate-100">
+                    <h3 class="text-sm font-bold text-[#0a192f] flex items-center gap-2">
+                      <i data-lucide="shield-check" class="w-4 h-4 text-cyan-600"></i>
+                      <span>Información Oficial de la Cuenta</span>
+                    </h3>
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold border border-slate-200">
+                      <i data-lucide="lock" class="w-3 h-3 text-slate-500"></i>
+                      <span>Datos institucionales protegidos (No modificables)</span>
+                    </span>
+                  </div>
                   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                     <div>
-                      <label class="text-[11px] font-bold text-slate-500 block mb-1">Nombre Completo</label>
-                      <input id="cfg-input-nombre" type="text" class="corp-input w-full p-2.5 rounded-xl text-xs font-semibold" disabled>
+                      <label class="text-[11px] font-bold text-slate-500 flex items-center gap-1 mb-1">
+                        <i data-lucide="user" class="w-3 h-3 text-cyan-600"></i>
+                        <span>Cuenta / Nombre Completo</span>
+                      </label>
+                      <input id="cfg-input-nombre" type="text" class="corp-input w-full p-2.5 rounded-xl text-xs font-semibold bg-slate-50 cursor-not-allowed opacity-90" disabled readonly>
                     </div>
                     <div>
-                      <label class="text-[11px] font-bold text-slate-500 block mb-1">Correo Electrónico</label>
-                      <input id="cfg-input-correo" type="email" class="corp-input w-full p-2.5 rounded-xl text-xs font-mono" disabled>
+                      <label class="text-[11px] font-bold text-slate-500 flex items-center gap-1 mb-1">
+                        <i data-lucide="mail" class="w-3 h-3 text-cyan-600"></i>
+                        <span>Correo Electrónico Registrado</span>
+                      </label>
+                      <input id="cfg-input-correo" type="email" class="corp-input w-full p-2.5 rounded-xl text-xs font-mono bg-slate-50 cursor-not-allowed opacity-90" disabled readonly>
                     </div>
                     <div>
-                      <label class="text-[11px] font-bold text-slate-500 block mb-1">Cargo / Rol en Plataforma</label>
-                      <input id="cfg-input-rol" type="text" class="corp-input w-full p-2.5 rounded-xl text-xs font-semibold" disabled>
+                      <label class="text-[11px] font-bold text-slate-500 flex items-center gap-1 mb-1">
+                        <i data-lucide="award" class="w-3 h-3 text-cyan-600"></i>
+                        <span>Cargo / Rol Asignado</span>
+                      </label>
+                      <input id="cfg-input-rol" type="text" class="corp-input w-full p-2.5 rounded-xl text-xs font-semibold bg-slate-50 cursor-not-allowed opacity-90" disabled readonly>
                     </div>
                     <div>
-                      <label class="text-[11px] font-bold text-slate-500 block mb-1">Institución / Convenio</label>
-                      <input id="cfg-input-organizacion" type="text" class="corp-input w-full p-2.5 rounded-xl text-xs font-semibold" disabled>
+                      <label class="text-[11px] font-bold text-slate-500 flex items-center gap-1 mb-1">
+                        <i data-lucide="building-2" class="w-3 h-3 text-cyan-600"></i>
+                        <span>Institución a la que Pertenece</span>
+                      </label>
+                      <input id="cfg-input-organizacion" type="text" class="corp-input w-full p-2.5 rounded-xl text-xs font-semibold bg-slate-50 cursor-not-allowed opacity-90" disabled readonly>
                     </div>
                   </div>
                 </div>
 
-                <!-- Formulario de Cambio de Contraseña -->
+                <!-- Formulario de Cambio de Contraseña (ÚNICO CAMPO MODIFICABLE DE LA CUENTA) -->
                 <div class="corp-card p-6 border border-slate-200">
-                  <h3 class="text-sm font-bold text-[#0a192f] mb-2 flex items-center gap-2">
+                  <h3 class="text-sm font-bold text-[#0a192f] mb-1 flex items-center gap-2">
                     <i data-lucide="key-round" class="w-4 h-4 text-cyan-600"></i>
-                    <span>Actualización Segura de Contraseña</span>
+                    <span>Cambio de Contraseña de Acceso</span>
                   </h3>
-                  <p class="text-[11px] text-slate-400 mb-4">Define una contraseña de al menos 6 dígitos. Podrás verificarla con el icono de visualización.</p>
+                  <p class="text-[11px] text-slate-500 mb-4">Este es el único dato modificable de tu cuenta. Se sincroniza automáticamente en tiempo real con Azure SQL y la Nube.</p>
 
                   <form onsubmit="guardarCambioPasswordPerfil(event)" class="space-y-4">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <!-- Nueva Contraseña con 1 solo ojito -->
                       <div>
                         <label class="text-[11px] font-bold text-slate-600 block mb-1">Nueva Contraseña (mínimo 6 caracteres)</label>
                         <div class="relative">
                           <input id="cfg-input-pwd-nueva" type="password" required minlength="6" placeholder="Ingresa nueva contraseña" class="corp-input w-full pr-10 p-2.5 rounded-xl text-xs font-mono">
-                          <button type="button" onclick="togglePasswordVisibility('cfg-input-pwd-nueva', 'eye-cfg-nueva')" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
+                          <button type="button" onclick="togglePasswordVisibility('cfg-input-pwd-nueva', 'eye-cfg-nueva')" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer">
                             <i id="eye-cfg-nueva" data-lucide="eye" class="w-4 h-4"></i>
                           </button>
                         </div>
                       </div>
 
-                      <!-- Confirmar Contraseña con 1 solo ojito -->
                       <div>
-                        <label class="text-[11px] font-bold text-slate-600 block mb-1">Confirmar Contraseña</label>
+                        <label class="text-[11px] font-bold text-slate-600 block mb-1">Confirmar Nueva Contraseña</label>
                         <div class="relative">
                           <input id="cfg-input-pwd-conf" type="password" required minlength="6" placeholder="Confirma nueva contraseña" class="corp-input w-full pr-10 p-2.5 rounded-xl text-xs font-mono">
-                          <button type="button" onclick="togglePasswordVisibility('cfg-input-pwd-conf', 'eye-cfg-conf')" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
+                          <button type="button" onclick="togglePasswordVisibility('cfg-input-pwd-conf', 'eye-cfg-conf')" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer">
                             <i id="eye-cfg-conf" data-lucide="eye" class="w-4 h-4"></i>
                           </button>
                         </div>
@@ -2336,7 +2353,7 @@
                     </div>
 
                     <div class="flex justify-end pt-2">
-                      <button type="submit" class="btn-corp-primario">
+                      <button type="submit" class="btn-corp-primario cursor-pointer">
                         <i data-lucide="check" class="w-4 h-4"></i>
                         <span>Actualizar Contraseña</span>
                       </button>
@@ -2345,12 +2362,88 @@
                 </div>
               </div>
             </div>
+
+            <!-- PREFERENCIAS DE INTERFAZ: BOTÓN DE IDIOMA Y BOTÓN DE MODO CLARO (BLANCO) / MODO OSCURO (NEGRO) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Botón bonito para cambiar el Idioma -->
+              <div class="corp-card p-6 border border-slate-200 flex flex-col justify-between space-y-4">
+                <div>
+                  <h3 class="text-sm font-bold text-[#0a192f] flex items-center gap-2">
+                    <i data-lucide="globe" class="w-4 h-4 text-cyan-600"></i>
+                    <span data-i18n="cfg_idioma_titulo">Idioma de la Plataforma</span>
+                  </h3>
+                  <p class="text-xs text-slate-500 mt-1" data-i18n="cfg_idioma_desc">
+                    Selecciona el idioma en el que deseas visualizar el entorno.
+                  </p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2.5 pt-1">
+                  <button type="button" onclick="cambiarIdiomaApp('es', true)" data-lang="es" class="btn-selector-idioma px-4 py-2.5 rounded-xl border-2 font-bold text-xs flex items-center gap-2 transition-all shadow-xs cursor-pointer">
+                    <span class="text-base">🇪🇸</span>
+                    <span>Español</span>
+                    <span class="badge-idioma-check text-[10px] ml-1 font-extrabold hidden">✓</span>
+                  </button>
+                  <button type="button" onclick="cambiarIdiomaApp('en', true)" data-lang="en" class="btn-selector-idioma px-4 py-2.5 rounded-xl border-2 font-bold text-xs flex items-center gap-2 transition-all shadow-xs cursor-pointer">
+                    <span class="text-base">🇺🇸</span>
+                    <span>English</span>
+                    <span class="badge-idioma-check text-[10px] ml-1 font-extrabold hidden">✓</span>
+                  </button>
+                  <button type="button" onclick="cambiarIdiomaApp('pt', true)" data-lang="pt" class="btn-selector-idioma px-4 py-2.5 rounded-xl border-2 font-bold text-xs flex items-center gap-2 transition-all shadow-xs cursor-pointer">
+                    <span class="text-base">🇧🇷</span>
+                    <span>Português</span>
+                    <span class="badge-idioma-check text-[10px] ml-1 font-extrabold hidden">✓</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Botón bonito para cambiar solo entre Modo Claro (Blanco) y Modo Oscuro (Negro) -->
+              <div class="corp-card p-6 border border-slate-200 flex flex-col justify-between space-y-4">
+                <div>
+                  <h3 class="text-sm font-bold text-[#0a192f] flex items-center gap-2">
+                    <i data-lucide="sun-moon" class="w-4 h-4 text-cyan-600"></i>
+                    <span data-i18n="cfg_modo_titulo">Apariencia Visual (Modo Claro / Modo Oscuro)</span>
+                  </h3>
+                  <p class="text-xs text-slate-500 mt-1" data-i18n="cfg_modo_desc">
+                    Alterna con un clic entre el Modo Claro (Blanco) y el Modo Oscuro (Negro).
+                  </p>
+                </div>
+                <div class="grid grid-cols-2 gap-3 pt-1">
+                  <button type="button" id="btn-perfil-modo-claro" onclick="seleccionarTemaVisual('claro'); mostrarToast('☀️ Modo Claro (Blanco) activado', 'info');" class="px-4 py-3 rounded-xl border-2 border-cyan-500 bg-white text-slate-900 font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer hover:border-cyan-600">
+                    <span class="text-base">☀️</span>
+                    <span>Modo Claro (Blanco)</span>
+                  </button>
+                  <button type="button" id="btn-perfil-modo-oscuro" onclick="seleccionarTemaVisual('oscuro'); mostrarToast('🌙 Modo Oscuro (Negro) activado', 'info');" class="px-4 py-3 rounded-xl border-2 border-slate-700 bg-[#131314] text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer hover:border-cyan-400">
+                    <span class="text-base">🌙</span>
+                    <span>Modo Oscuro (Negro)</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- EXCLUSIVO PARA ADMINISTRADORES: COPIA DE SEGURIDAD DE TODOS LOS REGISTros DE SU INSTITUCIÓN -->
+            <div id="seccion-backup-institucional-admin" class="hidden corp-card p-6 border border-slate-200 space-y-4">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="hard-drive-download" class="w-5 h-5 text-cyan-600"></i>
+                    <h3 class="text-sm font-bold text-[#0a192f]">Copia de Seguridad de los Registros de tu Institución</h3>
+                    <span class="px-2 py-0.5 rounded-full bg-cyan-50 text-cyan-800 border border-cyan-200 text-[10px] font-bold">Exclusivo Administrador</span>
+                  </div>
+                  <p class="text-xs text-slate-500 mt-1">
+                    Descarga un respaldo completo en Excel (<code class="font-mono">.xlsx</code>) con todos los registros actualizados de tu institución: Administradores, Mentores, Aprendices, Cursos y Métricas de Avance.
+                  </p>
+                </div>
+                <button type="button" id="btn-descargar-backup-institucion" onclick="descargarCopiaSeguridadInstitucional()" class="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 shrink-0 cursor-pointer">
+                  <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                  <span>Descargar Copia de Seguridad Institucional (.xlsx)</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- ===============================================================
-               PESTAÑA: TEMAS DEL SISTEMA (MODO OSCURO & MODO CLARO)
+               PESTAÑA SECUNDARIA: TEMAS DEL SISTEMA (MODO OSCURO & MODO CLARO)
                =============================================================== -->
-          <div id="tab-content-cfg-personalizacion" class="space-y-6">
+          <div id="tab-content-cfg-personalizacion" class="hidden space-y-6">
             <!-- SECCIÓN 1: SELECCIÓN DE IDIOMA DE LA PLATAFORMA (TIPO BOTÓN) -->
             <div class="corp-card p-6 border border-slate-200 space-y-4">
               <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
@@ -4589,6 +4682,6 @@
   <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
 
   <!-- CLIENT SCRIPT -->
-  <script src="/static/app.js?v=20261019_pro"></script>
+  <script src="/static/app.js?v=20261019_v3"></script>
 </body>
 </html>

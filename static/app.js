@@ -968,6 +968,18 @@ function seleccionarTemaVisual(modo) {
     lblHeaderModo.innerText = (modo === 'oscuro') ? '☀️ Modo Claro' : '🌙 Modo Oscuro';
   }
 
+  const btnPerfilClaro = document.getElementById('btn-perfil-modo-claro');
+  const btnPerfilOscuro = document.getElementById('btn-perfil-modo-oscuro');
+  if (btnPerfilClaro && btnPerfilOscuro) {
+    if (modo === 'oscuro') {
+      btnPerfilOscuro.className = 'px-4 py-3 rounded-xl border-2 border-cyan-400 bg-[#131314] text-cyan-300 font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer ring-2 ring-cyan-500/20';
+      btnPerfilClaro.className = 'px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer opacity-80 hover:opacity-100';
+    } else {
+      btnPerfilClaro.className = 'px-4 py-3 rounded-xl border-2 border-cyan-600 bg-cyan-50/70 text-[#0a192f] font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer ring-2 ring-cyan-500/20';
+      btnPerfilOscuro.className = 'px-4 py-3 rounded-xl border border-slate-700 bg-[#131314] text-slate-300 font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer opacity-85 hover:opacity-100';
+    }
+  }
+
   refrescarIconos();
 }
 
@@ -2567,6 +2579,37 @@ function cambiarModoVistaDirectorio(modo) {
   }
 }
 
+async function cambiarCargoUsuarioTiempoReal(usuarioId, nuevoRol) {
+  if (!usuarioId || !nuevoRol) return;
+  try {
+    const res = await fetch(`${API_BASE}/api/usuarios/${usuarioId}/cambiar-cargo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rol: nuevoRol })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Error al actualizar el cargo');
+
+    mostrarToast(`✓ ${data.mensaje}`, 'exito');
+
+    if (currentUser && currentUser.id == usuarioId) {
+      currentUser.rol = nuevoRol;
+      localStorage.setItem('edtech_usuario', JSON.stringify(currentUser));
+      configurarVistasSegunRol(true);
+      actualizarPerfilSidebar();
+    }
+
+    cargarJerarquia3Columnas();
+    cargarNodosInstitucionales();
+    if (typeof cargarVistaAdminConvenio === 'function') cargarVistaAdminConvenio();
+    if (typeof cargarMentoresRendimientoAdmin === 'function') cargarMentoresRendimientoAdmin();
+  } catch (err) {
+    mostrarToast(err.message, 'error');
+    cargarJerarquia3Columnas();
+    if (typeof cargarVistaAdminConvenio === 'function') cargarVistaAdminConvenio();
+  }
+}
+
 function renderizarTableroJerarquico(data) {
   const admins = data.administradores || [];
   const mentores = data.mentores || [];
@@ -2576,7 +2619,7 @@ function renderizarTableroJerarquico(data) {
   document.getElementById('badge-total-mentores').innerText = mentores.length;
   document.getElementById('badge-total-aprendices').innerText = aprendices.length;
 
-  const esSuperAdmin = currentUser && currentUser.rol === 'Super Administrador';
+  const puedeEditarCargos = currentUser && (currentUser.rol === 'Super Administrador' || currentUser.rol === 'Administrador');
 
   // Render Columna 1: Administradores
   const contAdmins = document.getElementById('lista-jerarquia-admins');
@@ -2600,7 +2643,7 @@ function renderizarTableroJerarquico(data) {
               <p class="text-[11px] font-mono text-cyan-700 truncate">${u.correo}</p>
             </div>
           </div>
-          ${esSuperAdmin ? `
+          ${(puedeEditarCargos && u.rol !== 'Super Administrador') ? `
             <div class="flex items-center space-x-1 shrink-0">
               <button onclick="abrirModalEditarUsuario(${u.id}, '${escapeHtml(u.nombre)}', '${u.correo}', '${u.rol}', ${u.organizacion_id || 'null'}, null)" class="btn-icon-edit" title="Editar Cargo">
                 <i data-lucide="edit-2" class="w-3 h-3"></i>
@@ -2611,11 +2654,17 @@ function renderizarTableroJerarquico(data) {
             </div>
           ` : ''}
         </div>
-        <div class="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-          <span class="badge-corp ${obtenerClaseBadgeRol(u.rol)} text-[10px]">${u.rol}</span>
+        <div class="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] gap-2">
+          ${(puedeEditarCargos && u.rol !== 'Super Administrador') ? `
+            <select onchange="cambiarCargoUsuarioTiempoReal(${u.id}, this.value)" class="px-2 py-1 rounded-lg border border-cyan-300 bg-cyan-50/70 text-[#0a192f] text-[10px] font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-500" title="Cambiar cargo en tiempo real">
+              <option value="Administrador" ${u.rol === 'Administrador' ? 'selected' : ''}>🛡️ Administrador</option>
+              <option value="Mentor" ${u.rol === 'Mentor' ? 'selected' : ''}>🎓 Mentor</option>
+              <option value="Aprendiz" ${u.rol === 'Aprendiz' ? 'selected' : ''}>📘 Aprendiz</option>
+            </select>
+          ` : `<span class="badge-corp ${obtenerClaseBadgeRol(u.rol)} text-[10px]">${u.rol}</span>`}
           <span class="text-slate-500 font-medium text-[10px] truncate max-w-[130px] flex items-center gap-1">
             <i data-lucide="building-2" class="w-3 h-3 text-slate-400"></i>
-            <span>${u.organizacion_nombre || 'Sede Central'}</span>
+            <span>${u.organizacion_nombre || 'Corporación Universitaria Minuto de Dios'}</span>
           </span>
         </div>
       </div>
@@ -2644,7 +2693,7 @@ function renderizarTableroJerarquico(data) {
               <p class="text-[11px] font-mono text-cyan-700 truncate">${m.correo}</p>
             </div>
           </div>
-          ${esSuperAdmin ? `
+          ${puedeEditarCargos ? `
             <div class="flex items-center space-x-1 shrink-0">
               <button onclick="abrirModalEditarUsuario(${m.id}, '${escapeHtml(m.nombre)}', '${m.correo}', '${m.rol}', ${m.organizacion_id || 'null'}, null)" class="btn-icon-edit" title="Editar Cargo">
                 <i data-lucide="edit-2" class="w-3 h-3"></i>
@@ -2655,18 +2704,21 @@ function renderizarTableroJerarquico(data) {
             </div>
           ` : ''}
         </div>
-        <div class="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+        <div class="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] gap-2">
+          ${puedeEditarCargos ? `
+            <select onchange="cambiarCargoUsuarioTiempoReal(${m.id}, this.value)" class="px-2 py-1 rounded-lg border border-cyan-300 bg-cyan-50/70 text-[#0a192f] text-[10px] font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-500" title="Cambiar cargo en tiempo real">
+              <option value="Administrador" ${m.rol === 'Administrador' ? 'selected' : ''}>🛡️ Administrador</option>
+              <option value="Mentor" ${m.rol === 'Mentor' ? 'selected' : ''}>🎓 Mentor</option>
+              <option value="Aprendiz" ${m.rol === 'Aprendiz' ? 'selected' : ''}>📘 Aprendiz</option>
+            </select>
+          ` : ''}
           <span class="px-2 py-0.5 rounded-full bg-cyan-50 text-cyan-800 font-bold text-[10px] border border-cyan-200 flex items-center gap-1">
             <i data-lucide="users" class="w-3 h-3 text-cyan-600"></i>
             <span>${m.total_aprendices || 0} aprendices</span>
           </span>
-          <span class="text-slate-500 font-medium text-[10px] truncate max-w-[130px] flex items-center gap-1">
-            <i data-lucide="building-2" class="w-3 h-3 text-slate-400"></i>
-            <span>${m.organizacion_nombre || 'Sede Central'}</span>
-          </span>
         </div>
-        ${esSuperAdmin ? `
-          <button onclick="abrirModalOrganizarGrupos(${m.organizacion_id}, ${m.id})" class="btn-ver-metricas mt-2.5" title="Ver y reorganizar aprendices asignados a este mentor">
+        ${puedeEditarCargos ? `
+          <button onclick="abrirModalOrganizarGrupos(${m.organizacion_id || 13}, ${m.id})" class="btn-ver-metricas mt-2.5" title="Ver y reorganizar aprendices asignados a este mentor">
             <i data-lucide="network" class="w-3.5 h-3.5"></i>
             <span>Gestionar Grupo de Aprendices</span>
           </button>
@@ -2699,7 +2751,7 @@ function renderizarTableroJerarquico(data) {
                 <p class="text-[11px] font-mono text-cyan-700 truncate">${a.correo}</p>
               </div>
             </div>
-            ${esSuperAdmin ? `
+            ${puedeEditarCargos ? `
               <div class="flex items-center space-x-1 shrink-0">
                 <button onclick="abrirModalEditarUsuario(${a.id}, '${escapeHtml(a.nombre)}', '${a.correo}', '${a.rol}', ${a.organizacion_id || 'null'}, ${a.mentor_id || 'null'})" class="btn-icon-edit" title="Editar / Reasignar">
                   <i data-lucide="edit-2" class="w-3 h-3"></i>
@@ -2712,8 +2764,18 @@ function renderizarTableroJerarquico(data) {
           </div>
 
           <div class="mt-2.5 pt-2 border-t border-slate-100">
+            ${puedeEditarCargos ? `
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-[10px] font-bold text-slate-500">Cargo en Tiempo Real:</span>
+                <select onchange="cambiarCargoUsuarioTiempoReal(${a.id}, this.value)" class="px-2 py-0.5 rounded-lg border border-cyan-300 bg-cyan-50/70 text-[#0a192f] text-[10px] font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-500" title="Cambiar cargo en tiempo real">
+                  <option value="Administrador" ${a.rol === 'Administrador' ? 'selected' : ''}>🛡️ Administrador</option>
+                  <option value="Mentor" ${a.rol === 'Mentor' ? 'selected' : ''}>🎓 Mentor</option>
+                  <option value="Aprendiz" ${a.rol === 'Aprendiz' ? 'selected' : ''}>📘 Aprendiz</option>
+                </select>
+              </div>
+            ` : ''}
             <div class="flex items-center justify-between text-[10px] text-slate-500 mb-1">
-              <span>Mentor: <strong class="text-cyan-700 font-semibold">${a.mentor_nombre || 'Sin asignar'}</strong></span>
+              <span>Mentor: <strong class="text-cyan-700 font-semibold">${a.mentor_nombre || 'alvaro Niño'}</strong></span>
               <span class="font-bold text-[#0a192f]">${avance}%</span>
             </div>
             <div class="progress-track-cyan">
@@ -2746,7 +2808,7 @@ function renderizarDirectorioTabular(data) {
   const tbody = document.getElementById('tabla-usuarios-body');
   if (!tbody) return;
 
-  const esSuperAdmin = currentUser && currentUser.rol === 'Super Administrador';
+  const puedeEditarCargos = currentUser && (currentUser.rol === 'Super Administrador' || currentUser.rol === 'Administrador');
 
   if (todos.length === 0) {
     tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-400">No hay usuarios para mostrar.</td></tr>`;
@@ -2765,11 +2827,19 @@ function renderizarDirectorioTabular(data) {
         </div>
       </td>
       <td class="py-2.5 font-mono text-cyan-700 text-xs">${u.correo}</td>
-      <td class="py-2.5"><span class="badge-corp ${obtenerClaseBadgeRol(u.rol)}">${u.rol}</span></td>
-      <td class="py-2.5 text-slate-600 text-xs">${u.organizacion_nombre || 'N/A'}</td>
+      <td class="py-2.5">
+        ${(puedeEditarCargos && u.rol !== 'Super Administrador') ? `
+          <select onchange="cambiarCargoUsuarioTiempoReal(${u.id}, this.value)" class="px-2.5 py-1 rounded-lg border border-cyan-300 bg-cyan-50/70 text-[#0a192f] text-xs font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-500">
+            <option value="Administrador" ${u.rol === 'Administrador' ? 'selected' : ''}>🛡️ Administrador</option>
+            <option value="Mentor" ${u.rol === 'Mentor' ? 'selected' : ''}>🎓 Mentor</option>
+            <option value="Aprendiz" ${u.rol === 'Aprendiz' ? 'selected' : ''}>📘 Aprendiz</option>
+          </select>
+        ` : `<span class="badge-corp ${obtenerClaseBadgeRol(u.rol)}">${u.rol}</span>`}
+      </td>
+      <td class="py-2.5 text-slate-600 text-xs">${u.organizacion_nombre || 'Corporación Universitaria Minuto de Dios'}</td>
       <td class="py-2.5 text-slate-500 text-xs">${u.mentor_nombre || (u.mentor_id ? `#${u.mentor_id}` : '-')}</td>
       <td class="py-2.5 text-right">
-        ${esSuperAdmin ? `
+        ${puedeEditarCargos ? `
           <div class="flex items-center justify-end space-x-1">
             ${u.rol !== 'Super Administrador' ? `
               <button onclick="abrirModalEditarUsuario(${u.id}, '${escapeHtml(u.nombre)}', '${u.correo}', '${u.rol}', ${u.organizacion_id || 'null'}, ${u.mentor_id || 'null'})" class="btn-icon-edit" title="Editar">
@@ -3985,11 +4055,7 @@ let adminAprendicesFiltrados = [];
 
 async function cargarVistaAdminConvenio() {
   if (!currentUser) return;
-  const orgId = currentUser.organizacion_id;
-  if (!orgId) {
-    mostrarToast('No tienes una institución o convenio asignado a tu cuenta.', 'advertencia');
-    return;
-  }
+  const orgId = currentUser.organizacion_id || 13;
 
   try {
     const res = await fetch(`${API_BASE}/api/admin/convenio/${orgId}`);
@@ -4043,11 +4109,23 @@ async function cargarVistaAdminConvenio() {
               ${m.foto_perfil ? `<img src="${m.foto_perfil}" class="w-full h-full object-cover rounded-xl">` : obtenerIniciales(m.nombre)}
             </div>
             <div class="flex-1 overflow-hidden">
-              <h4 class="text-xs font-bold text-[#0a192f] truncate">${m.nombre}</h4>
+              <div class="flex items-center justify-between gap-2">
+                <h4 class="text-xs font-bold text-[#0a192f] truncate">${m.nombre}</h4>
+                <button onclick="abrirModalEditarUsuario(${m.id}, '${escapeHtml(m.nombre)}', '${m.correo}', 'Mentor', ${org.id}, null)" class="btn-icon-edit" title="Editar Mentor">
+                  <i data-lucide="edit-2" class="w-3 h-3"></i>
+                </button>
+              </div>
               <p class="text-[11px] text-slate-500 font-mono truncate">${m.correo}</p>
-              <div class="mt-2 flex items-center gap-1.5 text-[10px] font-semibold text-purple-800 bg-purple-50 px-2 py-0.5 rounded-lg w-fit">
-                <i data-lucide="users" class="w-3 h-3"></i>
-                <span>${m.total_aprendices || 0} alumnos a su cargo</span>
+              <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-1.5 text-[10px] font-semibold text-purple-800 bg-purple-50 px-2 py-0.5 rounded-lg w-fit">
+                  <i data-lucide="users" class="w-3 h-3"></i>
+                  <span>${m.total_aprendices || 0} alumnos a su cargo</span>
+                </div>
+                <select onchange="cambiarCargoUsuarioTiempoReal(${m.id}, this.value)" class="px-2 py-0.5 rounded-lg border border-cyan-300 bg-cyan-50/70 text-[#0a192f] text-[10px] font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-500" title="Cambiar cargo en tiempo real">
+                  <option value="Administrador">🛡️ Administrador</option>
+                  <option value="Mentor" selected>🎓 Mentor</option>
+                  <option value="Aprendiz">📘 Aprendiz</option>
+                </select>
               </div>
             </div>
           </div>
@@ -4156,11 +4234,16 @@ function renderizarTablaAprendicesAdmin() {
         <td class="py-3 text-slate-600 font-medium">${a.total_minutos || 0} min</td>
         <td class="py-3 text-right">
           <div class="flex items-center justify-end gap-1.5 flex-wrap">
+            <select onchange="cambiarCargoUsuarioTiempoReal(${a.id}, this.value)" class="px-2 py-1 rounded-lg border border-cyan-300 bg-cyan-50/70 text-[#0a192f] text-[10px] font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-500" title="Cambiar cargo en tiempo real">
+              <option value="Administrador">🛡️ Administrador</option>
+              <option value="Mentor">🎓 Mentor</option>
+              <option value="Aprendiz" selected>📘 Aprendiz</option>
+            </select>
             <button onclick="abrirDetalleProgresoAprendiz(${a.id})" class="px-2 py-1 rounded-lg bg-[#091b2c] hover:bg-[#0f273f] text-cyan-300 hover:text-white text-[11px] font-bold inline-flex items-center gap-1 transition-colors shadow-2xs" title="Ver auditoría académica completa">
               <i data-lucide="eye" class="w-3 h-3 text-cyan-400"></i>
               <span>Auditoría</span>
             </button>
-            <button onclick="abrirModalEditarUsuario(${a.id}, '${escapeHtml(a.nombre)}', '${a.correo}', 'Aprendiz', ${a.organizacion_id || (adminConvenioData?.organizacion?.id || 'null')}, ${a.mentor_id || 'null'})" class="px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-bold inline-flex items-center gap-1 transition-colors border border-amber-200" title="Editar datos del estudiante">
+            <button onclick="abrirModalEditarUsuario(${a.id}, '${escapeHtml(a.nombre)}', '${a.correo}', 'Aprendiz', ${a.organizacion_id || (adminConvenioData?.organizacion?.id || 13)}, ${a.mentor_id || 'null'})" class="px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-bold inline-flex items-center gap-1 transition-colors border border-amber-200" title="Editar datos del estudiante">
               <i data-lucide="edit-3" class="w-3 h-3 text-amber-600"></i>
               <span>Editar</span>
             </button>
@@ -8299,27 +8382,18 @@ function cambiarTabMetricas(tabId) {
 // PESTAÑAS EN CONFIGURACIÓN & CUENTA
 // =====================================================================
 function cambiarTabConfiguracion(tabId) {
-  if (tabId === 'espacio' || tabId === 'colorimetria' || tabId === 'temas') {
-    tabId = 'personalizacion';
-  }
-  const tabsVisibles = ['personalizacion', 'cuenta'];
-  const tabsOcultas = ['conectividad', 'backups', 'papelera', 'powerbi'];
+  // Vista unificada: siempre abre la pestaña principal de Configuración de Perfil
+  tabId = 'cuenta';
+  const tabsOcultas = ['personalizacion', 'conectividad', 'backups', 'papelera', 'powerbi'];
 
-  tabsVisibles.forEach(t => {
-    const btn = document.getElementById(`tab-btn-cfg-${t}`);
-    const content = document.getElementById(`tab-content-cfg-${t}`);
-    if (btn) {
-      if (t === tabId) {
-        btn.className = 'px-4 py-2.5 text-xs font-bold border-b-2 border-cyan-600 text-cyan-700 flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer';
-      } else {
-        btn.className = 'px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer';
-      }
-    }
-    if (content) {
-      if (t === tabId) content.classList.remove('hidden');
-      else content.classList.add('hidden');
-    }
-  });
+  const btnCuenta = document.getElementById('tab-btn-cfg-cuenta');
+  const contCuenta = document.getElementById('tab-content-cfg-cuenta');
+  if (btnCuenta) {
+    btnCuenta.className = 'px-4 py-2.5 text-xs font-bold border-b-2 border-cyan-600 text-cyan-700 flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer';
+  }
+  if (contCuenta) {
+    contCuenta.classList.remove('hidden');
+  }
 
   tabsOcultas.forEach(t => {
     const btn = document.getElementById(`tab-btn-cfg-${t}`);
@@ -8328,39 +8402,11 @@ function cambiarTabConfiguracion(tabId) {
     if (content) content.classList.add('hidden');
   });
 
-  if (tabId === 'personalizacion') {
-    cargarEstadoEspacioTrabajo();
-  }
+  actualizarVisibilidadTemasSegunRol();
   refrescarIconos();
 }
 
 function cambiarSubTabPersonalizacion(subtab) {
-  const btnEspacio = document.getElementById('subtab-btn-personal-espacio');
-  const btnOrg = document.getElementById('subtab-btn-personal-org');
-  const contEspacio = document.getElementById('subtab-content-personal-espacio');
-  const contOrg = document.getElementById('subtab-content-personal-org');
-
-  if (subtab === 'espacio') {
-    if (btnEspacio) {
-      btnEspacio.className = 'px-4 py-2 rounded-xl text-xs font-bold transition-all bg-white text-[#0a192f] shadow-xs flex items-center gap-2';
-    }
-    if (btnOrg) {
-      btnOrg.className = 'px-4 py-2 rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900 flex items-center gap-2';
-    }
-    if (contEspacio) contEspacio.classList.remove('hidden');
-    if (contOrg) contOrg.classList.add('hidden');
-    cargarEstadoEspacioTrabajo();
-  } else {
-    if (btnOrg) {
-      btnOrg.className = 'px-4 py-2 rounded-xl text-xs font-bold transition-all bg-white text-[#0a192f] shadow-xs flex items-center gap-2';
-    }
-    if (btnEspacio) {
-      btnEspacio.className = 'px-4 py-2 rounded-xl text-xs font-bold transition-all text-slate-600 hover:text-slate-900 flex items-center gap-2';
-    }
-    if (contOrg) contOrg.classList.remove('hidden');
-    if (contEspacio) contEspacio.classList.add('hidden');
-    cargarSelectorOrgsColorimetria();
-  }
   refrescarIconos();
 }
 
@@ -8374,14 +8420,34 @@ function inicializarVistaConfiguraciones(subTabApertura = null) {
   const dispNombre = document.getElementById('cfg-perfil-nombre-display');
   const dispCorreo = document.getElementById('cfg-perfil-correo-display');
   const dispRol = document.getElementById('cfg-perfil-rol-badge');
+  const dispOrg = document.getElementById('cfg-perfil-org-display');
   const avatarPrev = document.getElementById('cfg-perfil-avatar-preview');
 
-  if (inNombre) inNombre.value = currentUser.nombre;
-  if (inCorreo) inCorreo.value = currentUser.correo;
-  if (inRol) inRol.value = currentUser.rol;
+  if (inNombre) {
+    inNombre.value = currentUser.nombre;
+    inNombre.disabled = true;
+    inNombre.readOnly = true;
+  }
+  if (inCorreo) {
+    inCorreo.value = currentUser.correo;
+    inCorreo.disabled = true;
+    inCorreo.readOnly = true;
+  }
+  if (inRol) {
+    inRol.value = currentUser.rol;
+    inRol.disabled = true;
+    inRol.readOnly = true;
+  }
 
   const orgNombre = currentUser.organizacion?.nombre || (allOrganizations.find(o => o.id === currentUser.organizacion_id)?.nombre) || 'Corporación Universitaria Minuto de Dios';
-  if (inOrg) inOrg.value = orgNombre;
+  if (inOrg) {
+    inOrg.value = orgNombre;
+    inOrg.disabled = true;
+    inOrg.readOnly = true;
+  }
+  if (dispOrg) {
+    dispOrg.innerText = `🏛️ ${orgNombre}`;
+  }
 
   if (dispNombre) dispNombre.innerText = currentUser.nombre;
   if (dispCorreo) dispCorreo.innerText = currentUser.correo;
@@ -8400,23 +8466,71 @@ function inicializarVistaConfiguraciones(subTabApertura = null) {
     }
   }
 
-  // En Configuración dejamos exclusivamente Idioma & Apariencia (Claro/Oscuro) y Mi Perfil & Cuenta
-  const tabsOcultas = ['conectividad', 'backups', 'papelera', 'powerbi'];
+  // Ocultar siempre Conectividad, Papelera, Power BI y pestañas extra
+  const tabsOcultas = ['personalizacion', 'conectividad', 'backups', 'papelera', 'powerbi'];
   tabsOcultas.forEach(t => {
     const btn = document.getElementById(`tab-btn-cfg-${t}`);
+    const content = document.getElementById(`tab-content-cfg-${t}`);
     if (btn) btn.classList.add('hidden');
+    if (content) content.classList.add('hidden');
   });
 
-  const btnPersonalizacion = document.getElementById('tab-btn-cfg-personalizacion');
-  if (btnPersonalizacion) btnPersonalizacion.classList.remove('hidden');
-
-  if (subTabApertura === 'cuenta') {
-    cambiarTabConfiguracion('cuenta');
-  } else {
-    cambiarTabConfiguracion('personalizacion');
+  // Copia de seguridad de la institución: EXCLUSIVA para Administradores (oculta para Mentores y Aprendices)
+  const seccionBackupAdmin = document.getElementById('seccion-backup-institucional-admin');
+  const esAdmin = (currentUser.rol === 'Administrador' || currentUser.rol === 'Super Administrador');
+  if (seccionBackupAdmin) {
+    if (esAdmin) {
+      seccionBackupAdmin.classList.remove('hidden');
+    } else {
+      seccionBackupAdmin.classList.add('hidden');
+    }
   }
 
+  cambiarTabConfiguracion('cuenta');
   refrescarIconos();
+}
+
+async function descargarCopiaSeguridadInstitucional() {
+  if (!currentUser) return;
+  const esAdmin = (currentUser.rol === 'Administrador' || currentUser.rol === 'Super Administrador');
+  if (!esAdmin) {
+    return mostrarToast('Solo los Administradores pueden descargar la copia de seguridad institucional.', 'advertencia');
+  }
+
+  const orgId = currentUser.organizacion_id || 13;
+  const btn = document.getElementById('btn-descargar-backup-institucion');
+  const textoOriginal = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Generando Copia de Seguridad...</span>`;
+    refrescarIconos();
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/sistema/backups/exportar-excel?organizacion_id=${orgId}`, {
+      method: 'POST'
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Error al generar la copia de seguridad');
+
+    mostrarToast(`✓ ${data.mensaje}`, 'exito');
+    if (data.url_descarga) {
+      const link = document.createElement('a');
+      link.href = `${API_BASE}${data.url_descarga}`;
+      link.download = data.backup?.archivo || 'backup_institucion.xlsx';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  } catch (err) {
+    mostrarToast(err.message, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = textoOriginal;
+      refrescarIconos();
+    }
+  }
 }
 
 async function procesarSubidaFotoPerfil(event) {

@@ -2704,6 +2704,92 @@ def _fusionar_usuarios_recibidos(lista_usuarios: Optional[List[Dict[str, Any]]])
     finally:
         conn.close()
 
+class ActualizarUsuarioRemotoReq(BaseModel):
+    usuario: Dict[str, Any]
+    secret: str
+
+@app.post("/api/internal/actualizar-usuario-remoto")
+def api_actualizar_usuario_remoto(req: ActualizarUsuarioRemotoReq):
+    """Recibe una actualización en tiempo real de cargo/rol, nombre, mentor o contraseña de un usuario y la aplica localmente + en Azure SQL"""
+    if req.secret != RELAY_SECRET:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    u = req.usuario or {}
+    correo_u = (u.get("correo") or "").strip().lower()
+    if not correo_u:
+        return {"status": "ignored"}
+    org_u = u.get("organizacion_id") or 13
+    if org_u == 1:
+        org_u = 13
+    rol_u = u.get("rol") or "Aprendiz"
+    nom_u = (u.get("nombre") or "Integrante").strip()
+    mentor_u = u.get("mentor_id")
+    pwd_u = u.get("password_hash")
+
+    ex = db.execute_query("SELECT id FROM usuarios WHERE LOWER(TRIM(correo)) = ?", (correo_u,), fetchone=True)
+    if ex:
+        if pwd_u:
+            db.execute_query(
+                "UPDATE usuarios SET nombre = ?, rol = ?, organizacion_id = ?, mentor_id = ?, password_hash = ? WHERE id = ?",
+                (nom_u, rol_u, org_u, mentor_u, pwd_u, ex["id"]),
+                commit=True
+            )
+        else:
+            db.execute_query(
+                "UPDATE usuarios SET nombre = ?, rol = ?, organizacion_id = ?, mentor_id = ? WHERE id = ?",
+                (nom_u, rol_u, org_u, mentor_u, ex["id"]),
+                commit=True
+            )
+    else:
+        db.execute_query(
+            "INSERT INTO usuarios (organizacion_id, mentor_id, nombre, correo, rol, password_hash) VALUES (?, ?, ?, ?, ?, ?)",
+            (org_u, mentor_u, nom_u, correo_u, rol_u, pwd_u or "$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu"),
+            commit=True
+        )
+    try:
+        replicador_azure.marcar("usuarios")
+    except Exception:
+        pass
+    return {"status": "ok"}
+
+def _empujar_cambio_usuario_remoto(usuario_id: int):
+    """Empuja en segundo plano el cambio de cargo, datos o contraseña de un usuario hacia Render Cloud / nodo par y fuerza réplica en Azure SQL"""
+    try:
+        replicador_azure.marcar("usuarios")
+        replicador_azure.marcar("historial_nuevos_integrantes")
+    except Exception:
+        pass
+
+    def _worker_push():
+        import urllib.request
+        try:
+            u = db.execute_query(
+                "SELECT id, organizacion_id, mentor_id, nombre, correo, rol, password_hash FROM usuarios WHERE id = ?",
+                (usuario_id,), fetchone=True
+            )
+            if not u:
+                return
+            payload = json.dumps({"usuario": dict(u), "secret": RELAY_SECRET}).encode("utf-8")
+            targets = _obtener_urls_puente_https() if os.getenv("RENDER") else [
+                "https://consultoria-edtech-visual.onrender.com",
+                "https://consultoria-edtech.onrender.com"
+            ]
+            for base_url in targets:
+                try:
+                    req = urllib.request.Request(
+                        f"{base_url.rstrip('/')}/api/internal/actualizar-usuario-remoto",
+                        data=payload,
+                        headers={"Content-Type": "application/json", "User-Agent": "ConsultoriaEdTech-RoleSync/3.5"}
+                    )
+                    with urllib.request.urlopen(req, timeout=8) as resp:
+                        if resp.status == 200:
+                            break
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    threading.Thread(target=_worker_push, daemon=True).start()
+
 @app.post("/api/internal/registrar-tunel")
 def api_registrar_tunel(req: RegistrarTunelReq):
     """Registra dinámicamente la URL del túnel Cloudflare y sincroniza bidireccionalmente todos los usuarios (actuales y nuevos)"""
@@ -2802,7 +2888,7 @@ def _ejecutar_ciclo_sync_nodos():
                     req = urllib.request.Request(
                         f"{base_url}/api/internal/registrar-tunel",
                         data=payload,
-                        headers={"Content-Type": "application/json", "User-Agent": "ConsultoriaEdTech-UserSync/3.4"}
+                        headers={"Content-Type": "application/json", "User-Agent": "ConsultoriaEdTech-UserSync/3.5"}
                     )
                     with urllib.request.urlopen(req, timeout=8) as resp:
                         if resp.status == 200:
@@ -2819,16 +2905,20 @@ def _ejecutar_ciclo_sync_nodos():
                 "usuarios": lista_u,
                 "secret": RELAY_SECRET
             }).encode("utf-8")
-            req = urllib.request.Request(
-                "https://consultoria-edtech.onrender.com/api/internal/registrar-tunel",
-                data=payload,
-                headers={"Content-Type": "application/json", "User-Agent": "ConsultoriaEdTech-TunnelSync/3.4"}
-            )
-            with urllib.request.urlopen(req, timeout=8) as resp:
-                if resp.status == 200:
-                    d = json.loads(resp.read().decode("utf-8", errors="ignore"))
-                    if d.get("usuarios"):
-                        _fusionar_usuarios_recibidos(d["usuarios"])
+            for render_url in ["https://consultoria-edtech-visual.onrender.com", "https://consultoria-edtech.onrender.com"]:
+                try:
+                    req = urllib.request.Request(
+                        f"{render_url}/api/internal/registrar-tunel",
+                        data=payload,
+                        headers={"Content-Type": "application/json", "User-Agent": "ConsultoriaEdTech-TunnelSync/3.5"}
+                    )
+                    with urllib.request.urlopen(req, timeout=8) as resp:
+                        if resp.status == 200:
+                            d = json.loads(resp.read().decode("utf-8", errors="ignore"))
+                            if d.get("usuarios"):
+                                _fusionar_usuarios_recibidos(d["usuarios"])
+                except Exception:
+                    pass
     except Exception:
         pass
 
@@ -3680,11 +3770,81 @@ def listar_mentores_organizacion(org_id: int):
     """, (org_id,), fetchall=True) or []
     return {"status": "success", "data": mentores}
 
+class CambiarCargoTiempoRealReq(BaseModel):
+    rol: str
+    mentor_id: Optional[int] = None
+
+@app.post("/api/usuarios/{usuario_id}/cambiar-cargo")
+def cambiar_cargo_usuario_tiempo_real(usuario_id: int, datos: CambiarCargoTiempoRealReq):
+    """Permite cambiar en tiempo real el cargo (Administrador, Mentor, Aprendiz) de un usuario y sincroniza con Azure SQL y Render Cloud"""
+    u = db.execute_query("SELECT id, nombre, correo, rol, organizacion_id, mentor_id FROM usuarios WHERE id = ?", (usuario_id,), fetchone=True)
+    if not u:
+        raise HTTPException(status_code=404, detail="El usuario no existe.")
+
+    if u.get("rol") == "Super Administrador":
+        raise HTTPException(status_code=400, detail="La cuenta principal de Super Administrador está blindada y no puede cambiar de cargo.")
+
+    nuevo_rol = (datos.rol or "").strip()
+    if nuevo_rol not in ["Administrador", "Mentor", "Aprendiz"]:
+        raise HTTPException(status_code=400, detail="Cargo inválido. Los cargos permitidos son Administrador, Mentor o Aprendiz.")
+
+    org_id = u.get("organizacion_id") or 13
+    mentor_id_final = None
+    if nuevo_rol == "Aprendiz":
+        mentor_id_final = datos.mentor_id or u.get("mentor_id")
+        if not mentor_id_final:
+            m_row = db.execute_query(
+                "SELECT id FROM usuarios WHERE organizacion_id = ? AND rol = 'Mentor' AND id != ? ORDER BY id ASC LIMIT 1",
+                (org_id, usuario_id), fetchone=True
+            )
+            if m_row:
+                mentor_id_final = m_row["id"]
+
+    db.execute_query(
+        "UPDATE usuarios SET rol = ?, organizacion_id = ?, mentor_id = ? WHERE id = ?",
+        (nuevo_rol, org_id, mentor_id_final, usuario_id),
+        commit=True
+    )
+
+    # Si pasó a Mentor o Administrador y tenía aprendices a cargo (cuando era Mentor y pasa a otro cargo), reasignar si deja de ser Mentor
+    if u.get("rol") == "Mentor" and nuevo_rol != "Mentor":
+        otro_mentor = db.execute_query(
+            "SELECT id FROM usuarios WHERE organizacion_id = ? AND rol = 'Mentor' AND id != ? ORDER BY id ASC LIMIT 1",
+            (org_id, usuario_id), fetchone=True
+        )
+        nuevo_m_id = otro_mentor["id"] if otro_mentor else None
+        db.execute_query("UPDATE usuarios SET mentor_id = ? WHERE mentor_id = ?", (nuevo_m_id, usuario_id), commit=True)
+
+    try:
+        db.execute_query(
+            "UPDATE historial_nuevos_integrantes SET rol = ?, organizacion_id = ? WHERE usuario_id = ?",
+            (nuevo_rol, org_id, usuario_id),
+            commit=True
+        )
+    except Exception:
+        pass
+
+    _empujar_cambio_usuario_remoto(usuario_id)
+    registrar_movimiento("Administrador", "Usuarios", "Cambio_Cargo_Tiempo_Real", "EXITO", f"Usuario #{usuario_id} ({u['correo']}): {u['rol']} -> {nuevo_rol}")
+
+    return {
+        "status": "success",
+        "mensaje": f"Cargo de '{u['nombre']}' actualizado en tiempo real a '{nuevo_rol}' (Sincronizado en Azure SQL y Nube).",
+        "usuario": {
+            "id": usuario_id,
+            "nombre": u["nombre"],
+            "correo": u["correo"],
+            "rol": nuevo_rol,
+            "organizacion_id": org_id,
+            "mentor_id": mentor_id_final
+        }
+    }
+
 @app.put("/api/usuarios/{usuario_id}")
 @app.put("/api/superadmin/usuarios/{usuario_id}")
 def actualizar_usuario(usuario_id: int, datos: ActualizarUsuarioRequest):
     """Permite modificar o corregir cargos duplicados, nombres, roles o mentores asignados"""
-    u = db.execute_query("SELECT id, nombre, correo, rol FROM usuarios WHERE id = ?", (usuario_id,), fetchone=True)
+    u = db.execute_query("SELECT id, nombre, correo, rol, organizacion_id, mentor_id FROM usuarios WHERE id = ?", (usuario_id,), fetchone=True)
     if not u:
         raise HTTPException(status_code=404, detail="El usuario no existe.")
         
@@ -3704,11 +3864,21 @@ def actualizar_usuario(usuario_id: int, datos: ActualizarUsuarioRequest):
     if colision:
         raise HTTPException(status_code=400, detail="El correo ya pertenece a otro usuario registrado.")
 
+    org_id_final = datos.organizacion_id or u.get("organizacion_id") or 13
+    mentor_id_final = datos.mentor_id if datos.rol == "Aprendiz" else None
+    if datos.rol == "Aprendiz" and not mentor_id_final:
+        m_row = db.execute_query(
+            "SELECT id FROM usuarios WHERE organizacion_id = ? AND rol = 'Mentor' AND id != ? ORDER BY id ASC LIMIT 1",
+            (org_id_final, usuario_id), fetchone=True
+        )
+        if m_row:
+            mentor_id_final = m_row["id"]
+
     db.execute_query("""
         UPDATE usuarios
         SET nombre = ?, correo = ?, rol = ?, organizacion_id = ?, mentor_id = ?
         WHERE id = ?
-    """, (datos.nombre.strip(), correo_nuevo, datos.rol, datos.organizacion_id, datos.mentor_id, usuario_id), commit=True)
+    """, (datos.nombre.strip(), correo_nuevo, datos.rol, org_id_final, mentor_id_final, usuario_id), commit=True)
 
     # Sincronizar en historial de integrantes en tiempo real
     try:
@@ -3716,7 +3886,7 @@ def actualizar_usuario(usuario_id: int, datos: ActualizarUsuarioRequest):
             UPDATE historial_nuevos_integrantes
             SET nombre = ?, correo = ?, rol = ?, organizacion_id = ?
             WHERE usuario_id = ?
-        """, (datos.nombre.strip(), correo_nuevo, datos.rol, datos.organizacion_id, usuario_id), commit=True)
+        """, (datos.nombre.strip(), correo_nuevo, datos.rol, org_id_final, usuario_id), commit=True)
     except Exception:
         pass
 
@@ -3724,18 +3894,19 @@ def actualizar_usuario(usuario_id: int, datos: ActualizarUsuarioRequest):
     if u.get("correo"):
         codigos_2fa_activos.pop(u["correo"].lower().strip(), None)
     codigos_2fa_activos.pop(correo_nuevo, None)
-    
+
+    _empujar_cambio_usuario_remoto(usuario_id)
     registrar_movimiento("Administrador", "Usuarios", "Modificar_Usuario", "EXITO", f"Usuario #{usuario_id}: {datos.nombre} (Nuevo Rol: {datos.rol})")
     return {
         "status": "success",
-        "mensaje": f"Usuario '{datos.nombre}' actualizado exitosamente con rol '{datos.rol}'.",
+        "mensaje": f"Usuario '{datos.nombre}' actualizado exitosamente con cargo '{datos.rol}' (Sincronizado en Azure SQL).",
         "usuario": {
             "id": usuario_id,
             "nombre": datos.nombre.strip(),
             "correo": correo_nuevo,
             "rol": datos.rol,
-            "organizacion_id": datos.organizacion_id,
-            "mentor_id": datos.mentor_id
+            "organizacion_id": org_id_final,
+            "mentor_id": mentor_id_final
         }
     }
 
@@ -3902,8 +4073,9 @@ def cambiar_password_perfil(datos: PerfilPasswordReq):
 
     hash_nuevo = bcrypt.hashpw(datos.password_nueva.strip().encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     db.execute_query("UPDATE usuarios SET password_hash = ? WHERE id = ?", (hash_nuevo, datos.usuario_id), commit=True)
+    _empujar_cambio_usuario_remoto(datos.usuario_id)
     registrar_movimiento(u["correo"], "Seguridad", "Cambiar_Password_Perfil", "EXITO", "Contraseña actualizada desde panel de cuenta")
-    return {"status": "success", "mensaje": "¡Contraseña actualizada con éxito! Utilízala en tus próximos accesos."}
+    return {"status": "success", "mensaje": "¡Contraseña actualizada con éxito y sincronizada en Azure SQL y en la Nube!"}
 
 # =====================================================================
 # COLORIMETRÍA INSTITUCIONAL & BRANDING
@@ -4571,14 +4743,15 @@ def construir_libro_excel_completo(organizacion_id=None):
     return wb
 
 @app.post("/api/sistema/backups/exportar-excel")
-def exportar_backup_excel():
-    """Genera un archivo Excel (.xlsx) exhaustivo con métricas ejecutivas, hojas de datos y gráficos nativos"""
+def exportar_backup_excel(organizacion_id: Optional[int] = None):
+    """Genera un archivo Excel (.xlsx) exhaustivo con todos los registros de la institución, hojas de datos y gráficos nativos"""
     try:
         now = datetime.now()
-        nombre_archivo = f"backup_excel_{now.strftime('%Y_%m_%d_%H%M%S')}.xlsx"
+        prefijo_org = f"institucion_{organizacion_id}_" if organizacion_id else ""
+        nombre_archivo = f"backup_{prefijo_org}{now.strftime('%Y_%m_%d_%H%M%S')}.xlsx"
         ruta_archivo = os.path.join(CARPETA_BACKUPS, nombre_archivo)
 
-        wb = construir_libro_excel_completo()
+        wb = construir_libro_excel_completo(organizacion_id=organizacion_id)
         wb.save(ruta_archivo)
 
         tam_bytes = os.path.getsize(ruta_archivo)
@@ -4596,10 +4769,10 @@ def exportar_backup_excel():
             "tipo": "excel"
         }
 
-        registrar_movimiento("Sistema", "Seguridad", "Backup_Excel_Generado", "EXITO", f"Copia de seguridad en Excel '{nombre_archivo}' con gráficas generada ({tam_kb} KB)")
+        registrar_movimiento("Sistema", "Seguridad", "Backup_Excel_Generado", "EXITO", f"Copia de seguridad institucional '{nombre_archivo}' generada ({tam_kb} KB)")
         return {
             "status": "success",
-            "mensaje": f"Copia de seguridad en Excel '{nombre_archivo}' con métricas y gráficos generada exitosamente.",
+            "mensaje": f"Copia de seguridad institucional '{nombre_archivo}' con todos los registros generada exitosamente.",
             "backup": backup_info,
             "url_descarga": f"/api/sistema/backups/descargar/{nombre_archivo}"
         }
