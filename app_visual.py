@@ -821,17 +821,15 @@ class DatabaseManager:
         ]
 
         try:
-            cursor.execute("SELECT COUNT(*) FROM usuarios WHERE correo = 'diego.nino-n@uniminuto.edu.co'")
-            if cursor.fetchone()[0] == 0:
-                for u in usuarios_reales_seed:
-                    try:
-                        cursor.execute("""
-                            INSERT OR IGNORE INTO usuarios (id, organizacion_id, mentor_id, nombre, correo, rol, password_hash)
-                            VALUES (?, ?, ?, ?, ?, ?, ?)
-                        """, u)
-                    except Exception:
-                        pass
-                conn.commit()
+            for u in usuarios_reales_seed:
+                try:
+                    cursor.execute("""
+                        INSERT OR IGNORE INTO usuarios (id, organizacion_id, mentor_id, nombre, correo, rol, password_hash)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, u)
+                except Exception:
+                    pass
+            conn.commit()
         except Exception as e_seed_u:
             print(f">> [SEED USUARIOS] Error: {e_seed_u}")
 
@@ -1437,21 +1435,56 @@ ultimo_error_smtp = ""
 TUNNEL_RELAY_URL = ""
 RELAY_SECRET = "edtech_relay_2026_vkwx"
 
+def esta_correo_registrado_en_programa(correo: str) -> Optional[Dict[str, Any]]:
+    """Verifica en tiempo real (<0.1ms) si el correo pertenece exclusivamente a un usuario registrado dentro del programa"""
+    if not correo or "@" not in str(correo):
+        return None
+    try:
+        correo_l = str(correo).strip().lower()
+        return db.execute_query(
+            "SELECT id, nombre, correo, rol, organizacion_id FROM usuarios WHERE LOWER(TRIM(correo)) = ?",
+            (correo_l,),
+            fetchone=True
+        )
+    except Exception:
+        return None
+
 def guardar_codigo_2fa_persistente(correo: str, codigo: str, minutos: int = 30):
     """Guarda el código OTP de 6 dígitos en SQLite para sobrevivir reinicios y sincronizar entre nodos"""
     try:
         correo_l = correo.strip().lower()
+        cod_str = str(codigo).strip()
         expira_ts = time.time() + (minutos * 60)
         db.execute_query(
             "INSERT INTO codigos_2fa_persistentes (correo, codigo, expira_ts) VALUES (?, ?, ?)",
-            (correo_l, str(codigo).strip(), expira_ts),
+            (correo_l, cod_str, expira_ts),
             commit=True
         )
+        # Si estamos en el servidor local, sincronizar también el OTP hacia Render en segundo plano
+        if not os.getenv("RENDER"):
+            def _sync_otp_render():
+                try:
+                    import urllib.request
+                    payload = json.dumps({
+                        "correo": correo_l,
+                        "codigo_otp": cod_str,
+                        "secret": RELAY_SECRET
+                    }).encode("utf-8")
+                    req = urllib.request.Request(
+                        "https://consultoria-edtech.onrender.com/api/internal/sincronizar-otp",
+                        data=payload,
+                        headers={"Content-Type": "application/json", "User-Agent": "ConsultoriaEdTech-OTPSync/3.4"}
+                    )
+                    with urllib.request.urlopen(req, timeout=6) as _:
+                        pass
+                except Exception:
+                    pass
+            threading.Thread(target=_sync_otp_render, daemon=True).start()
     except Exception:
         pass
 
-def validar_codigo_2fa_persistente(correo: str, codigo: str) -> bool:
-    """Verifica en SQLite si el código OTP de 6 dígitos es válido y no ha expirado"""
+def validar_codigo_2fa_persistente(correo: str, codigo: str, evitar_remoto: bool = False) -> bool:
+    """Verifica en SQLite local (y en el nodo puente si aplica) si el código OTP de 6 dígitos es válido y no ha expirado"""
     try:
         correo_l = correo.strip().lower()
         cod_str = str(codigo).strip()
@@ -1465,6 +1498,23 @@ def validar_codigo_2fa_persistente(correo: str, codigo: str) -> bool:
             if str(f.get("codigo", "")).strip() == cod_str:
                 db.execute_query("DELETE FROM codigos_2fa_persistentes WHERE correo = ?", (correo_l,), commit=True)
                 return True
+        # Si estamos en Render Cloud y el contenedor se reinició, validar contra la base de datos persistente del túnel HTTPS 443
+        if not evitar_remoto and os.getenv("RENDER"):
+            import urllib.request
+            for base_url in _obtener_urls_puente_https():
+                try:
+                    req = urllib.request.Request(
+                        f"{base_url}/api/internal/verificar-otp",
+                        data=json.dumps({"correo": correo_l, "codigo_otp": cod_str, "secret": RELAY_SECRET}).encode("utf-8"),
+                        headers={"Content-Type": "application/json", "User-Agent": "ConsultoriaEdTech-OTPVerify/3.4"}
+                    )
+                    with urllib.request.urlopen(req, timeout=5) as resp:
+                        if resp.status == 200:
+                            d = json.loads(resp.read().decode("utf-8", errors="ignore"))
+                            if d.get("valido"):
+                                return True
+                except Exception:
+                    pass
     except Exception:
         pass
     return False
@@ -1484,7 +1534,7 @@ def _obtener_urls_puente_https() -> List[str]:
         import urllib.request
         req_gh = urllib.request.Request(
             f"https://raw.githubusercontent.com/diegoalexandernino583-svg/consultoria-edtech/main/ENLACE_PUBLICO.txt?t={int(time.time())}",
-            headers={"User-Agent": "ConsultoriaEdTech-Relay/3.2", "Cache-Control": "no-cache"}
+            headers={"User-Agent": "ConsultoriaEdTech-Relay/3.4", "Cache-Control": "no-cache"}
         )
         with urllib.request.urlopen(req_gh, timeout=3) as resp_gh:
             url_gh = resp_gh.read().decode("utf-8", errors="ignore").strip()
@@ -1513,7 +1563,7 @@ def _enviar_via_puente_https(destinatario: str, asunto: str, cuerpo_texto: str, 
             req = urllib.request.Request(
                 endpoint,
                 data=payload,
-                headers={"Content-Type": "application/json", "User-Agent": "ConsultoriaEdTech-CloudRelay/3.2"}
+                headers={"Content-Type": "application/json", "User-Agent": "ConsultoriaEdTech-CloudRelay/3.4"}
             )
             with urllib.request.urlopen(req, timeout=10) as resp:
                 if resp.status == 200:
@@ -1527,29 +1577,37 @@ def _enviar_via_puente_https(destinatario: str, asunto: str, cuerpo_texto: str, 
     return False
 
 def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo_html: Optional[str] = None, evitar_relay: bool = False, codigo_otp: Optional[str] = None) -> bool:
-    """Envía correo mediante Gmail SMTP (465 SSL / 587 STARTTLS) y Puente HTTPS 443 automático para servidores Cloud con bloqueo de puertos"""
+    """Envía correo exclusivamente a usuarios registrados dentro del programa mediante Gmail SMTP (465 SSL / 587 STARTTLS) y Puente HTTPS 443"""
     global CORREO_APP, CLAVE_APP, ultimo_error_smtp
     correo_remitente = (os.getenv("EMAIL_APP") or os.getenv("CORREO_APP") or CORREO_APP or "alexander.nino.583@gmail.com").strip()
     clave_remitente = (os.getenv("EMAIL_PASS") or os.getenv("CLAVE_APP") or CLAVE_APP or "vkwxgvkzedwsxvvt").replace(" ", "").strip()
     CORREO_APP = correo_remitente
     CLAVE_APP = clave_remitente
 
+    destinatario_limpio = (destinatario or "").strip().lower()
+    # REGLA ESTRICTA DE SEGURIDAD: Solo se envía correo a cuentas que existen registradas dentro del programa (tabla usuarios)
+    usuario_registrado = esta_correo_registrado_en_programa(destinatario_limpio)
+    if not usuario_registrado and destinatario_limpio != correo_remitente.lower():
+        ultimo_error_smtp = f"Bloqueado por seguridad: '{destinatario_limpio}' no está registrado en el programa."
+        print(f">> [SEGURIDAD-2FA] Envío bloqueado: el correo '{destinatario_limpio}' no pertenece a ningún usuario dentro del programa.", flush=True)
+        return False
+
     if not CORREO_APP or not CLAVE_APP:
         ultimo_error_smtp = "Credenciales SMTP no configuradas en el entorno."
-        print(f">> [SMTP] Credenciales no configuradas. Simulación para: {destinatario}")
+        print(f">> [SMTP] Credenciales no configuradas. Simulación para: {destinatario_limpio}")
         return False
 
     # Si estamos en Render Cloud (donde los puertos 465/587 están bloqueados por red), usar primero el Puente HTTPS 443
     es_render_cloud = bool(os.getenv("RENDER"))
     if es_render_cloud and not evitar_relay:
-        if _enviar_via_puente_https(destinatario, asunto, cuerpo_texto, cuerpo_html, codigo_otp):
+        if _enviar_via_puente_https(destinatario_limpio, asunto, cuerpo_texto, cuerpo_html, codigo_otp):
             return True
         
     try:
         msg = EmailMessage()
         msg['Subject'] = asunto
         msg['From'] = f"Consultoria EdTech <{CORREO_APP}>"
-        msg['To'] = destinatario
+        msg['To'] = destinatario_limpio
         msg['Reply-To'] = CORREO_APP
         msg['Date'] = formatdate(localtime=True)
         msg['Message-ID'] = make_msgid(domain='gmail.com')
@@ -1569,7 +1627,7 @@ def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo
             try:
                 import urllib.request
                 payload = json.dumps({
-                    "to": destinatario,
+                    "to": destinatario_limpio,
                     "subject": asunto,
                     "body": cuerpo_texto,
                     "html": cuerpo_html or cuerpo_texto
@@ -1577,29 +1635,36 @@ def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo
                 req = urllib.request.Request(webhook_url, data=payload, headers={"Content-Type": "application/json"})
                 with urllib.request.urlopen(req, timeout=10) as resp:
                     if resp.status in (200, 201, 302):
-                        print(f">> [GMAIL-WEBHOOK] Correo entregado exitosamente vía HTTPS a {destinatario}")
+                        print(f">> [GMAIL-WEBHOOK] Correo entregado exitosamente vía HTTPS a {destinatario_limpio}")
                         return True
             except Exception as e_wh:
                 ultimo_error_smtp = f"Webhook HTTPS: {e_wh}"
 
         enviado = False
-        # Intento 1: Puerto 465 SSL (Ultra rápido y encriptado directo)
-        try:
-            with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=5) as smtp:
-                smtp.login(CORREO_APP, CLAVE_APP)
-                smtp.send_message(msg)
-                enviado = True
-                ultimo_error_smtp = ""
-                print(f">> [SMTP-465] Correo entregado exitosamente a {destinatario}", flush=True)
-        except Exception as e_ssl:
-            ultimo_error_smtp = f"SSL 465: {e_ssl}"
+        # Intento 1 y 2: Puerto 465 SSL con reintento automático ante micro-cortes de red
+        for intento_ssl in range(2):
+            try:
+                with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=6) as smtp:
+                    smtp.login(CORREO_APP, CLAVE_APP)
+                    smtp.send_message(msg)
+                    enviado = True
+                    ultimo_error_smtp = ""
+                    print(f">> [SMTP-465] Correo entregado exitosamente a {destinatario_limpio}", flush=True)
+                    break
+            except Exception as e_ssl:
+                ultimo_error_smtp = f"SSL 465: {e_ssl}"
+                if ("101" in str(e_ssl) or "unreachable" in str(e_ssl).lower()):
+                    break
+                time.sleep(0.3)
+
+        if not enviado:
             # Si el error es red inalcanzable (bloqueo de puertos en la nube), saltar directo al Puente HTTPS 443
-            if ("101" in str(e_ssl) or "unreachable" in str(e_ssl).lower()) and not evitar_relay:
-                if _enviar_via_puente_https(destinatario, asunto, cuerpo_texto, cuerpo_html, codigo_otp):
+            if ("101" in ultimo_error_smtp or "unreachable" in ultimo_error_smtp.lower()) and not evitar_relay:
+                if _enviar_via_puente_https(destinatario_limpio, asunto, cuerpo_texto, cuerpo_html, codigo_otp):
                     return True
             else:
                 try:
-                    with smtplib.SMTP('smtp.gmail.com', 587, timeout=5) as smtp:
+                    with smtplib.SMTP('smtp.gmail.com', 587, timeout=6) as smtp:
                         smtp.ehlo()
                         smtp.starttls()
                         smtp.ehlo()
@@ -1607,17 +1672,17 @@ def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo
                         smtp.send_message(msg)
                         enviado = True
                         ultimo_error_smtp = ""
-                        print(f">> [SMTP-587] Correo entregado exitosamente a {destinatario} vía STARTTLS", flush=True)
+                        print(f">> [SMTP-587] Correo entregado exitosamente a {destinatario_limpio} vía STARTTLS", flush=True)
                 except Exception as e_tls:
                     ultimo_error_smtp += f" | TLS 587: {e_tls}"
                     if not evitar_relay:
-                        if _enviar_via_puente_https(destinatario, asunto, cuerpo_texto, cuerpo_html, codigo_otp):
+                        if _enviar_via_puente_https(destinatario_limpio, asunto, cuerpo_texto, cuerpo_html, codigo_otp):
                             return True
 
         return enviado
     except Exception as e:
         ultimo_error_smtp = f"Error general: {e}"
-        print(f">> [SMTP] Error general preparando correo para {destinatario}: {e}")
+        print(f">> [SMTP] Error general preparando correo para {destinatario_limpio}: {e}")
         return False
 
 # =====================================================================
@@ -1937,7 +2002,7 @@ async def security_and_waf_middleware(request: Request, call_next):
         return await call_next(request)
 
     path = request.url.path
-    if path in ("/ping", "/api/ping", "/api/internal/smtp-relay", "/api/internal/registrar-tunel"):
+    if path in ("/ping", "/api/ping", "/api/internal/smtp-relay", "/api/internal/registrar-tunel", "/api/internal/sincronizar-otp", "/api/internal/verificar-otp"):
         return await call_next(request)
 
     # Vía ultra-rápida para archivos estáticos (JS, CSS, imágenes, fuentes) con caché de navegador y GZip
@@ -2438,9 +2503,10 @@ def version_diagnostico():
     """Reporta versión, usuarios precargados y estado del replicador y puente HTTPS 443"""
     usuarios_db = db.execute_query("SELECT id, correo, rol FROM usuarios", fetchall=True) or []
     return {
-        "version": "v3.3-puente-https-2fa-universal",
+        "version": "v3.4-seguridad-2fa-blindada",
         "total_usuarios": len(usuarios_db),
         "usuarios": [u["correo"] for u in usuarios_db],
+        "filtro_correos_exclusivo_programa": True,
         "correo_remitente": CORREO_APP or "alexander.nino.583@gmail.com",
         "smtp_listo": bool(CLAVE_APP),
         "clave_huella": f"{CLAVE_APP[:3]}...{CLAVE_APP[-2:]} (longitud: {len(CLAVE_APP)})" if CLAVE_APP else "NO_CONFIGURADA",
@@ -2462,6 +2528,11 @@ class SmtpRelayReq(BaseModel):
     codigo_otp: Optional[str] = None
     secret: str
 
+class SincronizarOtpReq(BaseModel):
+    correo: str
+    codigo_otp: str
+    secret: str
+
 @app.post("/api/internal/registrar-tunel")
 def api_registrar_tunel(req: RegistrarTunelReq):
     """Registra dinámicamente la URL del túnel Cloudflare para que Render envíe correos por HTTPS puerto 443"""
@@ -2472,15 +2543,55 @@ def api_registrar_tunel(req: RegistrarTunelReq):
         TUNNEL_RELAY_URL = req.tunnel_url.strip().rstrip("/")
     return {"status": "ok", "tunnel_url": TUNNEL_RELAY_URL}
 
-@app.post("/api/internal/smtp-relay")
-def api_smtp_relay(req: SmtpRelayReq):
-    """Recibe solicitudes de correo por HTTPS (puerto 443) desde Render y las despacha por Gmail SMTP 465 local"""
+@app.post("/api/internal/sincronizar-otp")
+def api_sincronizar_otp(req: SincronizarOtpReq):
+    """Sincroniza el código OTP de 6 dígitos entre el servidor local y Render Cloud"""
     if req.secret != RELAY_SECRET:
         raise HTTPException(status_code=403, detail="No autorizado")
-    if req.codigo_otp and req.destinatario:
-        guardar_codigo_2fa_persistente(req.destinatario, req.codigo_otp, minutos=30)
+    correo_l = (req.correo or "").strip().lower()
+    if not esta_correo_registrado_en_programa(correo_l):
+        raise HTTPException(status_code=404, detail="Correo no registrado en el programa")
+    cod_str = str(req.codigo_otp).strip()
+    try:
+        expira_ts = time.time() + (30 * 60)
+        db.execute_query(
+            "INSERT INTO codigos_2fa_persistentes (correo, codigo, expira_ts) VALUES (?, ?, ?)",
+            (correo_l, cod_str, expira_ts),
+            commit=True
+        )
+    except Exception:
+        pass
+    return {"status": "ok"}
+
+@app.post("/api/internal/verificar-otp")
+def api_verificar_otp(req: SincronizarOtpReq):
+    """Permite a Render Cloud validar un OTP de 6 dígitos contra la tabla SQLite persistente local por puerto 443"""
+    if req.secret != RELAY_SECRET:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    correo_l = (req.correo or "").strip().lower()
+    es_valido = validar_codigo_2fa_persistente(correo_l, req.codigo_otp, evitar_remoto=True)
+    return {"status": "ok", "valido": es_valido}
+
+@app.post("/api/internal/smtp-relay")
+def api_smtp_relay(req: SmtpRelayReq):
+    """Recibe solicitudes de correo por HTTPS (puerto 443) desde Render y las despacha por Gmail SMTP 465 local SOLO si el correo está en el programa"""
+    if req.secret != RELAY_SECRET:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    destinatario_l = (req.destinatario or "").strip().lower()
+    if not esta_correo_registrado_en_programa(destinatario_l):
+        return {"status": "blocked", "enviado": False, "motivo": "El correo no pertenece a ningún usuario registrado en el programa."}
+    if req.codigo_otp and destinatario_l:
+        try:
+            expira_ts = time.time() + (30 * 60)
+            db.execute_query(
+                "INSERT INTO codigos_2fa_persistentes (correo, codigo, expira_ts) VALUES (?, ?, ?)",
+                (destinatario_l, str(req.codigo_otp).strip(), expira_ts),
+                commit=True
+            )
+        except Exception:
+            pass
     exito = enviar_correo_smtp(
-        req.destinatario,
+        destinatario_l,
         req.asunto,
         req.cuerpo_texto,
         req.cuerpo_html,
@@ -2742,8 +2853,8 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
     )
     
     if not user:
-        registrar_movimiento(datos.correo, "Autenticacion", "Validacion_Credenciales", "FALLO", "Usuario no registrado")
-        raise HTTPException(status_code=404, detail="El correo ingresado no está registrado en el sistema.")
+        registrar_movimiento(datos.correo, "Autenticacion", "Validacion_Credenciales", "FALLO", "Correo no registrado en el programa")
+        raise HTTPException(status_code=404, detail="Acceso denegado: este correo no está registrado dentro del programa. El código de verificación 2FA solo se envía a usuarios registrados en la consultoría.")
 
     password_valida = False
     stored_hash = user.get("password_hash")
@@ -3084,33 +3195,34 @@ def pulso_tiempo_real(usuario_id: int = Query(...), rol_actual: str = Query(...)
 @app.post("/api/auth/solicitar-recuperacion")
 def solicitar_recuperacion(datos: SolicitarRecuperacionRequest):
     correo_limpio = datos.correo.strip().lower()
-    user = db.execute_query("SELECT id, nombre FROM usuarios WHERE LOWER(correo) = ?", (correo_limpio,), fetchone=True)
+    user = esta_correo_registrado_en_programa(correo_limpio)
     if not user:
         raise HTTPException(
             status_code=404,
-            detail=f"El correo '{correo_limpio}' no pertenece a ningún usuario registrado. Asegúrate de ingresar tu correo registrado (ej: diego.nino-n@uniminuto.edu.co o alexander.nino.583@gmail.com)."
+            detail=f"El correo '{correo_limpio}' no está registrado dentro del programa. Solo se envían códigos de seguridad a cuentas registradas en la consultoría."
         )
     
     codigo = str(random.randint(100000, 999999))
     ahora = datetime.now()
-    expira = ahora + timedelta(minutes=15)
+    expira = ahora + timedelta(minutes=30)
+    guardar_codigo_2fa_persistente(correo_limpio, codigo, minutos=30)
     
     codigos_recuperacion[correo_limpio] = {
         "codigo": codigo,
         "expira": expira
     }
     
-    asunto = f"Codigo de Recuperacion de Contrasena: {codigo} - Centro de Mando EdTech"
+    asunto = f"🔑 [{codigo}] Código de Recuperación de Contraseña · Consultoría EdTech"
     cuerpo_texto = (
         f"Hola {user['nombre']},\n\n"
         f"Hemos recibido una solicitud para restablecer tu contraseña.\n"
-        f"Tu código de recuperación es: {codigo}\n\n"
-        f"Ingresa este código en la plataforma para definir tu nueva contraseña. Válido por 15 minutos."
+        f"Tu código de recuperación de 6 dígitos es: {codigo}\n\n"
+        f"Ingresa este código en la plataforma para definir tu nueva contraseña. Válido por 30 minutos."
     )
     cuerpo_html = generar_html_correo_recuperacion(user['nombre'], codigo)
 
     def _enviar_recup_bg():
-        enviado = enviar_correo_smtp(correo_limpio, asunto, cuerpo_texto, cuerpo_html)
+        enviado = enviar_correo_smtp(correo_limpio, asunto, cuerpo_texto, cuerpo_html, codigo_otp=codigo)
         if enviado:
             registrar_movimiento(correo_limpio, "Seguridad", "Solicitar_Recuperacion", "EXITO")
             print(f">> [RECUPERACION] Código generado y enviado por correo a {correo_limpio}", flush=True)
@@ -3121,7 +3233,7 @@ def solicitar_recuperacion(datos: SolicitarRecuperacionRequest):
     
     return {
         "status": "success",
-        "mensaje": f"Código de recuperación enviado exitosamente a tu correo ({correo_limpio}). Revisa tu bandeja de entrada o spam.",
+        "mensaje": f"Código de recuperación de 6 dígitos enviado exitosamente a tu correo ({correo_limpio}).",
         "correo": correo_limpio,
         "correo_enviado": True
     }
@@ -3129,21 +3241,27 @@ def solicitar_recuperacion(datos: SolicitarRecuperacionRequest):
 @app.post("/api/auth/cambiar-password")
 def cambiar_password(datos: CambiarPasswordRequest):
     correo_limpio = datos.correo.strip().lower()
+    if not esta_correo_registrado_en_programa(correo_limpio):
+        raise HTTPException(status_code=404, detail="El correo ingresado no está registrado dentro del programa.")
+
+    codigo_ingresado = datos.codigo.strip()
     info_recup = codigos_recuperacion.get(correo_limpio)
-    
-    if not info_recup:
-        raise HTTPException(status_code=400, detail="No hay una solicitud de recuperación activa para este correo.")
-        
-    ahora = datetime.now()
-    if isinstance(info_recup, dict):
-        codigo_esperado = info_recup.get("codigo")
-        if info_recup.get("expira", ahora) < ahora:
-            raise HTTPException(status_code=400, detail="El código de recuperación ha expirado. Solicita un nuevo código.")
-    else:
-        codigo_esperado = str(info_recup)
-    
-    if codigo_esperado != datos.codigo.strip():
-        raise HTTPException(status_code=400, detail="Código de recuperación incorrecto. Verifica el código enviado a tu correo.")
+    codigo_valido = False
+
+    if info_recup:
+        ahora = datetime.now()
+        if isinstance(info_recup, dict):
+            if info_recup.get("expira", ahora) >= ahora and info_recup.get("codigo") == codigo_ingresado:
+                codigo_valido = True
+        elif str(info_recup) == codigo_ingresado:
+            codigo_valido = True
+
+    if not codigo_valido:
+        if validar_codigo_2fa_persistente(correo_limpio, codigo_ingresado):
+            codigo_valido = True
+
+    if not codigo_valido:
+        raise HTTPException(status_code=400, detail="Código de recuperación incorrecto o expirado. Verifica el código de 6 dígitos enviado a tu correo.")
     
     if len(datos.nueva_password.strip()) < 6:
         raise HTTPException(status_code=400, detail="La nueva contraseña debe tener al menos 6 caracteres.")
