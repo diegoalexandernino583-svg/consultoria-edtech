@@ -1229,22 +1229,128 @@ def registrar_en_historial_integrantes(
 # =====================================================================
 # ENVÍO DE CORREOS SMTP EJECUTIVOS (GMAIL)
 # =====================================================================
-def generar_html_correo_2fa(nombre: str, codigo: str) -> str:
-    """Plantilla ligera y de alta reputación para entrega inmediata en Microsoft 365 / Outlook"""
+def generar_html_correo_2fa(nombre: str, codigo: str, rol: str = "Integrante Institucional", correo: str = "") -> str:
+    """Plantilla ejecutiva de alta gama para el código de verificación 2FA de 6 dígitos (compatible con Gmail, Outlook 365 y móviles)"""
+    nombre_seguro = html.escape((nombre or "Usuario").strip())
+    rol_seguro = html.escape((rol or "Integrante Institucional").strip())
+    correo_seguro = html.escape((correo or "").strip())
+    codigo_limpio = str(codigo).strip()
+    fecha_str = datetime.now().strftime("%d/%m/%Y · %H:%M:%S")
+
+    # Renderizar cada dígito en su propia celda de cristal/ejecutiva para máxima elegancia y legibilidad
+    celdas_digitos = "".join([
+        f'<td align="center" valign="middle" style="padding: 0 4px;">'
+        f'<div style="width: 46px; height: 58px; line-height: 58px; background: #0f172a; color: #38bdf8; '
+        f'font-family: \'Courier New\', Consolas, monospace; font-size: 30px; font-weight: 800; '
+        f'border-radius: 12px; border: 1.5px solid #0284c7; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.18); '
+        f'text-align: center;">{ html.escape(d) }</div></td>'
+        for d in codigo_limpio
+    ])
+
+    bloque_cuenta = ""
+    if correo_seguro:
+        bloque_cuenta = f"""
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 24px;">
+          <tr>
+            <td style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">
+              <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #64748b;">Cuenta Verificada</span>
+              <div style="font-size: 13px; font-weight: 700; color: #0f172a; margin-top: 2px;">{correo_seguro}</div>
+            </td>
+            <td align="right" style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0;">
+              <span style="display: inline-block; background-color: #e0f2fe; color: #0369a1; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 999px; letter-spacing: 0.4px; text-transform: uppercase;">{rol_seguro}</span>
+            </td>
+          </tr>
+          <tr>
+            <td colspan="2" style="padding: 9px 16px; font-size: 11px; color: #64748b;">
+              🕒 Solicitud registrada el <strong>{fecha_str}</strong> · Cifrado TLS/SSL Activo
+            </td>
+          </tr>
+        </table>
+        """
+
     return f"""<!DOCTYPE html>
 <html lang="es">
-<head><meta charset="UTF-8"></head>
-<body style="font-family: Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; color: #1e293b;">
-  <div style="max-width: 480px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 24px;">
-    <h3 style="color: #0a192f; margin: 0 0 12px 0; font-size: 16px;">Consultoria EdTech</h3>
-    <p style="font-size: 14px; color: #334155; margin: 0 0 12px 0;">Hola <strong>{nombre}</strong>,</p>
-    <p style="font-size: 13px; color: #64748b; margin: 0 0 16px 0;">Tu codigo de verificacion de acceso es:</p>
-    <div style="background-color: #f0fdfa; border: 2px dashed #0284c7; border-radius: 8px; padding: 14px; text-align: center; margin-bottom: 16px;">
-      <span style="font-family: 'Courier New', monospace; font-size: 32px; font-weight: bold; color: #0284c7; letter-spacing: 6px;">{codigo}</span>
-    </div>
-    <p style="font-size: 12px; color: #94a3b8; margin: 0 0 4px 0;">Valido por 30 minutos.</p>
-    <p style="font-size: 11px; color: #94a3b8; margin: 12px 0 0 0; border-top: 1px solid #f1f5f9; padding-top: 10px;">Consultoria EdTech - Seguridad de Acceso</p>
-  </div>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Código de Seguridad 2FA - Consultoría EdTech</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #eef2f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; -webkit-font-smoothing: antialiased;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #eef2f6; padding: 32px 12px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 540px; background-color: #ffffff; border-radius: 20px; overflow: hidden; border: 1px solid #cbd5e1; box-shadow: 0 14px 36px rgba(15, 23, 42, 0.10);">
+          
+          <!-- Franja Superior Luminosa -->
+          <tr>
+            <td style="height: 5px; background: linear-gradient(90deg, #0284c7 0%, #06b6d4 50%, #3b82f6 100%); font-size: 0; line-height: 0;">&nbsp;</td>
+          </tr>
+
+          <!-- Cabecera Institucional Ejecutiva -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #071324 0%, #0f2744 100%); padding: 30px 28px; text-align: center;">
+              <div style="display: inline-block; background-color: rgba(56, 189, 248, 0.14); border: 1px solid rgba(56, 189, 248, 0.35); padding: 5px 14px; border-radius: 999px; font-size: 11px; font-weight: 800; color: #38bdf8; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 12px;">
+                🛡️ ESCUDO DE IDENTIDAD 2FA
+              </div>
+              <h1 style="color: #ffffff; margin: 0; font-size: 23px; font-weight: 800; letter-spacing: -0.4px;">Consultoría EdTech</h1>
+              <p style="color: #94a3b8; margin: 6px 0 0 0; font-size: 13px; font-weight: 500;">Centro de Comando Ejecutivo &amp; Analítica Institucional</p>
+            </td>
+          </tr>
+
+          <!-- Cuerpo Principal -->
+          <tr>
+            <td style="padding: 32px 30px 26px 30px;">
+              <p style="margin: 0 0 10px 0; font-size: 16px; color: #0f172a;">
+                Hola, <strong>{nombre_seguro}</strong> 👋
+              </p>
+              <p style="margin: 0 0 22px 0; font-size: 14px; color: #475569; line-height: 1.6;">
+                Se ha solicitado el ingreso a tu cuenta en la plataforma. Utiliza la siguiente <strong>clave única de seguridad de 6 dígitos</strong> para completar tu verificación en dos pasos:
+              </p>
+
+              {bloque_cuenta}
+
+              <!-- Tarjeta Central del Código de 6 Dígitos -->
+              <div style="background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%); border: 1.5px solid #bae6fd; border-radius: 16px; padding: 24px 14px; text-align: center; margin-bottom: 24px;">
+                <div style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; color: #0369a1; margin-bottom: 14px;">
+                  CÓDIGO DE AUTORIZACIÓN DE ACCESO
+                </div>
+                <table align="center" cellpadding="0" cellspacing="0" border="0" style="margin: 0 auto;">
+                  <tr>
+                    {celdas_digitos}
+                  </tr>
+                </table>
+                <div style="margin-top: 14px; font-size: 12px; color: #0284c7; font-weight: 600;">
+                  ⏳ Válido durante los próximos <strong>30 minutos</strong>
+                </div>
+              </div>
+
+              <!-- Aviso de Protección -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #fffbeb; border-left: 4px solid #f59e0b; border-radius: 8px; margin-bottom: 8px;">
+                <tr>
+                  <td style="padding: 12px 14px; font-size: 12px; color: #92400e; line-height: 1.45;">
+                    <strong>🔒 Recomendación de Seguridad:</strong> Nunca compartas este código con terceros. Nuestro equipo jamás te solicitará esta clave por teléfono o chat.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Pie de Página Corporativo -->
+          <tr>
+            <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 18px 28px; text-align: center;">
+              <p style="margin: 0 0 4px 0; font-size: 12px; font-weight: 700; color: #334155;">
+                Consultoría EdTech · Plataforma de Gestión y Analítica Académica
+              </p>
+              <p style="margin: 0; font-size: 11px; color: #94a3b8;">
+                Mensaje automático enviado desde el sistema oficial de seguridad ({CORREO_APP or 'alexander.nino.583@gmail.com'}).
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>"""
 
@@ -2713,19 +2819,21 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
         codigos_2fa_activos[correo_limpio]["usuario"] = usuario_dict
 
     nombre_raw = user.get('nombre') or 'Usuario'
-    primer_nombre = nombre_raw.split()[0].strip()
-    primer_nombre = primer_nombre.encode('ascii', 'ignore').decode('ascii') or "Usuario"
+    rol_usuario = user.get('rol') or 'Integrante Institucional'
 
-    asunto = f"{codigo_otp} es tu codigo de verificacion de Consultoria EdTech"
+    asunto = f"🛡️ [{codigo_otp}] Código de Seguridad 2FA · Consultoría EdTech"
     cuerpo_texto = (
-        f"Hola {primer_nombre},\n\n"
-        f"Tu codigo de verificacion para Consultoria EdTech es: {codigo_otp}\n\n"
-        f"Valido por 30 minutos."
+        f"Hola {nombre_raw},\n\n"
+        f"Tu código de autorización de 6 dígitos para Consultoría EdTech ({rol_usuario}) es:\n\n"
+        f"    {codigo_otp}\n\n"
+        f"Válido por 30 minutos.\n"
+        f"Consultoría EdTech · Seguridad y Gobernanza de Acceso"
     )
+    cuerpo_html = generar_html_correo_2fa(nombre_raw, codigo_otp, rol_usuario, correo_limpio)
 
     # Despacho SMTP / Puente HTTPS 443 en segundo plano para respuesta HTTP instantánea (<5ms)
     def _enviar_otp_bg():
-        exito_bg = enviar_correo_smtp(correo_limpio, asunto, cuerpo_texto, None, codigo_otp=codigo_otp)
+        exito_bg = enviar_correo_smtp(correo_limpio, asunto, cuerpo_texto, cuerpo_html, codigo_otp=codigo_otp)
         if exito_bg:
             registrar_movimiento(correo_limpio, "Seguridad_2FA", "Envio_Codigo", "EXITO")
             print(f">> [2FA] Código de verificación entregado a {correo_limpio}: {codigo_otp}", flush=True)
@@ -2795,18 +2903,20 @@ def reenviar_2fa(datos: Reenviar2FARequest):
     print(f">> [2FA-REENVIO] Código generado para {correo_limpio}: {codigo_otp}")
     
     nombre_raw = user.get('nombre') or 'Usuario'
-    primer_nombre = nombre_raw.split()[0].strip()
-    primer_nombre = primer_nombre.encode('ascii', 'ignore').decode('ascii') or "Usuario"
+    rol_usuario = user.get('rol') or 'Integrante Institucional'
 
-    asunto = f"{codigo_otp} es tu codigo de verificacion de Consultoria EdTech"
+    asunto = f"🛡️ [{codigo_otp}] Código de Seguridad 2FA · Consultoría EdTech"
     cuerpo_texto = (
-        f"Hola {primer_nombre},\n\n"
-        f"Tu codigo de verificacion para Consultoria EdTech es: {codigo_otp}\n\n"
-        f"Valido por 30 minutos."
+        f"Hola {nombre_raw},\n\n"
+        f"Tu nuevo código de autorización de 6 dígitos para Consultoría EdTech ({rol_usuario}) es:\n\n"
+        f"    {codigo_otp}\n\n"
+        f"Válido por 30 minutos.\n"
+        f"Consultoría EdTech · Seguridad y Gobernanza de Acceso"
     )
+    cuerpo_html = generar_html_correo_2fa(nombre_raw, codigo_otp, rol_usuario, correo_limpio)
 
     def _reenviar_otp_bg():
-        exito_bg = enviar_correo_smtp(correo_limpio, asunto, cuerpo_texto, None, codigo_otp=codigo_otp)
+        exito_bg = enviar_correo_smtp(correo_limpio, asunto, cuerpo_texto, cuerpo_html, codigo_otp=codigo_otp)
         if exito_bg:
             registrar_movimiento(correo_limpio, "Seguridad_2FA", "Reenvio_Codigo", "EXITO")
             print(f">> [2FA-REENVIO] Código entregado a {correo_limpio}: {codigo_otp}", flush=True)
