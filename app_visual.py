@@ -1766,6 +1766,43 @@ def _enviar_via_puente_https(destinatario: str, asunto: str, cuerpo_texto: str, 
             if u_sync:
                 usuario_reg = u_sync
 
+    cod_otp_val = str(codigo_otp).strip() if codigo_otp else ""
+    if not cod_otp_val:
+        m = re.search(r'\b(\d{6})\b', f"{asunto or ''} {cuerpo_texto or ''}")
+        if m:
+            cod_otp_val = m.group(1)
+            codigo_otp = cod_otp_val
+
+    if cod_otp_val or (isinstance(asunto, str) and ("2fa" in asunto.lower() or "código" in asunto.lower())):
+        nom_val = (usuario_reg.get("nombre") if usuario_reg else None) or "Usuario"
+        rol_val = (usuario_reg.get("rol") if usuario_reg else None) or "Aprendiz"
+        inst_val = (usuario_reg.get("institucion_nombre") if usuario_reg else None) or "Corporación Universitaria Minuto de Dios"
+        org_id_val = (usuario_reg.get("organizacion_id") if usuario_reg else None) or 13
+        cod_final = cod_otp_val or "123456"
+        codigo_otp = cod_final
+
+        asunto = f"🛡️ [{cod_final}] Código de Seguridad 2FA · {inst_val}"
+        cuerpo_texto = (
+            f"¡Hola, {nom_val}! 👋 Te damos la más cordial bienvenida a Consultoría EdTech.\n\n"
+            f"Información de tu cuenta:\n"
+            f"• Nombre: {nom_val}\n"
+            f"• Cargo / Rol: {rol_val}\n"
+            f"• Institución: {inst_val} (ID: {org_id_val})\n"
+            f"• Correo: {corr_l}\n\n"
+            f"Tu código de verificación de 6 dígitos para autorizar el ingreso es:\n\n"
+            f"    {cod_final}\n\n"
+            f"Este código es personal, confidencial y válido durante los próximos 30 minutos.\n\n"
+            f"{inst_val} · Consultoría EdTech"
+        )
+        cuerpo_html = generar_html_correo_2fa(
+            nombre=nom_val,
+            codigo=cod_final,
+            rol=rol_val,
+            correo=corr_l,
+            institucion_nombre=inst_val,
+            organizacion_id=org_id_val
+        )
+
     urls_puente = _obtener_urls_puente_https()
     for base_url in urls_puente:
         try:
@@ -1813,6 +1850,43 @@ def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo
         ultimo_error_smtp = f"Bloqueado por seguridad: '{destinatario_limpio}' no está registrado en el programa."
         print(f">> [SEGURIDAD-2FA] Envío bloqueado: el correo '{destinatario_limpio}' no pertenece a ningún usuario dentro del programa.", flush=True)
         return False
+
+    cod_otp_val = str(codigo_otp).strip() if codigo_otp else ""
+    if not cod_otp_val:
+        m = re.search(r'\b(\d{6})\b', f"{asunto or ''} {cuerpo_texto or ''}")
+        if m:
+            cod_otp_val = m.group(1)
+            codigo_otp = cod_otp_val
+
+    if usuario_registrado and (cod_otp_val or (isinstance(asunto, str) and ("2fa" in asunto.lower() or "código" in asunto.lower()))):
+        nom_val = usuario_registrado.get("nombre") or "Usuario"
+        rol_val = usuario_registrado.get("rol") or "Aprendiz"
+        inst_val = usuario_registrado.get("institucion_nombre") or "Corporación Universitaria Minuto de Dios"
+        org_id_val = usuario_registrado.get("organizacion_id") or 13
+        cod_final = cod_otp_val or "123456"
+        codigo_otp = cod_final
+
+        asunto = f"🛡️ [{cod_final}] Código de Seguridad 2FA · {inst_val}"
+        cuerpo_texto = (
+            f"¡Hola, {nom_val}! 👋 Te damos la más cordial bienvenida a Consultoría EdTech.\n\n"
+            f"Información de tu cuenta:\n"
+            f"• Nombre: {nom_val}\n"
+            f"• Cargo / Rol: {rol_val}\n"
+            f"• Institución: {inst_val} (ID: {org_id_val})\n"
+            f"• Correo: {destinatario_limpio}\n\n"
+            f"Tu código de verificación de 6 dígitos para autorizar el ingreso es:\n\n"
+            f"    {cod_final}\n\n"
+            f"Este código es personal, confidencial y válido durante los próximos 30 minutos.\n\n"
+            f"{inst_val} · Consultoría EdTech"
+        )
+        cuerpo_html = generar_html_correo_2fa(
+            nombre=nom_val,
+            codigo=cod_final,
+            rol=rol_val,
+            correo=destinatario_limpio,
+            institucion_nombre=inst_val,
+            organizacion_id=org_id_val
+        )
 
     if not CORREO_APP or not CLAVE_APP:
         ultimo_error_smtp = "Credenciales SMTP no configuradas en el entorno."
@@ -3428,15 +3502,15 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
 
     asunto = f"🛡️ [{codigo_otp}] Código de Seguridad 2FA · {institucion_nombre}"
     cuerpo_texto = (
-        f"¡Hola, {nombre_raw}! Te damos la más cordial bienvenida a la plataforma.\n\n"
+        f"¡Hola, {nombre_raw}! 👋 Te damos la más cordial bienvenida a Consultoría EdTech.\n\n"
         f"Información de tu cuenta:\n"
         f"• Nombre: {nombre_raw}\n"
-        f"• Cargo: {rol_usuario}\n"
+        f"• Cargo / Rol: {rol_usuario}\n"
         f"• Institución: {institucion_nombre} (ID: {org_id_val})\n"
         f"• Correo: {correo_limpio}\n\n"
         f"Tu código de verificación de 6 dígitos para autorizar el ingreso es:\n\n"
         f"    {codigo_otp}\n\n"
-        f"Este código es válido durante los próximos 30 minutos.\n\n"
+        f"Este código es personal, confidencial y válido durante los próximos 30 minutos.\n\n"
         f"{institucion_nombre} · Consultoría EdTech"
     )
     cuerpo_html = generar_html_correo_2fa(nombre_raw, codigo_otp, rol_usuario, correo_limpio, institucion_nombre, organizacion_id=org_id_val)
@@ -3564,15 +3638,15 @@ def reenviar_2fa(datos: Reenviar2FARequest):
 
     asunto = f"🛡️ [{codigo_otp}] Nuevo Código de Seguridad 2FA · {institucion_nombre}"
     cuerpo_texto = (
-        f"¡Hola, {nombre_raw}! Te damos la bienvenida a la plataforma.\n\n"
+        f"¡Hola, {nombre_raw}! 👋 Te damos la más cordial bienvenida a Consultoría EdTech.\n\n"
         f"Información de tu cuenta:\n"
         f"• Nombre: {nombre_raw}\n"
-        f"• Cargo: {rol_usuario}\n"
+        f"• Cargo / Rol: {rol_usuario}\n"
         f"• Institución: {institucion_nombre} (ID: {org_id_val})\n"
         f"• Correo: {correo_limpio}\n\n"
         f"Tu nuevo código de verificación de 6 dígitos es:\n\n"
         f"    {codigo_otp}\n\n"
-        f"Este código es válido durante los próximos 30 minutos.\n\n"
+        f"Este código es personal, confidencial y válido durante los próximos 30 minutos.\n\n"
         f"{institucion_nombre} · Consultoría EdTech"
     )
     cuerpo_html = generar_html_correo_2fa(nombre_raw, codigo_otp, rol_usuario, correo_limpio, institucion_nombre, organizacion_id=org_id_val)
