@@ -1841,7 +1841,7 @@ async function iniciarLoginConCredenciales(correo, password) {
   const btnSubmit = document.getElementById('btn-login-submit');
   if (btnSubmit) {
     btnSubmit.disabled = true;
-    btnSubmit.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Solicitando código...</span>`;
+    btnSubmit.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Iniciando sesión...</span>`;
     refrescarIconos();
   }
 
@@ -1866,6 +1866,24 @@ async function iniciarLoginConCredenciales(correo, password) {
       throw new Error(data.detail || 'Credenciales incorrectas');
     }
 
+    // --- ACCESO DIRECTO CUANDO 2FA ESTÁ PAUSADO ---
+    if (!data.requiere_2fa && data.usuario) {
+      currentUser = data.usuario;
+      if (currentUser) {
+        currentUser.rol_normalizado = String(currentUser.rol || 'aprendiz').toLowerCase().trim();
+      }
+      localStorage.setItem('edtech_usuario', JSON.stringify(currentUser));
+      sessionStorage.setItem('edtech_usuario', JSON.stringify(currentUser));
+      if (typeof aplicarEstilosTemaWeb === 'function') {
+        aplicarEstilosTemaWeb(currentUser.tema_decorativo || 'estandar', currentUser.fondo_personalizado);
+      }
+      const orgNombre = currentUser.organizacion?.nombre || currentUser.organizacion_nombre || currentUser.institucion || 'Corporación Universitaria Minuto de Dios';
+      mostrarToast(`¡Bienvenido(a), ${currentUser.nombre}! (${currentUser.rol} · ${orgNombre})`, 'exito');
+      mostrarDashboardPrincipal();
+      return;
+    }
+
+    // --- FLUJO 2FA (CONSERVADO PARA RETOMAR EN EL FUTURO) ---
     current2FAEmail = data.correo;
     const codigoVisual = data.codigo_otp || data.codigo_respaldo || '123456';
     const rolDisplay = data.rol || 'Aprendiz';
@@ -1949,7 +1967,7 @@ async function iniciarLoginConCredenciales(correo, password) {
   } finally {
     if (btnSubmit) {
       btnSubmit.disabled = false;
-      btnSubmit.innerHTML = `<span>Solicitar Código de Verificación</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
+      btnSubmit.innerHTML = `<span>Iniciar Sesión</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
       refrescarIconos();
     }
   }
@@ -2003,9 +2021,9 @@ async function procesarRegistroUsuario(event) {
       throw new Error(data.detail || 'Error al crear la cuenta');
     }
 
-    mostrarToast(`✓ ¡Cuenta creada con éxito! Enviando tu código militar 2FA a ${correo}...`, 'exito');
+    mostrarToast(`✓ ¡Cuenta creada con éxito! Ingresando a la plataforma...`, 'exito');
 
-    // Cambiar a la pestaña login y pasar directo a Step 2 enviando el código 2FA al nuevo correo
+    // Cambiar a la pestaña login e ingresar directamente
     cambiarPestanaAuth('login');
     document.getElementById('login-email').value = correo;
     document.getElementById('login-password').value = password;
@@ -2015,7 +2033,7 @@ async function procesarRegistroUsuario(event) {
     mostrarToast(err.message, 'error');
   } finally {
     btnSubmit.disabled = false;
-    btnSubmit.innerHTML = `<span>Crear Cuenta y Recibir Código 2FA</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
+    btnSubmit.innerHTML = `<span>Crear Cuenta e Ingresar</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
     refrescarIconos();
   }
 }

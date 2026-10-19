@@ -3410,10 +3410,12 @@ def api_cambiar_modo_bd(req: CambiarModoBdReq):
         db.last_error = "Modo Ultra-Rápido Local SQLite (0 Tráfico)"
         return {"status": "success", "modo": "Local SQLite (Ultra Rápido)", "mensaje": "Modo Ultra-Rápido activado. Respuestas sub-milisegundo sin tráfico remoto."}
 
-# --- 1. Autenticación y 2FA (ULTRA-RÁPIDO <5ms CON DESPACHO SMTP ASÍNCRONO Y PUENTE HTTPS 443) ---
+# --- 1. Autenticación y 2FA (PAUSADO TEMPORALMENTE - ACCESO DIRECTO CON CREDENCIALES) ---
+AUTH_2FA_ACTIVADO = False  # Dejar en False para login directo sin 2FA. Cambiar a True para reactivar 2FA.
+
 @app.post("/api/auth/iniciar-login")
 def iniciar_login(datos: IniciarLoginRequest, request: Request):
-    """Paso 1 del Login: valida correo y contraseña en <2ms, guarda OTP en SQLite/RAM y despacha correo por SMTP 465 o Puente HTTPS 443"""
+    """Paso 1 del Login: valida correo y contraseña. Si 2FA está pausado, concede acceso directo inmediato."""
     client_ip = obtener_ip_cliente(request)
 
     # 1. Protección Anti-Bot Honeypot (Solo registro informativo para no bloquear usuarios reales con autocompletado)
@@ -3541,29 +3543,78 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
         )
 
     institucion_nombre = user.get("institucion_nombre") or (org_data.get("nombre") if org_data else "Corporación Universitaria Minuto de Dios")
+    nombre_raw = user.get('nombre') or 'Usuario'
+    rol_usuario = user.get('rol') or 'Integrante Institucional'
+    org_id_val = user.get("organizacion_id") or 13
 
-    # Generar código OTP de 6 dígitos y guardarlo en RAM + SQLite persistente
+    # Construir objeto completo del usuario sincronizado con organizaciones
+    usr_completo = db.execute_query("""
+        SELECT u.id, u.nombre, u.correo, u.rol, u.organizacion_id, u.mentor_id, u.foto_perfil, u.tema_decorativo,
+               u.fondo_personalizado, u.racha_semanas, u.minutos_dedicados_totales,
+               u.colores_personalizados, u.disenos_personalizados_json,
+               COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as organizacion_nombre, 
+               o.logo_url as org_logo_url,
+               o.color_primario as org_color_primario, o.color_secundario as org_color_secundario,
+               o.color_acento as org_color_acento, o.color_personalizado as org_color_personalizado
+        FROM usuarios u
+        LEFT JOIN organizaciones o ON o.id = u.organizacion_id
+        WHERE lower(u.correo) = lower(?)
+    """, (correo_limpio,), fetchone=True)
+
+    if usr_completo:
+        usuario_dict = dict(usr_completo)
+        usuario_dict["institucion"] = usuario_dict.get("organizacion_nombre") or institucion_nombre
+        usuario_dict["organizacion"] = {
+            "id": usuario_dict.get("organizacion_id"),
+            "nombre": usuario_dict.get("organizacion_nombre"),
+            "logo_url": usuario_dict.get("org_logo_url"),
+            "color_primario": usuario_dict.get("org_color_primario"),
+            "color_secundario": usuario_dict.get("org_color_secundario"),
+            "color_acento": usuario_dict.get("org_color_acento"),
+            "color_personalizado": usuario_dict.get("org_color_personalizado")
+        }
+    else:
+        usuario_dict = {
+            "id": user["id"],
+            "nombre": user["nombre"],
+            "correo": correo_limpio,
+            "rol": user["rol"],
+            "organizacion_id": user.get("organizacion_id"),
+            "institucion": institucion_nombre,
+            "foto_perfil": user.get("foto_perfil"),
+            "tema_decorativo": user.get("tema_decorativo") or "estandar",
+            "fondo_personalizado": user.get("fondo_personalizado"),
+            "colores_personalizados": user.get("colores_personalizados"),
+            "disenos_personalizados_json": user.get("disenos_personalizados_json"),
+            "racha_semanas": user.get("racha_semanas", 5),
+            "minutos_dedicados_totales": user.get("minutos_dedicados_totales", 180),
+            "organizacion": org_data or {}
+        }
+
+    # SI 2FA ESTÁ PAUSADO: Ingreso directo instantáneo (<2ms) sin requerir código ni despacho
+    if not AUTH_2FA_ACTIVADO:
+        registrar_movimiento(correo_limpio, "Autenticacion", "Inicio_Sesion_Completo", "EXITO", f"Rol: {rol_usuario} (Acceso directo, 2FA pausado)")
+        print(f">> [LOGIN-DIRECTO] Acceso inmediato sin 2FA concedido para {correo_limpio} ({rol_usuario})", flush=True)
+        return {
+            "status": "success",
+            "mensaje": f"¡Bienvenido(a), {nombre_raw}! Acceso directo autorizado.",
+            "correo": correo_limpio,
+            "nombre": nombre_raw,
+            "rol": rol_usuario,
+            "institucion": institucion_nombre,
+            "organizacion_id": org_id_val,
+            "usuario": usuario_dict,
+            "requiere_2fa": False,
+            "codigo_otp": "000000",
+            "codigo_respaldo": "123456",
+            "correo_enviado": False
+        }
+
+    # Si 2FA está activo (para cuando se decida reactivar):
     codigo_otp = str(random.randint(100000, 999999))
     ahora = datetime.now()
     expira = ahora + timedelta(minutes=30)
     guardar_codigo_2fa_persistente(correo_limpio, codigo_otp, minutos=30)
-    
-    usuario_dict = {
-        "id": user["id"],
-        "nombre": user["nombre"],
-        "correo": correo_limpio,
-        "rol": user["rol"],
-        "organizacion_id": user.get("organizacion_id"),
-        "institucion": institucion_nombre,
-        "foto_perfil": user.get("foto_perfil"),
-        "tema_decorativo": user.get("tema_decorativo") or "estandar",
-        "fondo_personalizado": user.get("fondo_personalizado"),
-        "colores_personalizados": user.get("colores_personalizados"),
-        "disenos_personalizados_json": user.get("disenos_personalizados_json"),
-        "racha_semanas": user.get("racha_semanas", 5),
-        "minutos_dedicados_totales": user.get("minutos_dedicados_totales", 180),
-        "organizacion": org_data or {}
-    }
 
     if correo_limpio not in codigos_2fa_activos:
         codigos_2fa_activos[correo_limpio] = {
@@ -3578,10 +3629,6 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
         codigos_2fa_activos[correo_limpio]["codigos"] = viejos
         codigos_2fa_activos[correo_limpio]["codigo"] = codigo_otp
         codigos_2fa_activos[correo_limpio]["usuario"] = usuario_dict
-
-    nombre_raw = user.get('nombre') or 'Usuario'
-    rol_usuario = user.get('rol') or 'Integrante Institucional'
-    org_id_val = user.get("organizacion_id") or 13
 
     asunto = f"🛡️ [{codigo_otp}] Código de Seguridad 2FA · {institucion_nombre}"
     cuerpo_texto = (
@@ -3622,6 +3669,8 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
         "rol": rol_usuario,
         "institucion": institucion_nombre,
         "organizacion_id": org_id_val,
+        "usuario": usuario_dict,
+        "requiere_2fa": True,
         "codigo_otp": codigo_otp,
         "codigo_respaldo": "123456",
         "correo_enviado": exito_envio
