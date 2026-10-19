@@ -26,9 +26,7 @@ let catalogoColeccionesActuales = [];
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
-  if (window.lucide) {
-    lucide.createIcons();
-  }
+  refrescarIconos();
   
   // Cargar modo visual guardado (predeterminado, oscuro, claro, artístico)
   const temaGuardado = localStorage.getItem('edtech_tema_visual') || 'predeterminado';
@@ -36,7 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   comprobarSesionExistente();
   verificarEstadoServidor();
-  cargarOrganizacionesRegistro();
+  if (!currentUser) {
+    cargarOrganizacionesRegistro();
+  }
 
   // Escuchar cambio de rol en el modal de edición de usuario
   const selectRol = document.getElementById('edit-user-rol');
@@ -50,12 +50,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+let _rafIconosPendiente = false;
 function refrescarIconos() {
-  setTimeout(() => {
+  if (_rafIconosPendiente) return;
+  _rafIconosPendiente = true;
+  requestAnimationFrame(() => {
+    _rafIconosPendiente = false;
     if (window.lucide) {
       lucide.createIcons();
     }
-  }, 40);
+  });
 }
 
 // =====================================================================
@@ -113,11 +117,12 @@ async function validarSesionConServidor() {
 
 function iniciarPulsoTiempoReal() {
   if (intervaloPulsoTiempoReal) clearInterval(intervaloPulsoTiempoReal);
-  // Latido en tiempo real cada 1.5 segundos para sincronización milimétrica
-  intervaloPulsoTiempoReal = setInterval(verificarPulsoTiempoReal, 1500);
+  // Latido en tiempo real cada 2 segundos para sincronización fluida con cero sobrecarga
+  intervaloPulsoTiempoReal = setInterval(verificarPulsoTiempoReal, 2000);
 }
 
 let isRefrescandoTiempoReal = false;
+let _pulsoEnVuelo = false;
 
 async function refrescarDatosEnTiempoReal() {
   if (isRefrescandoTiempoReal) return;
@@ -168,7 +173,8 @@ async function refrescarDatosEnTiempoReal() {
 }
 
 async function verificarPulsoTiempoReal() {
-  if (!currentUser || !currentUser.id) return;
+  if (!currentUser || !currentUser.id || document.hidden || _pulsoEnVuelo) return;
+  _pulsoEnVuelo = true;
   try {
     const res = await fetch(`${API_BASE}/api/tiempo-real/pulso?usuario_id=${currentUser.id}&rol_actual=${encodeURIComponent(currentUser.rol)}&version_cliente=${versionDatosServidor}`);
     if (!res.ok) return;
@@ -222,6 +228,8 @@ async function verificarPulsoTiempoReal() {
     }
   } catch (e) {
     // Latido silencioso
+  } finally {
+    _pulsoEnVuelo = false;
   }
 }
 
@@ -236,6 +244,7 @@ function mostrarPantallaLogin() {
   if (typeof cambiarPestanaAuth === 'function') {
     cambiarPestanaAuth('login');
   }
+  cargarOrganizacionesRegistro();
   refrescarIconos();
 }
 
@@ -262,7 +271,6 @@ function mostrarDashboardPrincipal() {
   actualizarBrandingOrganizacionUI();
   configurarVistasSegunRol(true);
   actualizarVisibilidadTemasSegunRol();
-  cargarNodosInstitucionales();
   iniciarPulsoTiempoReal();
   actualizarEstiloModoDominio('modo-dominio-excel');
   actualizarEstiloModoDominio('modo-dominio-convenio');
