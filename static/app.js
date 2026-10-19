@@ -1867,64 +1867,49 @@ async function iniciarLoginConCredenciales(correo, password) {
     }
 
     current2FAEmail = data.correo;
-    const label2FA = document.getElementById('label-2fa-email');
-    if (label2FA) {
-      label2FA.innerHTML = `
-        <div class="mt-2.5 p-3.5 bg-white border border-slate-200/90 rounded-xl text-left shadow-xs space-y-1.5">
-          <div class="text-sm font-extrabold text-[#0a192f] flex items-center gap-1.5">
-            <span>¡Bienvenido(a), <span class="text-cyan-700">${typeof escapeHtml === 'function' ? escapeHtml(data.nombre || 'Integrante') : (data.nombre || 'Integrante')}</span>!</span>
-            <span>👋</span>
-          </div>
-          <div class="text-xs text-slate-700 flex items-center gap-1.5 flex-wrap">
-            <span class="font-bold text-slate-500">Cargo:</span>
-            <span class="px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-800 font-bold text-[11px] uppercase tracking-wide">${typeof escapeHtml === 'function' ? escapeHtml(data.rol || 'Integrante') : (data.rol || 'Integrante')}</span>
-          </div>
-          <div class="text-xs text-slate-700">
-            <span class="font-bold text-slate-500">Institución:</span>
-            <span class="font-semibold text-slate-800">${typeof escapeHtml === 'function' ? escapeHtml(data.institucion || 'Corporación Universitaria Minuto de Dios') : (data.institucion || 'Corporación Universitaria Minuto de Dios')}</span>
-          </div>
-          <div class="text-xs text-slate-700">
-            <span class="font-bold text-slate-500">Correo destino:</span>
-            <span class="font-mono text-cyan-800 font-semibold break-all">${current2FAEmail}</span>
-          </div>
-        </div>
-      `;
-    }
-
-    const avisoContingencia = document.getElementById('aviso-contingencia-2fa');
     const codigoVisual = data.codigo_otp || data.codigo_respaldo || '123456';
     const rolDisplay = data.rol || 'Aprendiz';
     const orgIdVisual = data.organizacion_id || 13;
     const instVisual = data.institucion || 'Corporación Universitaria Minuto de Dios';
     const nombreVisual = data.nombre || 'Integrante';
 
-    if (avisoContingencia) {
-      avisoContingencia.innerHTML = `
-        <div class="p-3.5 rounded-xl bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-50 border border-cyan-300 text-[#0a192f] text-xs space-y-2.5 my-2.5 shadow-sm">
-          <div class="flex items-center justify-between border-b border-cyan-200/80 pb-1.5">
-            <span class="font-bold text-cyan-950 text-xs flex items-center gap-1.5">
-              <i data-lucide="shield-check" class="w-4 h-4 text-cyan-600"></i>
-              <span>¡Hola, ${typeof escapeHtml === 'function' ? escapeHtml(nombreVisual) : nombreVisual}! 👋</span>
-            </span>
-            <span class="px-2 py-0.5 rounded-full bg-cyan-700 text-white font-extrabold text-[10px] uppercase tracking-wider">${typeof escapeHtml === 'function' ? escapeHtml(rolDisplay) : rolDisplay}</span>
+    const label2FA = document.getElementById('label-2fa-email');
+    if (label2FA) {
+      label2FA.innerHTML = `
+        <div class="mt-2.5 p-3.5 bg-white border border-slate-200/90 rounded-xl text-left shadow-xs space-y-2">
+          <div class="text-sm font-extrabold text-[#0a192f] flex items-center gap-1.5">
+            <span>¡Bienvenido(a), <span class="text-cyan-700">${typeof escapeHtml === 'function' ? escapeHtml(nombreVisual) : nombreVisual}</span>!</span>
+            <span>👋</span>
           </div>
-          <div class="grid grid-cols-1 gap-1 text-[11px] text-slate-700">
-            <div><span class="font-bold text-slate-500">Cargo (Rol):</span> <span class="font-semibold text-slate-900">${typeof escapeHtml === 'function' ? escapeHtml(rolDisplay) : rolDisplay}</span></div>
-            <div><span class="font-bold text-slate-500">Institución:</span> <span class="font-semibold text-slate-900">${typeof escapeHtml === 'function' ? escapeHtml(instVisual) : instVisual}</span> <span class="text-slate-400 font-mono text-[10px]">(ID: ${orgIdVisual})</span></div>
-            <div><span class="font-bold text-slate-500">Correo destino:</span> <span class="font-mono text-cyan-800 font-semibold break-all">${current2FAEmail}</span></div>
+          <div class="text-xs text-slate-700 flex items-center gap-1.5 flex-wrap">
+            <span class="font-bold text-slate-500">Cargo:</span>
+            <span class="px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-800 font-bold text-[11px] uppercase tracking-wide">${typeof escapeHtml === 'function' ? escapeHtml(rolDisplay) : rolDisplay}</span>
           </div>
-          <div class="p-2.5 rounded-lg bg-white border border-cyan-300 flex items-center justify-between mt-1 shadow-xs">
+          <div class="text-xs text-slate-700">
+            <span class="font-bold text-slate-500">Institución:</span>
+            <span class="font-semibold text-slate-800">${typeof escapeHtml === 'function' ? escapeHtml(instVisual) : instVisual}</span>
+          </div>
+          <div class="text-xs text-slate-700">
+            <span class="font-bold text-slate-500">Correo destino:</span>
+            <span class="font-mono text-cyan-800 font-semibold break-all">${current2FAEmail}</span>
+          </div>
+          <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
             <div class="flex items-center gap-1.5 text-slate-700 font-bold text-xs">
               <i data-lucide="key" class="w-3.5 h-3.5 text-cyan-600"></i>
-              <span>Código de 6 Dígitos:</span>
+              <span>Código de Seguridad:</span>
             </div>
-            <span class="font-mono text-lg font-black text-cyan-700 tracking-[0.25em] bg-cyan-50 px-2.5 py-0.5 rounded border border-cyan-200 select-all">${codigoVisual}</span>
+            <span class="font-mono text-base font-black text-cyan-700 tracking-[0.25em] bg-cyan-50 px-2.5 py-0.5 rounded-lg border border-cyan-200 select-all">${codigoVisual}</span>
           </div>
         </div>
       `;
-      avisoContingencia.classList.remove('hidden');
-      refrescarIconos();
     }
+
+    const avisoContingencia = document.getElementById('aviso-contingencia-2fa');
+    if (avisoContingencia) {
+      avisoContingencia.innerHTML = '';
+      avisoContingencia.classList.add('hidden');
+    }
+    refrescarIconos();
 
     const inputOtp = document.getElementById('login-otp');
     if (inputOtp) {
@@ -2064,64 +2049,49 @@ async function reenviarCodigo2FA() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || 'Error al reenviar código');
 
-    const label2FA = document.getElementById('label-2fa-email');
-    if (label2FA && data.nombre) {
-      label2FA.innerHTML = `
-        <div class="mt-2.5 p-3.5 bg-white border border-slate-200/90 rounded-xl text-left shadow-xs space-y-1.5">
-          <div class="text-sm font-extrabold text-[#0a192f] flex items-center gap-1.5">
-            <span>¡Bienvenido(a), <span class="text-cyan-700">${typeof escapeHtml === 'function' ? escapeHtml(data.nombre) : data.nombre}</span>!</span>
-            <span>👋</span>
-          </div>
-          <div class="text-xs text-slate-700 flex items-center gap-1.5 flex-wrap">
-            <span class="font-bold text-slate-500">Cargo:</span>
-            <span class="px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-800 font-bold text-[11px] uppercase tracking-wide">${typeof escapeHtml === 'function' ? escapeHtml(data.rol || 'Integrante') : (data.rol || 'Integrante')}</span>
-          </div>
-          <div class="text-xs text-slate-700">
-            <span class="font-bold text-slate-500">Institución:</span>
-            <span class="font-semibold text-slate-800">${typeof escapeHtml === 'function' ? escapeHtml(data.institucion || 'Corporación Universitaria Minuto de Dios') : (data.institucion || 'Corporación Universitaria Minuto de Dios')}</span>
-          </div>
-          <div class="text-xs text-slate-700">
-            <span class="font-bold text-slate-500">Correo destino:</span>
-            <span class="font-mono text-cyan-800 font-semibold break-all">${current2FAEmail}</span>
-          </div>
-        </div>
-      `;
-    }
-
-    const avisoContingencia = document.getElementById('aviso-contingencia-2fa');
     const codigoVisual = data.codigo_otp || data.codigo_respaldo || '123456';
     const rolDisplay = data.rol || 'Aprendiz';
     const orgIdVisual = data.organizacion_id || 13;
     const instVisual = data.institucion || 'Corporación Universitaria Minuto de Dios';
     const nombreVisual = data.nombre || 'Integrante';
 
-    if (avisoContingencia) {
-      avisoContingencia.innerHTML = `
-        <div class="p-3.5 rounded-xl bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-50 border border-cyan-300 text-[#0a192f] text-xs space-y-2.5 my-2.5 shadow-sm">
-          <div class="flex items-center justify-between border-b border-cyan-200/80 pb-1.5">
-            <span class="font-bold text-cyan-950 text-xs flex items-center gap-1.5">
-              <i data-lucide="shield-check" class="w-4 h-4 text-cyan-600"></i>
-              <span>¡Hola, ${typeof escapeHtml === 'function' ? escapeHtml(nombreVisual) : nombreVisual}! 👋</span>
-            </span>
-            <span class="px-2 py-0.5 rounded-full bg-cyan-700 text-white font-extrabold text-[10px] uppercase tracking-wider">${typeof escapeHtml === 'function' ? escapeHtml(rolDisplay) : rolDisplay}</span>
+    const label2FA = document.getElementById('label-2fa-email');
+    if (label2FA) {
+      label2FA.innerHTML = `
+        <div class="mt-2.5 p-3.5 bg-white border border-slate-200/90 rounded-xl text-left shadow-xs space-y-2">
+          <div class="text-sm font-extrabold text-[#0a192f] flex items-center gap-1.5">
+            <span>¡Bienvenido(a), <span class="text-cyan-700">${typeof escapeHtml === 'function' ? escapeHtml(nombreVisual) : nombreVisual}</span>!</span>
+            <span>👋</span>
           </div>
-          <div class="grid grid-cols-1 gap-1 text-[11px] text-slate-700">
-            <div><span class="font-bold text-slate-500">Cargo (Rol):</span> <span class="font-semibold text-slate-900">${typeof escapeHtml === 'function' ? escapeHtml(rolDisplay) : rolDisplay}</span></div>
-            <div><span class="font-bold text-slate-500">Institución:</span> <span class="font-semibold text-slate-900">${typeof escapeHtml === 'function' ? escapeHtml(instVisual) : instVisual}</span> <span class="text-slate-400 font-mono text-[10px]">(ID: ${orgIdVisual})</span></div>
-            <div><span class="font-bold text-slate-500">Correo destino:</span> <span class="font-mono text-cyan-800 font-semibold break-all">${current2FAEmail}</span></div>
+          <div class="text-xs text-slate-700 flex items-center gap-1.5 flex-wrap">
+            <span class="font-bold text-slate-500">Cargo:</span>
+            <span class="px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-800 font-bold text-[11px] uppercase tracking-wide">${typeof escapeHtml === 'function' ? escapeHtml(rolDisplay) : rolDisplay}</span>
           </div>
-          <div class="p-2.5 rounded-lg bg-white border border-cyan-300 flex items-center justify-between mt-1 shadow-xs">
+          <div class="text-xs text-slate-700">
+            <span class="font-bold text-slate-500">Institución:</span>
+            <span class="font-semibold text-slate-800">${typeof escapeHtml === 'function' ? escapeHtml(instVisual) : instVisual}</span>
+          </div>
+          <div class="text-xs text-slate-700">
+            <span class="font-bold text-slate-500">Correo destino:</span>
+            <span class="font-mono text-cyan-800 font-semibold break-all">${current2FAEmail}</span>
+          </div>
+          <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
             <div class="flex items-center gap-1.5 text-slate-700 font-bold text-xs">
               <i data-lucide="key" class="w-3.5 h-3.5 text-cyan-600"></i>
-              <span>Nuevo Código (6 dígitos):</span>
+              <span>Código de Seguridad:</span>
             </div>
-            <span class="font-mono text-lg font-black text-cyan-700 tracking-[0.25em] bg-cyan-50 px-2.5 py-0.5 rounded border border-cyan-200 select-all">${codigoVisual}</span>
+            <span class="font-mono text-base font-black text-cyan-700 tracking-[0.25em] bg-cyan-50 px-2.5 py-0.5 rounded-lg border border-cyan-200 select-all">${codigoVisual}</span>
           </div>
         </div>
       `;
-      avisoContingencia.classList.remove('hidden');
-      refrescarIconos();
     }
+
+    const avisoContingencia = document.getElementById('aviso-contingencia-2fa');
+    if (avisoContingencia) {
+      avisoContingencia.innerHTML = '';
+      avisoContingencia.classList.add('hidden');
+    }
+    refrescarIconos();
 
     const inputOtp = document.getElementById('login-otp');
     if (inputOtp) {
