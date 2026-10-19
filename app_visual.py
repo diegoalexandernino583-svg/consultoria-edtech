@@ -1954,26 +1954,29 @@ def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo
                 time.sleep(0.3)
 
         if not enviado:
-            # Si el error es red inalcanzable (bloqueo de puertos en la nube), saltar directo al Puente HTTPS 443
-            if ("101" in ultimo_error_smtp or "unreachable" in ultimo_error_smtp.lower()) and not evitar_relay:
+            try:
+                with smtplib.SMTP('smtp.gmail.com', 587, timeout=6) as smtp:
+                    smtp.ehlo()
+                    smtp.starttls()
+                    smtp.ehlo()
+                    smtp.login(CORREO_APP, CLAVE_APP)
+                    smtp.send_message(msg)
+                    enviado = True
+                    ultimo_error_smtp = ""
+                    print(f">> [SMTP-587] Correo entregado exitosamente a {destinatario_limpio} vía STARTTLS", flush=True)
+            except Exception as e_tls:
+                ultimo_error_smtp = f"STARTTLS 587: {e_tls}"
+                print(f">> [SMTP-587-ERROR] Falló STARTTLS 587 para {destinatario_limpio}: {e_tls}")
+
+        if not enviado and not evitar_relay:
+            try:
                 if _enviar_via_puente_https(destinatario_limpio, asunto, cuerpo_texto, cuerpo_html, codigo_otp):
-                    return True
-            else:
-                try:
-                    with smtplib.SMTP('smtp.gmail.com', 587, timeout=6) as smtp:
-                        smtp.ehlo()
-                        smtp.starttls()
-                        smtp.ehlo()
-                        smtp.login(CORREO_APP, CLAVE_APP)
-                        smtp.send_message(msg)
-                        enviado = True
-                        ultimo_error_smtp = ""
-                        print(f">> [SMTP-587] Correo entregado exitosamente a {destinatario_limpio} vía STARTTLS", flush=True)
-                except Exception as e_tls:
-                    ultimo_error_smtp += f" | TLS 587: {e_tls}"
-                    if not evitar_relay:
-                        if _enviar_via_puente_https(destinatario_limpio, asunto, cuerpo_texto, cuerpo_html, codigo_otp):
-                            return True
+                    enviado = True
+                    ultimo_error_smtp = ""
+                    print(f">> [PUENTE-HTTPS] Correo entregado exitosamente a {destinatario_limpio} vía puente Cloudflare", flush=True)
+            except Exception as e_bridge:
+                ultimo_error_smtp = f"Puente HTTPS: {e_bridge}"
+                print(f">> [PUENTE-HTTPS-ERROR] Falló puente HTTPS para {destinatario_limpio}: {e_bridge}")
 
         return enviado
     except Exception as e:
@@ -3527,9 +3530,9 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
         print(f">> [2FA] Código de verificación entregado a {correo_limpio}: {codigo_otp}", flush=True)
         mensaje_resp = f"¡Bienvenido(a), {nombre_raw}! Código de verificación de 6 dígitos enviado exitosamente a tu correo ({correo_limpio}). Cargo: {rol_usuario} · Institución: {institucion_nombre}."
     else:
-        registrar_movimiento(correo_limpio, "Seguridad_2FA", "Envio_Codigo", "CONTINGENCIA")
-        print(f">> [2FA-AVISO] Despacho SMTP restringido en la red actual. Código activo para {correo_limpio}: {codigo_otp}", flush=True)
-        mensaje_resp = f"¡Bienvenido(a), {nombre_raw}! Código de verificación generado ({rol_usuario} · {institucion_nombre}). Si presentas demora, puedes ingresar con el código 123456 (o {codigo_otp})."
+        registrar_movimiento(correo_limpio, "Seguridad_2FA", "Envio_Codigo", "FALLO")
+        print(f">> [2FA-ERROR] Despacho SMTP no completado para {correo_limpio}: {ultimo_error_smtp}", flush=True)
+        mensaje_resp = f"¡Bienvenido(a), {nombre_raw}! Código de seguridad generado para ({correo_limpio}). Por favor revisa tu bandeja de entrada o spam."
 
     return {
         "status": "success",
@@ -3539,9 +3542,7 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
         "rol": rol_usuario,
         "institucion": institucion_nombre,
         "organizacion_id": org_id_val,
-        "codigo_otp": codigo_otp,
-        "correo_enviado": exito_envio,
-        "codigo_respaldo": "123456" if not exito_envio else None
+        "correo_enviado": exito_envio
     }
 
 @app.post("/api/auth/reenviar-2fa")
@@ -3662,8 +3663,8 @@ def reenviar_2fa(datos: Reenviar2FARequest):
         print(f">> [2FA-REENVIO] Código entregado a {correo_limpio}: {codigo_otp}", flush=True)
         mensaje_resp = f"¡Bienvenido(a), {nombre_raw}! Nuevo código de verificación de 6 dígitos enviado a tu correo ({correo_limpio}). Cargo: {rol_usuario} · Institución: {institucion_nombre}."
     else:
-        registrar_movimiento(correo_limpio, "Seguridad_2FA", "Reenvio_Codigo", "CONTINGENCIA")
-        mensaje_resp = f"¡Bienvenido(a), {nombre_raw}! Nuevo código generado ({rol_usuario} · {institucion_nombre}). Puedes ingresar con el código 123456 (o {codigo_otp})."
+        registrar_movimiento(correo_limpio, "Seguridad_2FA", "Reenvio_Codigo", "FALLO")
+        mensaje_resp = f"¡Bienvenido(a), {nombre_raw}! Se ha reenviado tu código a ({correo_limpio}). Revisa tu bandeja de entrada o spam."
 
     return {
         "status": "success",
@@ -3673,14 +3674,12 @@ def reenviar_2fa(datos: Reenviar2FARequest):
         "rol": rol_usuario,
         "institucion": institucion_nombre,
         "organizacion_id": org_id_val,
-        "codigo_otp": codigo_otp,
-        "correo_enviado": exito_envio,
-        "codigo_respaldo": "123456" if not exito_envio else None
+        "correo_enviado": exito_envio
     }
 
 @app.post("/api/auth/verificar-2fa")
 def verificar_2fa(datos: Verificar2FARequest):
-    """Paso 2 del Login: valida el código OTP de 6 dígitos en RAM + SQLite persistente + contingencia"""
+    """Paso 2 del Login: valida el código OTP de 6 dígitos en RAM + SQLite persistente"""
     correo_limpio = datos.correo.lower().strip()
     codigo_ingresado = datos.codigo.strip()
     info = codigos_2fa_activos.get(correo_limpio)
@@ -3691,10 +3690,10 @@ def verificar_2fa(datos: Verificar2FARequest):
         codigos_validos = [c["codigo"] for c in info.get("codigos", []) if c.get("expira", ahora) >= ahora]
         if info.get("codigo"):
             codigos_validos.append(info["codigo"])
-        if codigo_ingresado in codigos_validos or codigo_ingresado in ["123456", "999999"]:
+        if codigo_ingresado in codigos_validos:
             codigo_valido = True
     if not codigo_valido:
-        if codigo_ingresado in ["123456", "999999"] or validar_codigo_2fa_persistente(correo_limpio, codigo_ingresado):
+        if validar_codigo_2fa_persistente(correo_limpio, codigo_ingresado):
             codigo_valido = True
 
     if not codigo_valido:
