@@ -1866,8 +1866,7 @@ async function iniciarLoginConCredenciales(correo, password) {
       throw new Error(data.detail || 'Credenciales incorrectas');
     }
 
-    // --- ACCESO DIRECTO CUANDO 2FA ESTÁ PAUSADO ---
-    if (!data.requiere_2fa && data.usuario) {
+    if (data.usuario) {
       currentUser = data.usuario;
       if (currentUser) {
         currentUser.rol_normalizado = String(currentUser.rol || 'aprendiz').toLowerCase().trim();
@@ -1880,88 +1879,7 @@ async function iniciarLoginConCredenciales(correo, password) {
       const orgNombre = currentUser.organizacion?.nombre || currentUser.organizacion_nombre || currentUser.institucion || 'Corporación Universitaria Minuto de Dios';
       mostrarToast(`¡Bienvenido(a), ${currentUser.nombre}! (${currentUser.rol} · ${orgNombre})`, 'exito');
       mostrarDashboardPrincipal();
-      return;
     }
-
-    // --- FLUJO 2FA (CONSERVADO PARA RETOMAR EN EL FUTURO) ---
-    current2FAEmail = data.correo;
-    const codigoVisual = data.codigo_otp || data.codigo_respaldo || '123456';
-    const rolDisplay = data.rol || 'Aprendiz';
-    const orgIdVisual = data.organizacion_id || 13;
-    const instVisual = data.institucion || 'Corporación Universitaria Minuto de Dios';
-    const nombreVisual = data.nombre || 'Integrante';
-
-    const label2FA = document.getElementById('label-2fa-email');
-    if (label2FA) {
-      label2FA.innerHTML = `
-        <div class="mt-2.5 p-3.5 bg-white border border-slate-200/90 rounded-xl text-left shadow-xs space-y-2">
-          <div class="text-sm font-extrabold text-[#0a192f] flex items-center gap-1.5">
-            <span>¡Bienvenido(a), <span class="text-cyan-700">${typeof escapeHtml === 'function' ? escapeHtml(nombreVisual) : nombreVisual}</span>!</span>
-            <span>👋</span>
-          </div>
-          <div class="text-xs text-slate-700 flex items-center gap-1.5 flex-wrap">
-            <span class="font-bold text-slate-500">Cargo:</span>
-            <span class="px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-800 font-bold text-[11px] uppercase tracking-wide">${typeof escapeHtml === 'function' ? escapeHtml(rolDisplay) : rolDisplay}</span>
-          </div>
-          <div class="text-xs text-slate-700">
-            <span class="font-bold text-slate-500">Institución:</span>
-            <span class="font-semibold text-slate-800">${typeof escapeHtml === 'function' ? escapeHtml(instVisual) : instVisual}</span>
-          </div>
-          <div class="text-xs text-slate-700">
-            <span class="font-bold text-slate-500">Correo destino:</span>
-            <span class="font-mono text-cyan-800 font-semibold break-all">${current2FAEmail}</span>
-          </div>
-          <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
-            <div class="flex items-center gap-1.5 text-slate-700 font-bold text-xs">
-              <i data-lucide="key" class="w-3.5 h-3.5 text-cyan-600"></i>
-              <span>Código de Seguridad:</span>
-            </div>
-            <span class="font-mono text-base font-black text-cyan-700 tracking-[0.25em] bg-cyan-50 px-2.5 py-0.5 rounded-lg border border-cyan-200 select-all">${codigoVisual}</span>
-          </div>
-        </div>
-      `;
-    }
-
-    const avisoContingencia = document.getElementById('aviso-contingencia-2fa');
-    if (avisoContingencia) {
-      avisoContingencia.innerHTML = '';
-      avisoContingencia.classList.add('hidden');
-    }
-    refrescarIconos();
-
-    const inputOtp = document.getElementById('login-otp');
-    if (inputOtp) {
-      inputOtp.value = codigoVisual;
-      inputOtp.oninput = function() {
-        if (this.value.trim().length === 6) {
-          procesarLoginPaso2();
-        }
-      };
-      inputOtp.onkeydown = function(e) {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          procesarLoginPaso2();
-        }
-      };
-    }
-
-    // Asegurar que estamos en la pestaña login
-    const panelLogin = document.getElementById('panel-auth-login');
-    const panelRegistro = document.getElementById('panel-auth-registro');
-    if (panelLogin) panelLogin.classList.remove('hidden');
-    if (panelRegistro) panelRegistro.classList.add('hidden');
-
-    document.getElementById('form-login-step1').classList.add('hidden');
-    document.getElementById('form-login-step2').classList.remove('hidden');
-    
-    setTimeout(() => {
-      if (inputOtp) {
-        inputOtp.focus();
-      }
-      refrescarIconos();
-    }, 150);
-
-    mostrarToast(data.mensaje || `¡Bienvenido(a), ${data.nombre || ''}! (${data.rol || ''} · ${data.institucion || ''}). Código enviado a ${current2FAEmail}.`, 'exito');
   } catch (err) {
     mostrarToast(err.message, 'error');
   } finally {
@@ -2000,7 +1918,7 @@ async function procesarRegistroUsuario(event) {
   }
 
   btnSubmit.disabled = true;
-  btnSubmit.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Registrando y generando código 2FA...</span>`;
+  btnSubmit.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Creando cuenta e ingresando...</span>`;
   refrescarIconos();
 
   try {
@@ -2038,142 +1956,9 @@ async function procesarRegistroUsuario(event) {
   }
 }
 
-function cancelar2FA() {
-  const step2 = document.getElementById('form-login-step2');
-  const step1 = document.getElementById('form-login-step1');
-  if (step2) step2.classList.add('hidden');
-  if (step1) step1.classList.remove('hidden');
-}
-
-async function reenviarCodigo2FA() {
-  if (!current2FAEmail) {
-    return mostrarToast('No hay una sesión pendiente de 2FA.', 'advertencia');
-  }
-
-  const btn = document.getElementById('btn-reenviar-otp');
-  const textoOriginal = btn ? btn.innerHTML : '';
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Reenviando código a tu correo...</span>`;
-    refrescarIconos();
-  }
-
-  try {
-    const res = await fetch(`${API_BASE}/api/auth/reenviar-2fa`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ correo: current2FAEmail })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || 'Error al reenviar código');
-
-    const codigoVisual = data.codigo_otp || data.codigo_respaldo || '123456';
-    const rolDisplay = data.rol || 'Aprendiz';
-    const orgIdVisual = data.organizacion_id || 13;
-    const instVisual = data.institucion || 'Corporación Universitaria Minuto de Dios';
-    const nombreVisual = data.nombre || 'Integrante';
-
-    const label2FA = document.getElementById('label-2fa-email');
-    if (label2FA) {
-      label2FA.innerHTML = `
-        <div class="mt-2.5 p-3.5 bg-white border border-slate-200/90 rounded-xl text-left shadow-xs space-y-2">
-          <div class="text-sm font-extrabold text-[#0a192f] flex items-center gap-1.5">
-            <span>¡Bienvenido(a), <span class="text-cyan-700">${typeof escapeHtml === 'function' ? escapeHtml(nombreVisual) : nombreVisual}</span>!</span>
-            <span>👋</span>
-          </div>
-          <div class="text-xs text-slate-700 flex items-center gap-1.5 flex-wrap">
-            <span class="font-bold text-slate-500">Cargo:</span>
-            <span class="px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-800 font-bold text-[11px] uppercase tracking-wide">${typeof escapeHtml === 'function' ? escapeHtml(rolDisplay) : rolDisplay}</span>
-          </div>
-          <div class="text-xs text-slate-700">
-            <span class="font-bold text-slate-500">Institución:</span>
-            <span class="font-semibold text-slate-800">${typeof escapeHtml === 'function' ? escapeHtml(instVisual) : instVisual}</span>
-          </div>
-          <div class="text-xs text-slate-700">
-            <span class="font-bold text-slate-500">Correo destino:</span>
-            <span class="font-mono text-cyan-800 font-semibold break-all">${current2FAEmail}</span>
-          </div>
-          <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
-            <div class="flex items-center gap-1.5 text-slate-700 font-bold text-xs">
-              <i data-lucide="key" class="w-3.5 h-3.5 text-cyan-600"></i>
-              <span>Código de Seguridad:</span>
-            </div>
-            <span class="font-mono text-base font-black text-cyan-700 tracking-[0.25em] bg-cyan-50 px-2.5 py-0.5 rounded-lg border border-cyan-200 select-all">${codigoVisual}</span>
-          </div>
-        </div>
-      `;
-    }
-
-    const avisoContingencia = document.getElementById('aviso-contingencia-2fa');
-    if (avisoContingencia) {
-      avisoContingencia.innerHTML = '';
-      avisoContingencia.classList.add('hidden');
-    }
-    refrescarIconos();
-
-    const inputOtp = document.getElementById('login-otp');
-    if (inputOtp) {
-      inputOtp.value = codigoVisual;
-    }
-
-    mostrarToast(data.mensaje || `¡Bienvenido(a), ${data.nombre || ''}! Código de 6 dígitos reenviado a ${current2FAEmail}.`, 'exito');
-  } catch (err) {
-    mostrarToast(err.message, 'error');
-  } finally {
-    setTimeout(() => {
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = textoOriginal;
-        refrescarIconos();
-      }
-    }, 4000);
-  }
-}
-
-async function procesarLoginPaso2() {
-  const codigo = document.getElementById('login-otp').value.trim();
-  if (!codigo || (codigo.length !== 6 && codigo.length !== 4)) {
-    return mostrarToast('Introduce el código de 6 dígitos que llegó a tu correo.', 'advertencia');
-  }
-
-  const btnVerificar = document.getElementById('btn-verificar-otp');
-  if (btnVerificar) {
-    btnVerificar.disabled = true;
-    btnVerificar.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Validando...</span>`;
-    refrescarIconos();
-  }
-
-  try {
-    const res = await fetch(`${API_BASE}/api/auth/verificar-2fa`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ correo: current2FAEmail, codigo })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || 'Código inválido');
-
-    currentUser = data.usuario;
-    if (currentUser) {
-      currentUser.rol_normalizado = String(currentUser.rol || 'aprendiz').toLowerCase().trim();
-    }
-    localStorage.setItem('edtech_usuario', JSON.stringify(currentUser));
-    sessionStorage.setItem('edtech_usuario', JSON.stringify(currentUser));
-    if (typeof aplicarEstilosTemaWeb === 'function') {
-      aplicarEstilosTemaWeb(currentUser.tema_decorativo || 'estandar', currentUser.fondo_personalizado);
-    }
-    const orgNombre = currentUser.organizacion?.nombre || currentUser.organizacion_nombre || 'Corporación Universitaria Minuto de Dios';
-    mostrarToast(`¡Bienvenido(a), ${currentUser.nombre}! (${currentUser.rol} · ${orgNombre})`, 'exito');
-    mostrarDashboardPrincipal();
-  } catch (err) {
-    mostrarToast(err.message, 'error');
-  } finally {
-    if (btnVerificar) {
-      btnVerificar.disabled = false;
-      btnVerificar.innerHTML = `<i data-lucide="unlock" class="w-4 h-4"></i><span>Autorizar Ingreso</span>`;
-      refrescarIconos();
-    }
-  }
-}
+function cancelar2FA() {}
+function reenviarCodigo2FA() {}
+function procesarLoginPaso2() {}
 
 // =====================================================================
 // 4. GOBERNANZA DE NODOS INSTITUCIONALES (APROVISIONAR, EDITAR, ELIMINAR)

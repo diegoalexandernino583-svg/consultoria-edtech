@@ -3410,12 +3410,11 @@ def api_cambiar_modo_bd(req: CambiarModoBdReq):
         db.last_error = "Modo Ultra-Rápido Local SQLite (0 Tráfico)"
         return {"status": "success", "modo": "Local SQLite (Ultra Rápido)", "mensaje": "Modo Ultra-Rápido activado. Respuestas sub-milisegundo sin tráfico remoto."}
 
-# --- 1. Autenticación y 2FA (PAUSADO TEMPORALMENTE - ACCESO DIRECTO CON CREDENCIALES) ---
-AUTH_2FA_ACTIVADO = False  # Dejar en False para login directo sin 2FA. Cambiar a True para reactivar 2FA.
-
+# --- 1. Autenticación Directa (Acceso Inmediato con Credenciales) ---
 @app.post("/api/auth/iniciar-login")
+@app.post("/api/auth/login")
 def iniciar_login(datos: IniciarLoginRequest, request: Request):
-    """Paso 1 del Login: valida correo y contraseña. Si 2FA está pausado, concede acceso directo inmediato."""
+    """Valida correo y contraseña y concede acceso directo inmediato sin 2FA (<2ms)"""
     client_ip = obtener_ip_cliente(request)
 
     # 1. Protección Anti-Bot Honeypot (Solo registro informativo para no bloquear usuarios reales con autocompletado)
@@ -3591,285 +3590,35 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
             "organizacion": org_data or {}
         }
 
-    # SI 2FA ESTÁ PAUSADO: Ingreso directo instantáneo (<2ms) sin requerir código ni despacho
-    if not AUTH_2FA_ACTIVADO:
-        registrar_movimiento(correo_limpio, "Autenticacion", "Inicio_Sesion_Completo", "EXITO", f"Rol: {rol_usuario} (Acceso directo, 2FA pausado)")
-        print(f">> [LOGIN-DIRECTO] Acceso inmediato sin 2FA concedido para {correo_limpio} ({rol_usuario})", flush=True)
-        return {
-            "status": "success",
-            "mensaje": f"¡Bienvenido(a), {nombre_raw}! Acceso directo autorizado.",
-            "correo": correo_limpio,
-            "nombre": nombre_raw,
-            "rol": rol_usuario,
-            "institucion": institucion_nombre,
-            "organizacion_id": org_id_val,
-            "usuario": usuario_dict,
-            "requiere_2fa": False,
-            "codigo_otp": "000000",
-            "codigo_respaldo": "123456",
-            "correo_enviado": False
-        }
-
-    # Si 2FA está activo (para cuando se decida reactivar):
-    codigo_otp = str(random.randint(100000, 999999))
-    ahora = datetime.now()
-    expira = ahora + timedelta(minutes=30)
-    guardar_codigo_2fa_persistente(correo_limpio, codigo_otp, minutos=30)
-
-    if correo_limpio not in codigos_2fa_activos:
-        codigos_2fa_activos[correo_limpio] = {
-            "codigos": [{"codigo": codigo_otp, "expira": expira}],
-            "codigo": codigo_otp,
-            "usuario": usuario_dict,
-            "generado_en": ahora
-        }
-    else:
-        viejos = [c for c in codigos_2fa_activos[correo_limpio].get("codigos", []) if c.get("expira", ahora) > ahora]
-        viejos.append({"codigo": codigo_otp, "expira": expira})
-        codigos_2fa_activos[correo_limpio]["codigos"] = viejos
-        codigos_2fa_activos[correo_limpio]["codigo"] = codigo_otp
-        codigos_2fa_activos[correo_limpio]["usuario"] = usuario_dict
-
-    asunto = f"🛡️ [{codigo_otp}] Código de Seguridad 2FA · {institucion_nombre}"
-    cuerpo_texto = (
-        f"¡Hola, {nombre_raw}! 👋 Te damos la más cordial bienvenida a Consultoría EdTech.\n\n"
-        f"Información de tu cuenta:\n"
-        f"• Nombre: {nombre_raw}\n"
-        f"• Cargo / Rol: {rol_usuario}\n"
-        f"• Institución: {institucion_nombre} (ID: {org_id_val})\n"
-        f"• Correo: {correo_limpio}\n\n"
-        f"Tu código de verificación de 6 dígitos para autorizar el ingreso es:\n\n"
-        f"    {codigo_otp}\n\n"
-        f"Este código es personal, confidencial y válido durante los próximos 30 minutos.\n\n"
-        f"{institucion_nombre} · Consultoría EdTech"
-    )
-    cuerpo_html = generar_html_correo_2fa(nombre_raw, codigo_otp, rol_usuario, correo_limpio, institucion_nombre, organizacion_id=org_id_val)
-
-    # Despacho SMTP / Puente HTTPS 443
-    exito_envio = False
-    try:
-        exito_envio = enviar_correo_smtp(correo_limpio, asunto, cuerpo_texto, cuerpo_html, codigo_otp=codigo_otp)
-    except Exception as e_env:
-        print(f">> [2FA-EXC] Excepción enviando correo a {correo_limpio}: {e_env}", flush=True)
-
-    if exito_envio:
-        registrar_movimiento(correo_limpio, "Seguridad_2FA", "Envio_Codigo", "EXITO")
-        print(f">> [2FA] Código de verificación entregado a {correo_limpio}: {codigo_otp}", flush=True)
-        mensaje_resp = f"¡Bienvenido(a), {nombre_raw}! Código de verificación de 6 dígitos enviado exitosamente a tu correo ({correo_limpio}). Cargo: {rol_usuario} · Institución: {institucion_nombre}."
-    else:
-        registrar_movimiento(correo_limpio, "Seguridad_2FA", "Envio_Codigo", "FALLO")
-        print(f">> [2FA-ERROR] Despacho SMTP no completado para {correo_limpio}: {ultimo_error_smtp}", flush=True)
-        mensaje_resp = f"¡Bienvenido(a), {nombre_raw}! Código de seguridad generado para ({correo_limpio}). Por favor revisa tu bandeja de entrada o spam."
+    registrar_movimiento(correo_limpio, "Autenticacion", "Inicio_Sesion_Completo", "EXITO", f"Rol: {rol_usuario} (Acceso directo)")
+    print(f">> [LOGIN-DIRECTO] Acceso inmediato para {correo_limpio} ({rol_usuario})", flush=True)
 
     return {
         "status": "success",
-        "mensaje": mensaje_resp,
+        "mensaje": f"¡Bienvenido(a), {nombre_raw}! Acceso directo autorizado.",
         "correo": correo_limpio,
         "nombre": nombre_raw,
         "rol": rol_usuario,
         "institucion": institucion_nombre,
         "organizacion_id": org_id_val,
-        "usuario": usuario_dict,
-        "requiere_2fa": True,
-        "codigo_otp": codigo_otp,
-        "codigo_respaldo": "123456",
-        "correo_enviado": exito_envio
+        "usuario": usuario_dict
     }
 
 @app.post("/api/auth/reenviar-2fa")
 def reenviar_2fa(datos: Reenviar2FARequest):
-    """Reenvía un nuevo código 2FA al correo especificado de forma instantánea (<5ms)"""
-    correo_limpio = datos.correo.strip().lower()
-    user = db.execute_query(
-        """SELECT u.id, u.nombre, u.rol, u.organizacion_id, u.foto_perfil, u.tema_decorativo, 
-                  u.fondo_personalizado, u.racha_semanas, u.minutos_dedicados_totales,
-                  u.colores_personalizados, u.disenos_personalizados_json,
-                  COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
-           FROM usuarios u
-           LEFT JOIN organizaciones o ON o.id = u.organizacion_id
-           WHERE LOWER(TRIM(u.correo)) = ?""",
-        (correo_limpio,),
-        fetchone=True
-    )
-    if not user:
-        hist_u = db.execute_query(
-            """SELECT h.usuario_id, h.nombre, h.correo, h.rol, h.organizacion_id,
-                      COALESCE(o.nombre, h.organizacion_nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
-               FROM historial_nuevos_integrantes h
-               LEFT JOIN organizaciones o ON o.id = h.organizacion_id
-               WHERE LOWER(TRIM(h.correo)) = ?
-               ORDER BY h.id DESC LIMIT 1""",
-            (correo_limpio,),
-            fetchone=True
-        )
-        if hist_u:
-            hash_defecto = bcrypt.hashpw("123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            db.execute_query(
-                "INSERT OR IGNORE INTO usuarios (nombre, correo, rol, organizacion_id, password_hash) VALUES (?, ?, ?, ?, ?)",
-                (hist_u["nombre"], correo_limpio, hist_u["rol"], hist_u.get("organizacion_id") or 13, hash_defecto),
-                commit=True
-            )
-            user = db.execute_query(
-                """SELECT u.id, u.nombre, u.rol, u.organizacion_id, u.foto_perfil, u.tema_decorativo, 
-                          u.fondo_personalizado, u.racha_semanas, u.minutos_dedicados_totales,
-                          u.colores_personalizados, u.disenos_personalizados_json,
-                          COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
-                   FROM usuarios u
-                   LEFT JOIN organizaciones o ON o.id = u.organizacion_id
-                   WHERE LOWER(TRIM(u.correo)) = ?""",
-                (correo_limpio,),
-                fetchone=True
-            )
-
-    if not user:
-        nom_nuevo = correo_limpio.split('@')[0].replace('.', ' ').title()
-        hash_defecto = bcrypt.hashpw("123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        db.execute_query(
-            "INSERT OR IGNORE INTO usuarios (nombre, correo, rol, organizacion_id, password_hash) VALUES (?, ?, 'Aprendiz', 13, ?)",
-            (nom_nuevo, correo_limpio, hash_defecto),
-            commit=True
-        )
-        registrar_en_historial_integrantes(
-            nombre=nom_nuevo,
-            correo=correo_limpio,
-            rol="Aprendiz",
-            organizacion_id=13,
-            origen="Acceso 2FA Inmediato"
-        )
-        user = db.execute_query(
-            """SELECT u.id, u.nombre, u.rol, u.organizacion_id, u.foto_perfil, u.tema_decorativo, 
-                      u.fondo_personalizado, u.racha_semanas, u.minutos_dedicados_totales,
-                      u.colores_personalizados, u.disenos_personalizados_json,
-                      COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
-               FROM usuarios u
-               LEFT JOIN organizaciones o ON o.id = u.organizacion_id
-               WHERE LOWER(TRIM(u.correo)) = ?""",
-            (correo_limpio,),
-            fetchone=True
-        )
-        
-    institucion_nombre = user.get("institucion_nombre") or "Corporación Universitaria Minuto de Dios"
-    org_id_val = user.get("organizacion_id") or 13
-
-    # Generar código OTP de 6 dígitos y guardarlo en RAM + SQLite persistente
-    codigo_otp = str(random.randint(100000, 999999))
-    ahora = datetime.now()
-    expira = ahora + timedelta(minutes=30)
-    guardar_codigo_2fa_persistente(correo_limpio, codigo_otp, minutos=30)
-    
-    usuario_dict = {
-        "id": user["id"],
-        "nombre": user["nombre"],
-        "correo": correo_limpio,
-        "rol": user["rol"],
-        "organizacion_id": org_id_val,
-        "institucion": institucion_nombre,
-        "foto_perfil": user.get("foto_perfil"),
-        "tema_decorativo": user.get("tema_decorativo") or "estandar",
-        "fondo_personalizado": user.get("fondo_personalizado"),
-        "colores_personalizados": user.get("colores_personalizados"),
-        "disenos_personalizados_json": user.get("disenos_personalizados_json"),
-        "racha_semanas": user.get("racha_semanas", 5),
-        "minutos_dedicados_totales": user.get("minutos_dedicados_totales", 180)
-    }
-
-    if correo_limpio not in codigos_2fa_activos:
-        codigos_2fa_activos[correo_limpio] = {
-            "codigos": [{"codigo": codigo_otp, "expira": expira}],
-            "codigo": codigo_otp,
-            "usuario": usuario_dict,
-            "generado_en": ahora
-        }
-    else:
-        viejos = [c for c in codigos_2fa_activos[correo_limpio].get("codigos", []) if c.get("expira", ahora) > ahora]
-        viejos.append({"codigo": codigo_otp, "expira": expira})
-        codigos_2fa_activos[correo_limpio]["codigos"] = viejos
-        codigos_2fa_activos[correo_limpio]["codigo"] = codigo_otp
-        codigos_2fa_activos[correo_limpio]["usuario"] = usuario_dict
-    
-    print(f">> [2FA-REENVIO] Código generado para {correo_limpio}: {codigo_otp}")
-    
-    nombre_raw = user.get('nombre') or 'Usuario'
-    rol_usuario = user.get('rol') or 'Integrante Institucional'
-
-    asunto = f"🛡️ [{codigo_otp}] Nuevo Código de Seguridad 2FA · {institucion_nombre}"
-    cuerpo_texto = (
-        f"¡Hola, {nombre_raw}! 👋 Te damos la más cordial bienvenida a Consultoría EdTech.\n\n"
-        f"Información de tu cuenta:\n"
-        f"• Nombre: {nombre_raw}\n"
-        f"• Cargo / Rol: {rol_usuario}\n"
-        f"• Institución: {institucion_nombre} (ID: {org_id_val})\n"
-        f"• Correo: {correo_limpio}\n\n"
-        f"Tu nuevo código de verificación de 6 dígitos es:\n\n"
-        f"    {codigo_otp}\n\n"
-        f"Este código es personal, confidencial y válido durante los próximos 30 minutos.\n\n"
-        f"{institucion_nombre} · Consultoría EdTech"
-    )
-    cuerpo_html = generar_html_correo_2fa(nombre_raw, codigo_otp, rol_usuario, correo_limpio, institucion_nombre, organizacion_id=org_id_val)
-
-    exito_envio = False
-    try:
-        exito_envio = enviar_correo_smtp(correo_limpio, asunto, cuerpo_texto, cuerpo_html, codigo_otp=codigo_otp)
-    except Exception as e_env:
-        print(f">> [2FA-REENVIO-EXC] Error reenviando correo: {e_env}", flush=True)
-
-    if exito_envio:
-        registrar_movimiento(correo_limpio, "Seguridad_2FA", "Reenvio_Codigo", "EXITO")
-        print(f">> [2FA-REENVIO] Código entregado a {correo_limpio}: {codigo_otp}", flush=True)
-        mensaje_resp = f"¡Bienvenido(a), {nombre_raw}! Nuevo código de verificación de 6 dígitos enviado a tu correo ({correo_limpio}). Cargo: {rol_usuario} · Institución: {institucion_nombre}."
-    else:
-        registrar_movimiento(correo_limpio, "Seguridad_2FA", "Reenvio_Codigo", "FALLO")
-        mensaje_resp = f"¡Bienvenido(a), {nombre_raw}! Se ha reenviado tu código a ({correo_limpio}). Revisa tu bandeja de entrada o spam."
-
-    return {
-        "status": "success",
-        "mensaje": mensaje_resp,
-        "correo": correo_limpio,
-        "nombre": nombre_raw,
-        "rol": rol_usuario,
-        "institucion": institucion_nombre,
-        "organizacion_id": org_id_val,
-        "codigo_otp": codigo_otp,
-        "codigo_respaldo": "123456",
-        "correo_enviado": exito_envio
-    }
+    """Ruta de compatibilidad - 2FA eliminado, acceso directo activo"""
+    return {"status": "success", "mensaje": "El sistema 2FA ha sido desactivado. Puedes ingresar directamente con tu correo y contraseña."}
 
 @app.post("/api/auth/verificar-2fa")
 def verificar_2fa(datos: Verificar2FARequest):
-    """Paso 2 del Login: valida el código OTP de 6 dígitos en RAM + SQLite persistente con tolerancia total"""
+    """Ruta de compatibilidad - autoriza directamente al usuario sin requerir código OTP"""
     correo_limpio = datos.correo.lower().strip()
-    codigo_ingresado = datos.codigo.strip()
-    info = codigos_2fa_activos.get(correo_limpio)
-    
-    codigo_valido = False
-    if info:
-        ahora = datetime.now()
-        codigos_validos = [c["codigo"] for c in info.get("codigos", []) if c.get("expira", ahora) >= ahora]
-        if info.get("codigo"):
-            codigos_validos.append(info["codigo"])
-        if codigo_ingresado in codigos_validos or codigo_ingresado in ["123456", "999999"]:
-            codigo_valido = True
-    if not codigo_valido:
-        if codigo_ingresado in ["123456", "999999"] or validar_codigo_2fa_persistente(correo_limpio, codigo_ingresado):
-            codigo_valido = True
-
-    if not codigo_valido:
-        registrar_movimiento(datos.correo, "Seguridad_2FA", "Verificacion_OTP", "FALLO", f"Código ingresado inválido: {datos.codigo}")
-        raise HTTPException(status_code=401, detail="El código de verificación es incorrecto o ha expirado. Revisa tu correo e intenta de nuevo, o solicita un nuevo código.")
-
-    if correo_limpio in codigos_2fa_activos:
-        del codigos_2fa_activos[correo_limpio]
-    try:
-        db.execute_query("DELETE FROM codigos_2fa_persistentes WHERE correo = ?", (correo_limpio,), commit=True)
-    except Exception:
-        pass
-
-    # Obtener SIEMPRE el usuario actualizado desde la base de datos
     usr = db.execute_query("""
         SELECT u.id, u.nombre, u.correo, u.rol, u.organizacion_id, u.mentor_id, u.foto_perfil, u.tema_decorativo,
                u.fondo_personalizado, u.racha_semanas, u.minutos_dedicados_totales,
                u.colores_personalizados, u.disenos_personalizados_json,
-               o.nombre as organizacion_nombre, o.logo_url as org_logo_url,
+               COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as organizacion_nombre, 
+               o.logo_url as org_logo_url,
                o.color_primario as org_color_primario, o.color_secundario as org_color_secundario,
                o.color_acento as org_color_acento, o.color_personalizado as org_color_personalizado
         FROM usuarios u
@@ -3878,7 +3627,6 @@ def verificar_2fa(datos: Verificar2FARequest):
     """, (correo_limpio,), fetchone=True)
 
     if not usr:
-        registrar_movimiento(datos.correo, "Seguridad_2FA", "Verificacion_OTP", "FALLO", "Usuario no encontrado")
         raise HTTPException(status_code=404, detail="Usuario no encontrado en la base de datos.")
 
     usuario = dict(usr)
@@ -3892,11 +3640,9 @@ def verificar_2fa(datos: Verificar2FARequest):
         "color_personalizado": usuario.get("org_color_personalizado")
     }
 
-    registrar_movimiento(datos.correo, "Autenticacion", "Inicio_Sesion_Completo", "EXITO", f"Rol: {usuario['rol']}")
-
     return {
         "status": "success",
-        "mensaje": "¡Acceso autorizado y verificado!",
+        "mensaje": "¡Acceso autorizado!",
         "usuario": usuario
     }
 
@@ -4136,7 +3882,7 @@ def registrar_usuario(datos: RegistroUsuarioRequest, background_tasks: Backgroun
         f"• Institución: {org_nombre} (ID: {org_id_real})\n"
         f"• Correo registrado: {correo_limpio}\n"
         f"• Contraseña inicial: {pwd_raw}\n\n"
-        f"Tu acceso a la plataforma está activo para ingresar con tu código 2FA."
+        f"Tu acceso a la plataforma está activo para ingresar directamente con tus credenciales."
     )
     cuerpo_h = generar_html_correo_bienvenida(
         nombre=nom_elegido,
@@ -4155,7 +3901,7 @@ def registrar_usuario(datos: RegistroUsuarioRequest, background_tasks: Backgroun
 
     return {
         "status": "success",
-        "mensaje": f"¡Cuenta creada con éxito para {nom_elegido} ({rol_elegido}) en {org_nombre}! Procediendo con tu código 2FA.",
+        "mensaje": f"¡Cuenta creada con éxito para {nom_elegido} ({rol_elegido}) en {org_nombre}! Acceso directo habilitado.",
         "usuario": {
             "id": u_id,
             "nombre": nom_elegido,
@@ -4266,7 +4012,7 @@ def crear_integrante_manual(datos: CrearIntegranteManualReq, background_tasks: B
         f"Cargo / Rol: {rol_normalizado}\n"
         f"Correo registrado: {correo_limpio}\n"
         f"Contraseña inicial: {pwd_raw}\n\n"
-        f"Tu código de seguridad 2FA de 6 dígitos se encuentra activo para cada inicio de sesión."
+        f"Tu cuenta se encuentra lista para iniciar sesión directamente con tus credenciales."
     )
     cuerpo_html = generar_html_correo_bienvenida(
         nombre=datos.nombre.strip(),
