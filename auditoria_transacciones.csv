@@ -1249,3 +1249,47 @@ Fecha_Hora,Correo_Usuario,Modulo,Operacion,Estado,Detalles_Error
 2026-10-19 10:19:17,aprendiz.prueba.2fa@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
 2026-10-19 10:28:32,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Envio_Codigo,EXITO,Ninguno
 2026-10-19 10:28:32,diego.nino-n@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz
+2026-10-19 10:35:48,diego.nino-n@uniminuto.edu.co,Autenticacion,Validacion_Credenciales,FALLO,Contraseña incorrecta
+2026-10-19 10:36:12,diego.nino-n@uniminuto.edu.co,Seguridad_2FA,Reenvio_Codigo,EXITO,Ninguno
+2026-10-19 10:59:09,diego.nino-n@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,"Rol: Aprendiz (Acceso directo, 2FA pausado)"
+2026-10-19 11:17:29,diego.nino-n@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz (Acceso directo)
+2026-10-19 11:19:52,diego.nino-n@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz (Acceso directo)
+2026-10-19 11:56:14,diego.nino-n@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz (Acceso directo)
+2026-10-19 11:57:07,diego.nino-n@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz (Acceso directo)
+2026-10-19 11:57:23,alexander.nino.583@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Super Administrador (Acceso directo)
+2026-10-19 11:57:33,SuperAdmin,Organizaciones,Eliminar_Organizacion,EXITO,Institución eliminada: Corporación Universitaria Minuto de Dios (ID 13)
+2026-10-19 11:58:07,Administrador,Usuarios,Eliminar_Usuario_Con_Respaldo,EXITO,Usuario respaldado en papelera: alvaro Niño (ninod9716@gmail.com) - Org: Corporación Universitaria Minuto de Dios
+2026-10-19 11:58:41,alejandro.mejia-a@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Administrador (Acceso directo)
+2026-10-19 12:01:59,Administrador,Usuarios,Cambio_Cargo_Tiempo_Real,EXITO,Usuario #2530 (ninod9716@gmail.com): Mentor -> Administrador
+2026-10-19 12:03:02,Administrador,Usuarios,Eliminar_Usuario_Con_Respaldo,EXITO,Usuario respaldado en papelera: Estudiante Prueba 2FA (test.2fa@uniminuto.edu.co) - Org: Corporación Universitaria Minuto de Dios
+2026-10-19 12:04:45,santilem2004@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz (Acceso directo)
+2026-10-19 12:15:25,Administrador,Usuarios,Modificar_Usuario,EXITO,Usuario #2532: Santilem2004 (Nuevo Rol: Aprendiz)
+2026-10-19 12:22:08,dianakaterinramirez@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz (Acceso directo)
+2026-10-19 12:22:09,cualquirra@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz (Acceso directo)
+2026-10-19 12:22:19,fernando.nieto@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz (Acceso directo)
+2026-10-19 12:22:24,nekari1245@caps7.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz (Acceso directo)
+2026-10-19 12:22:42,toritocachon@gmail.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz (Acceso directo)
+2026-10-19 12:22:53,SuperAdmin,Usuarios,Crear_Integrante_Manual,EXITO,Usuario 'Carlos carlos' (Aprendiz) creado en 'Corporación Universitaria Minuto de Dios'. Clave inicial: 123456
+2026-10-19 12:23:00,juan.rozo-p@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz (Acceso directo)
+2026-10-19 12:23:36,andres.prada-o@uniminuto.edu.co,Autenticacion,Validacion_Credenciales,FALLO,Contraseña incorrecta
+2026-10-19 12:23:45,andres.prada-o@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz (Acceso directo)
+2026-10-19 12:26:19,cristian.rozo-ca@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz (Acceso directo)
+2026-10-19 12:26:47,Super Administrador,Colecciones,Enviar_Coleccion_Org,EXITO,"Colección 'Ciber Seguridad' enviada a Corporación Universitaria Minuto de Dios [Nivel: Institución, Destinatario ID: Todos]"
+2026-10-19 12:26:51,christiantoriv@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz (Acceso directo)
+2026-10-19 12:27:21,lis@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz (Acceso directo)
+2026-10-19 12:33:22,SuperAdmin,Usuarios,Crear_Integrante_Manual,EXITO,Usuario 'Carlos carlos' (Administrador) creado en 'Corporación Universitaria Minuto de Dios'. Clave inicial: 123456
+2026-10-19 12:35:30,nekari1245@caps7.com,Perfil,Actualizar_Foto,EXITO,Foto de perfil actualizada
+2026-10-19 12:36:05,andres.prada-o@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz (Acceso directo)
+2026-10-19 12:36:16,Administrador,Usuarios,Cambio_Cargo_Tiempo_Real,EXITO,Usuario #2529 (fernando.nieto-o@uniminuto.edu.co): Mentor -> Aprendiz
+2026-10-19 12:36:26,Administrador,Usuarios,Modificar_Usuario,EXITO,Usuario #2529: Fernando Alfonso Nieto Olaya (Nuevo Rol: Mentor)
+2026-10-19 12:37:09,Administrador,Usuarios,Cambio_Cargo_Tiempo_Real,EXITO,Usuario #1450 (jose.toro-g@uniminuto.edu.co): Aprendiz -> Administrador
+2026-10-19 12:37:12,Administrador,Usuarios,Eliminar_Usuario_Con_Respaldo,EXITO,Usuario respaldado en papelera: David Santiago Alfonso Muñoz (david.alfonso-m@uniminuto.edu.co) - Org: Corporación Universitaria Minuto de Dios
+2026-10-19 12:37:19,Administrador,Usuarios,Cambio_Cargo_Tiempo_Real,EXITO,Usuario #1445 (liseth.perez-m@uniminuto.edu.co): Aprendiz -> Administrador
+2026-10-19 12:37:21,Administrador,Usuarios,Eliminar_Usuario_Con_Respaldo,EXITO,Usuario respaldado en papelera: David Santiago Alfonso Muñoz (david.alfonso-m@uniminuto.edu.co) - Org: Corporación Universitaria Minuto de Dios
+2026-10-19 12:37:28,Administrador,Usuarios,Cambio_Cargo_Tiempo_Real,EXITO,Usuario #2537 (toritocachon@gmail.edu.co): Aprendiz -> Administrador
+2026-10-19 12:37:44,luis.castillo-h@uniminuto.edu.co,Autenticacion,Validacion_Credenciales,FALLO,Contraseña incorrecta
+2026-10-19 12:37:52,luis.castillo-h@uniminuto.edu.co,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Aprendiz (Acceso directo)
+2026-10-19 12:37:54,Administrador,Usuarios,Cambio_Cargo_Tiempo_Real,EXITO,Usuario #2529 (fernandonieto-o@uniminuto.edu.co): Mentor -> Aprendiz
+2026-10-19 12:38:14,Administrador,Usuarios,Modificar_Usuario,EXITO,Usuario #2529: Fernando Alfonso Nieto Olaya (Nuevo Rol: Mentor)
+2026-10-19 12:38:15,Administrador,Usuarios,Eliminar_Usuario_Con_Respaldo,EXITO,Usuario respaldado en papelera: Diana Katerin Ramirez Nieto (diana.ramirez-n@uniminuto.edu.co) - Org: Corporación Universitaria Minuto de Dios
+2026-10-19 12:38:22,Administrador,Usuarios,Cambio_Cargo_Tiempo_Real,EXITO,Usuario #2545 (david.alfonso-m@uniminuto.edu.co): Aprendiz -> Administrador

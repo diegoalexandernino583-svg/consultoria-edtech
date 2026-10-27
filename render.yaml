@@ -14,8 +14,8 @@ services:
       - key: DB_USER
         value: admin_diego
       - key: DB_PASSWORD
-        value: Salsa.03
+        sync: false
       - key: EMAIL_APP
-        value: alexander.nino.583@gmail.com
+        sync: false
       - key: EMAIL_PASS
-        value: vkwxgvkzedwsxvvt
+        sync: false

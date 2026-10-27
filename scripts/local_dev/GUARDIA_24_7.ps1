@@ -2,7 +2,7 @@
 # GUARDIA 24/7 - SISTEMA DE ALTA DISPONIBILIDAD Y AUTO-RECUPERACIÓN
 # =====================================================================
 $ErrorActionPreference = "SilentlyContinue"
-$directorio = "C:\Users\Dieguito\OneDrive\Documentos\consultoria_visual"
+$directorio = (Resolve-Path "$PSScriptRoot\..\..").Path
 $logFile = "$directorio\guardia_24_7.log"
 $cloudflaredPath = "C:\Users\Dieguito\AppData\Local\cloudflared.exe"
 

@@ -1757,7 +1757,7 @@ async function ejecutarCambioPassword(event) {
   }
 
   try {
-    const res = await fetch(`${API_BASE}/api/auth/cambiar-password`, {
+    const res = await fetch(`${API_BASE}/api/auth/cambiar-contrasena`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1849,7 +1849,7 @@ async function iniciarLoginConCredenciales(correo, password) {
   const honeypotVal = honeypotInput ? honeypotInput.value : '';
 
   try {
-    const res = await fetch(`${API_BASE}/api/auth/iniciar-login`, {
+    const res = await fetch(`${API_BASE}/api/auth/iniciar-sesion`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ correo, password, honeypot: honeypotVal })
@@ -8234,7 +8234,7 @@ async function ejecutarCambiarPasswordInterno(event) {
   }
 
   try {
-    const res = await fetch(`${API_BASE}/api/auth/cambiar-password-sesion`, {
+    const res = await fetch(`${API_BASE}/api/auth/cambiar-contrasena-sesion`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -8412,7 +8412,7 @@ async function descargarCopiaSeguridadInstitucional() {
   }
 
   try {
-    const res = await fetch(`${API_BASE}/api/sistema/backups/exportar-excel?organizacion_id=${orgId}`, {
+    const res = await fetch(`${API_BASE}/api/sistema/respaldos/exportar-excel?organizacion_id=${orgId}`, {
       method: 'POST'
     });
     const data = await res.json();
@@ -8518,7 +8518,7 @@ async function guardarCambioPasswordPerfil(event) {
   }
 
   try {
-    const res = await fetch(`${API_BASE}/api/usuarios/perfil/password`, {
+    const res = await fetch(`${API_BASE}/api/usuarios/perfil/contrasena`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -8819,18 +8819,18 @@ async function cargarDatosConectividadConfiguracion() {
 }
 
 // =====================================================================
-// COPIAS DE SEGURIDAD (BACKUPS DIARIOS Y MENSUALES)
+// COPIAS DE SEGURIDAD (RESPALDOS EN MEMORIA Y MOTOR DE BASE DE DATOS)
 // =====================================================================
 async function crearCopiaSeguridadManual() {
   mostrarToast('Generando copia de seguridad de la base de datos...', 'info');
   try {
-    const res = await fetch(`${API_BASE}/api/sistema/backups/crear`, {
+    const res = await fetch(`${API_BASE}/api/sistema/respaldos/crear`, {
       method: 'POST'
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.detail || 'Error creando respaldo');
 
-    mostrarToast(json.mensaje || '¡Copia de seguridad física generada con éxito!', 'exito');
+    mostrarToast(json.mensaje || '¡Copia de seguridad generada con éxito!', 'exito');
     cargarHistorialBackups();
   } catch (err) {
     console.error(err);
@@ -8843,7 +8843,7 @@ async function cargarHistorialBackups() {
   if (!tbody) return;
 
   try {
-    const res = await fetch(`${API_BASE}/api/sistema/backups/listar`);
+    const res = await fetch(`${API_BASE}/api/sistema/respaldos/listar`);
     const json = await res.json();
     const backups = json.data || [];
 
@@ -8869,9 +8869,9 @@ async function cargarHistorialBackups() {
         </td>
         <td class="py-2.5 px-3 text-xs font-bold text-slate-700">${b.tamano}</td>
         <td class="py-2.5 px-3 text-right">
-          <a href="${API_BASE}/api/sistema/backups/descargar/${b.archivo}" class="px-3 py-1 rounded-lg ${b.archivo.endsWith('.xlsx') ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200'} text-xs font-bold inline-flex items-center gap-1 transition-all shadow-2xs" download title="Descargar archivo">
+          <a href="${API_BASE}/api/sistema/respaldos/descargar/${b.archivo}" class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1 transition-all shadow-2xs" download title="Descargar archivo">
             <i data-lucide="download" class="w-3.5 h-3.5"></i>
-            <span>${b.archivo.endsWith('.xlsx') ? 'Descargar Excel' : 'Descargar .db'}</span>
+            <span>Descargar Excel</span>
           </a>
         </td>
       </tr>
@@ -9137,7 +9137,7 @@ async function generarBackupExcelConGraficos() {
   mostrarToast('📊 Generando copia completa en Excel con gráficos nativos...', 'info');
 
   try {
-    const res = await fetch(`${API_BASE}/api/sistema/backups/exportar-excel`, {
+    const res = await fetch(`${API_BASE}/api/sistema/respaldos/exportar-excel`, {
       method: 'POST'
     });
     const json = await res.json();

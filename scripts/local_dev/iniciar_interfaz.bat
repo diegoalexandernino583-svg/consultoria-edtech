@@ -14,7 +14,7 @@ echo.
 echo  Conectando con Azure SQL Database y activando enlace mundial...
 echo.
 
-cd /d "%~dp0"
+cd /d "%~dp0..\.."
 python app_visual.py
 
 if %ERRORLEVEL% NEQ 0 (
