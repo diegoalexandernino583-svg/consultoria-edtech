@@ -1606,7 +1606,7 @@ def registrar_evento_boveda_legal(
     try:
         fecha_exacta = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         correo_limpio = (correo_responsable or "alexander.nino.583@gmail.com").strip().lower()
-        org_nom = _sanitizar_org_nombre(organizacion_nombre, organizacion_id) if organizacion_nombre or organizacion_id else "Plataforma Global"
+        org_nom = _sanitizar_org_nombre(organizacion_nombre) if organizacion_nombre else "Plataforma Global"
         detalles_str = json.dumps(detalles_dict or {}, ensure_ascii=False)
         cadena_hash = f"{categoria}|{fecha_exacta}|{direccion_ip}|{correo_limpio}|{org_id_safe(organizacion_id)}|{org_nom}|{nombre_archivo or ''}|{cantidad_registros}|{declaracion_legal}"
         hash_sha256 = hashlib.sha256(cadena_hash.encode("utf-8")).hexdigest()
