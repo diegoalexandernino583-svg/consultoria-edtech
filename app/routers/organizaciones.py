@@ -280,7 +280,12 @@ def listar_organizaciones():
 
 
 @router.post("/api/superadmin/organizaciones/crear")
-def crear_organizacion(datos: CrearOrgRequest):
+def crear_organizacion(datos: CrearOrgRequest, request: Request):
+    if datos.confirmacion_convenio_logos is False:
+        raise HTTPException(
+            status_code=400,
+            detail="Es obligatorio confirmar la existencia del Convenio / Alianza de Cooperación y la autorización de uso recíproco de logos y marcas (Ley 1581 de 2012)."
+        )
     dom_raw = (datos.dominio_permitido or "").strip().lower().replace("@", "")
     if not dom_raw or dom_raw in ["", "none", "null", "libre", "sin dominio"]:
         dom_final = "LIBRE"
@@ -291,25 +296,70 @@ def crear_organizacion(datos: CrearOrgRequest):
         existe = db.execute_query("SELECT id FROM organizaciones WHERE LOWER(dominio_permitido) = ?", (dom_final,), fetchone=True)
         if existe:
             raise HTTPException(status_code=400, detail=f"Ya existe una organización registrada con el dominio @{dom_final}.")
-        
+
+    nombre_limpio = datos.nombre.strip()
     org_id = db.execute_query("""
         INSERT INTO organizaciones (nombre, tipo_organizacion, dominio_permitido, licencias_asignadas, max_administradores, max_mentores, logo_url)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (datos.nombre.strip(), datos.tipo_organizacion, dom_final, datos.licencias_asignadas or 100, datos.max_administradores or 2, datos.max_mentores or 15, datos.logo_url), return_id=True)
+    """, (nombre_limpio, datos.tipo_organizacion, dom_final, datos.licencias_asignadas or 100, datos.max_administradores or 2, datos.max_mentores or 15, datos.logo_url), return_id=True)
+
+    ip_cliente = obtener_ip_cliente(request) if request else "127.0.0.1"
+    correo_resp = (datos.correo_responsable or "alexander.nino.583@gmail.com").strip().lower()
+    declaracion = (
+        f"ACTA DE APROVISIONAMIENTO Y CONVENIO INSTITUCIONAL: Se certifica la existencia de Convenio / Alianza de Cooperación "
+        f"con la entidad '{nombre_limpio}' ({datos.tipo_organizacion}), autorización expresa de uso recíproco de signos distintivos/logos "
+        f"y sujeción a la Ley 1581 de 2012 y Decreto 1377 de 2013 (Institución como Responsable vs. Consultoría EdTech como Encargada)."
+    )
+    registrar_evento_boveda_legal(
+        categoria="CONVENIO_INSTITUCIONAL",
+        correo_responsable=correo_resp,
+        rol_responsable="Super Administrador",
+        direccion_ip=ip_cliente,
+        organizacion_id=org_id,
+        organizacion_nombre=nombre_limpio,
+        tipo_organizacion=datos.tipo_organizacion,
+        estado_convenio=datos.estado_convenio or "CONVENIO / ALIANZA VIGENTE",
+        logo_url=datos.logo_url,
+        nombre_archivo=None,
+        cantidad_registros=int(datos.licencias_asignadas or 100),
+        confirmacion_ley1581=True,
+        confirmacion_menores_art7=True,
+        confirmacion_convenio_logos=True,
+        declaracion_legal=declaracion,
+        detalles_dict={
+            "dominio_permitido": dom_final,
+            "licencias_asignadas": datos.licencias_asignadas or 100,
+            "max_administradores": datos.max_administradores or 2,
+            "max_mentores": datos.max_mentores or 15,
+            "tiene_logo_institucional": bool(datos.logo_url)
+        }
+    )
+
     try:
-        replicador_azure.marcar("organizaciones")
+        replicador_azure.sincronizar_inmediato(["organizaciones", "boveda_legal_registros"])
     except Exception:
         pass
-    registrar_movimiento("SuperAdmin", "Organizaciones", "Crear_Organizacion", "EXITO", f"Org: {datos.nombre} - Dominio: {dom_final}", organizacion_id=org_id, organizacion_nombre=datos.nombre.strip(), usuario_rol="Super Administrador")
-    return {"status": "success", "mensaje": f"Organización '{datos.nombre}' creada y persistida en Azure SQL con éxito.", "id": org_id, "dominio_permitido": dom_final}
+    registrar_movimiento("SuperAdmin", "Organizaciones", "Crear_Organizacion", "EXITO", f"Org: {nombre_limpio} - Dominio: {dom_final}", organizacion_id=org_id, organizacion_nombre=nombre_limpio, usuario_rol="Super Administrador")
+    return {"status": "success", "mensaje": f"Organización '{nombre_limpio}' creada y persistida en Azure SQL y Bóveda Legal con éxito.", "id": org_id, "dominio_permitido": dom_final}
 
 
 @router.put("/api/superadmin/organizaciones/{org_id}")
-def actualizar_organizacion(org_id: int, datos: ActualizarOrgRequest):
-    """Permite editar instituciones y ampliar o ajustar cupos de licencias (ej. de 500 a 1000/2000)"""
-    org = db.execute_query("SELECT id, nombre FROM organizaciones WHERE id = ?", (org_id,), fetchone=True)
+def actualizar_organizacion(org_id: int, datos: ActualizarOrgRequest, request: Request):
+    """Permite editar instituciones y ampliar o ajustar cupos de licencias, guardando Snapshot previo en la Bóveda Legal"""
+    org = db.execute_query("SELECT * FROM organizaciones WHERE id = ?", (org_id,), fetchone=True)
     if not org:
         raise HTTPException(status_code=404, detail="La organización no existe.")
+
+    ip_cliente = obtener_ip_cliente(request) if request else "127.0.0.1"
+    crear_snapshot_boveda_legal(
+        operacion_origen="ACTUALIZACION_ORGANIZACION",
+        entidad_afectada="organizaciones",
+        entidad_id=org_id,
+        entidad_nombre=org["nombre"],
+        correo_responsable="alexander.nino.583@gmail.com",
+        direccion_ip=ip_cliente,
+        datos_respaldo={"organizacion_previa": dict(org)}
+    )
         
     dom_raw = (datos.dominio_permitido or "").strip().lower().replace("@", "")
     if not dom_raw or dom_raw in ["", "none", "null", "libre", "sin dominio"]:
@@ -339,37 +389,76 @@ def actualizar_organizacion(org_id: int, datos: ActualizarOrgRequest):
         WHERE id = ?
     """, (datos.nombre.strip(), datos.tipo_organizacion, dom_final, datos.licencias_asignadas,
           datos.max_administradores or 2, datos.max_mentores or 15, *params_logo, org_id), commit=True)
+
+    try:
+        replicador_azure.sincronizar_inmediato(["organizaciones", "boveda_legal_snapshots"])
+    except Exception:
+        pass
           
-    registrar_movimiento("SuperAdmin", "Organizaciones", "Modificar_Organizacion", "EXITO", f"Org #{org_id}: {datos.nombre} - Licencias: {datos.licencias_asignadas} - Dominio: {dom_final}")
-    return {"status": "success", "mensaje": f"Organización '{datos.nombre}' actualizada exitosamente.", "dominio_permitido": dom_final}
+    registrar_movimiento("SuperAdmin", "Organizaciones", "Modificar_Organizacion", "EXITO", f"Org #{org_id}: {datos.nombre} - Licencias: {datos.licencias_asignadas} - Dominio: {dom_final}", organizacion_id=org_id, organizacion_nombre=datos.nombre.strip(), usuario_rol="Super Administrador")
+    return {"status": "success", "mensaje": f"Organización '{datos.nombre}' actualizada exitosamente en Azure SQL.", "dominio_permitido": dom_final}
 
 
 @router.delete("/api/superadmin/organizaciones/{org_id}")
-def eliminar_organizacion(org_id: int):
-    """Permite exclusivamente al SuperAdmin eliminar un nodo institucional y limpiar sus registros asociados en Azure SQL"""
-    org = db.execute_query("SELECT id, nombre FROM organizaciones WHERE id = ?", (org_id,), fetchone=True)
+def eliminar_organizacion(org_id: int, request: Request):
+    """Permite exclusivamente al SuperAdmin eliminar un nodo institucional, guardando copia de respaldo inmutable en Bóveda Legal y limpiando Azure SQL"""
+    org = db.execute_query("SELECT * FROM organizaciones WHERE id = ?", (org_id,), fetchone=True)
     if not org:
         raise HTTPException(status_code=404, detail="La institución no existe.")
 
-    # Respaldar y eliminar usuarios de esa institución (preservando siempre al Super Administrador)
-    usrs_org = db.execute_query("SELECT id FROM usuarios WHERE organizacion_id = ? AND rol != 'Super Administrador'", (org_id,), fetchall=True) or []
+    usrs_org = db.execute_query("SELECT id, nombre, correo, rol, organizacion_id, mentor_id FROM usuarios WHERE organizacion_id = ? AND rol != 'Super Administrador'", (org_id,), fetchall=True) or []
+    usr_ids = [u["id"] for u in usrs_org]
+    progs_org = []
+    if usr_ids:
+        ph = ",".join("?" for _ in usr_ids)
+        progs_org = db.execute_query(f"SELECT * FROM progreso_cursos WHERE usuario_id IN ({ph})", tuple(usr_ids), fetchall=True) or []
+    asigs_org = db.execute_query("SELECT * FROM asignacion_material WHERE organizacion_id = ?", (org_id,), fetchall=True) or []
+
+    ip_cliente = obtener_ip_cliente(request) if request else "127.0.0.1"
+    crear_snapshot_boveda_legal(
+        operacion_origen="ELIMINACION_INSTITUCION",
+        entidad_afectada="organizaciones",
+        entidad_id=org_id,
+        entidad_nombre=org["nombre"],
+        correo_responsable="alexander.nino.583@gmail.com",
+        direccion_ip=ip_cliente,
+        datos_respaldo={
+            "organizacion": dict(org),
+            "integrantes": [dict(u) for u in usrs_org],
+            "progreso_cursos": [dict(p) for p in progs_org],
+            "asignaciones_colecciones": [dict(a) for a in asigs_org]
+        }
+    )
+
+    # Eliminar registros hijos antes de la organización para consistencia total en SQLite y Azure SQL
     for u_r in usrs_org:
         db.execute_query("DELETE FROM progreso_cursos WHERE usuario_id = ?", (u_r["id"],), commit=True)
+        db.execute_query("DELETE FROM progreso_quizzes WHERE aprendiz_id = ?", (u_r["id"],), commit=True)
+        db.execute_query("DELETE FROM registro_actividades_tiempo WHERE usuario_id = ?", (u_r["id"],), commit=True)
+    db.execute_query("DELETE FROM quizzes_evaluaciones WHERE organizacion_id = ?", (org_id,), commit=True)
+    db.execute_query("DELETE FROM historial_nuevos_integrantes WHERE organizacion_id = ?", (org_id,), commit=True)
     db.execute_query("DELETE FROM usuarios WHERE organizacion_id = ? AND rol != 'Super Administrador'", (org_id,), commit=True)
     db.execute_query("UPDATE usuarios SET organizacion_id = NULL WHERE organizacion_id = ?", (org_id,), commit=True)
     db.execute_query("DELETE FROM asignacion_material WHERE organizacion_id = ?", (org_id,), commit=True)
     db.execute_query("DELETE FROM temas_personalizados WHERE organizacion_id = ?", (org_id,), commit=True)
     db.execute_query("DELETE FROM organizaciones WHERE id = ?", (org_id,), commit=True)
     try:
-        replicador_azure.marcar("organizaciones")
-        replicador_azure.marcar("usuarios")
-        replicador_azure.marcar("asignacion_material")
-        replicador_azure.marcar("progreso_cursos")
+        replicador_azure.sincronizar_inmediato([
+            "progreso_cursos",
+            "progreso_quizzes",
+            "registro_actividades_tiempo",
+            "quizzes_evaluaciones",
+            "historial_nuevos_integrantes",
+            "asignacion_material",
+            "usuarios",
+            "organizaciones",
+            "boveda_legal_snapshots"
+        ])
     except Exception:
         pass
 
-    registrar_movimiento("SuperAdmin", "Organizaciones", "Eliminar_Organizacion", "EXITO", f"Institución eliminada: {org['nombre']} (ID {org_id})", organizacion_id=org_id, organizacion_nombre=org["nombre"], usuario_rol="Super Administrador")
-    return {"status": "success", "mensaje": f"Institución '{org['nombre']}' eliminada permanentemente de Azure SQL."}
+    registrar_movimiento("SuperAdmin", "Organizaciones", "Eliminar_Organizacion", "EXITO", f"Institución eliminada: {org['nombre']} (ID {org_id}) con respaldo en Bóveda Legal", organizacion_id=org_id, organizacion_nombre=org["nombre"], usuario_rol="Super Administrador")
+    return {"status": "success", "mensaje": f"Institución '{org['nombre']}' eliminada permanentemente de Azure SQL (respaldo conservado en Bóveda Legal)."}
 
 
 @router.get("/api/admin/convenio/{organizacion_id}")

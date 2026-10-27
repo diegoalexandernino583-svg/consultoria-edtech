@@ -30,66 +30,61 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
         """SELECT u.id, u.nombre, u.rol, u.password_hash, u.organizacion_id, u.foto_perfil, 
                   u.tema_decorativo, u.fondo_personalizado, u.racha_semanas, u.minutos_dedicados_totales,
                   u.colores_personalizados, u.disenos_personalizados_json,
-                  COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
+                  COALESCE(o.nombre, 'Plataforma Global EdTech') as institucion_nombre
            FROM usuarios u
            LEFT JOIN organizaciones o ON o.id = u.organizacion_id
            WHERE LOWER(TRIM(u.correo)) = ?""",
         (correo_limpio,),
         fetchone=True
     )
-    
-    # Si no está en la tabla local usuarios, buscar en historial_nuevos_integrantes y auto-insertar/sincronizar
-    if not user:
-        hist_u = db.execute_query(
-            """SELECT h.usuario_id, h.nombre, h.correo, h.rol, h.organizacion_id,
-                      COALESCE(o.nombre, h.organizacion_nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
-               FROM historial_nuevos_integrantes h
-               LEFT JOIN organizaciones o ON o.id = h.organizacion_id
-               WHERE LOWER(TRIM(h.correo)) = ?
-               ORDER BY h.id DESC LIMIT 1""",
+
+    # Verificar si es el correo legal exclusivo autorizado en configuracion_boveda_legal
+    cfg_legal = db.execute_query(
+        "SELECT id, correo_autorizado, nombre_responsable, cargo FROM configuracion_boveda_legal WHERE LOWER(TRIM(correo_autorizado)) = ? AND activo = 1",
+        (correo_limpio,),
+        fetchone=True
+    )
+    if cfg_legal and not user:
+        hash_legal = bcrypt.hashpw(((datos.password or "").strip() or "123456").encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        db.execute_query(
+            "INSERT OR IGNORE INTO usuarios (nombre, correo, rol, organizacion_id, password_hash) VALUES (?, ?, 'Auditor Legal', NULL, ?)",
+            (cfg_legal.get("nombre_responsable") or "Auditor Legal & Compliance", correo_limpio, hash_legal),
+            commit=True
+        )
+        user = db.execute_query(
+            """SELECT u.id, u.nombre, u.rol, u.password_hash, u.organizacion_id, u.foto_perfil, 
+                      u.tema_decorativo, u.fondo_personalizado, u.racha_semanas, u.minutos_dedicados_totales,
+                      u.colores_personalizados, u.disenos_personalizados_json,
+                      'Bóveda Legal & Compliance' as institucion_nombre
+               FROM usuarios u
+               WHERE LOWER(TRIM(u.correo)) = ?""",
             (correo_limpio,),
             fetchone=True
         )
-        if hist_u:
-            hash_defecto = bcrypt.hashpw("123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            db.execute_query(
-                "INSERT OR IGNORE INTO usuarios (nombre, correo, rol, organizacion_id, password_hash) VALUES (?, ?, ?, ?, ?)",
-                (hist_u["nombre"], correo_limpio, hist_u["rol"], hist_u.get("organizacion_id") or 13, hash_defecto),
-                commit=True
-            )
-            user = db.execute_query(
-                """SELECT u.id, u.nombre, u.rol, u.password_hash, u.organizacion_id, u.foto_perfil, 
-                          u.tema_decorativo, u.fondo_personalizado, u.racha_semanas, u.minutos_dedicados_totales,
-                          u.colores_personalizados, u.disenos_personalizados_json,
-                          COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
-                   FROM usuarios u
-                   LEFT JOIN organizaciones o ON o.id = u.organizacion_id
-                   WHERE LOWER(TRIM(u.correo)) = ?""",
-                (correo_limpio,),
-                fetchone=True
-            )
 
     if not user:
+        primera_org = db.execute_query("SELECT id, nombre FROM organizaciones ORDER BY id ASC LIMIT 1", fetchone=True)
+        org_id_def = primera_org["id"] if primera_org else None
         nom_nuevo = correo_limpio.split('@')[0].replace('.', ' ').title()
         hash_nuevo = bcrypt.hashpw(((datos.password or "").strip() or "123456").encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         try:
             db.execute_query(
-                "INSERT INTO usuarios (nombre, correo, rol, organizacion_id, password_hash) VALUES (?, ?, 'Aprendiz', 13, ?)",
-                (nom_nuevo, correo_limpio, hash_nuevo),
+                "INSERT INTO usuarios (nombre, correo, rol, organizacion_id, password_hash) VALUES (?, ?, 'Aprendiz', ?, ?)",
+                (nom_nuevo, correo_limpio, org_id_def, hash_nuevo),
                 commit=True
             )
             registrar_en_historial_integrantes(
                 nombre=nom_nuevo,
                 correo=correo_limpio,
                 rol="Aprendiz",
-                organizacion_id=13,
-                origen="Acceso 2FA Inmediato"
+                organizacion_id=org_id_def,
+                origen="Acceso Directo"
             )
             user = db.execute_query(
                 """SELECT u.id, u.nombre, u.rol, u.password_hash, u.organizacion_id, u.foto_perfil, 
                           u.tema_decorativo, u.fondo_personalizado, u.racha_semanas, u.minutos_dedicados_totales,
                           u.colores_personalizados, u.disenos_personalizados_json,
-                          COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
+                          COALESCE(o.nombre, 'Plataforma Global EdTech') as institucion_nombre
                    FROM usuarios u
                    LEFT JOIN organizaciones o ON o.id = u.organizacion_id
                    WHERE LOWER(TRIM(u.correo)) = ?""",
@@ -138,17 +133,18 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
             fetchone=True
         )
 
-    institucion_nombre = user.get("institucion_nombre") or (org_data.get("nombre") if org_data else "Corporación Universitaria Minuto de Dios")
+    institucion_nombre = user.get("institucion_nombre") or (org_data.get("nombre") if org_data else "Plataforma Global EdTech")
     nombre_raw = user.get('nombre') or 'Usuario'
     rol_usuario = user.get('rol') or 'Integrante Institucional'
-    org_id_val = user.get("organizacion_id") or 13
+    org_id_val = user.get("organizacion_id")
+    acceso_legal = verificar_acceso_boveda_legal(user.get("id"), correo_limpio)
 
     # Construir objeto completo del usuario sincronizado con organizaciones
     usr_completo = db.execute_query("""
         SELECT u.id, u.nombre, u.correo, u.rol, u.organizacion_id, u.mentor_id, u.foto_perfil, u.tema_decorativo,
                u.fondo_personalizado, u.racha_semanas, u.minutos_dedicados_totales,
                u.colores_personalizados, u.disenos_personalizados_json,
-               COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as organizacion_nombre, 
+               COALESCE(o.nombre, 'Plataforma Global EdTech') as organizacion_nombre, 
                o.logo_url as org_logo_url,
                o.color_primario as org_color_primario, o.color_secundario as org_color_secundario,
                o.color_acento as org_color_acento, o.color_personalizado as org_color_personalizado
@@ -160,6 +156,7 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
     if usr_completo:
         usuario_dict = dict(usr_completo)
         usuario_dict["institucion"] = usuario_dict.get("organizacion_nombre") or institucion_nombre
+        usuario_dict["acceso_boveda_legal"] = acceso_legal
         usuario_dict["organizacion"] = {
             "id": usuario_dict.get("organizacion_id"),
             "nombre": usuario_dict.get("organizacion_nombre"),
@@ -177,6 +174,7 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
             "rol": user["rol"],
             "organizacion_id": user.get("organizacion_id"),
             "institucion": institucion_nombre,
+            "acceso_boveda_legal": acceso_legal,
             "foto_perfil": user.get("foto_perfil"),
             "tema_decorativo": user.get("tema_decorativo") or "estandar",
             "fondo_personalizado": user.get("fondo_personalizado"),
@@ -198,6 +196,7 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
         "rol": rol_usuario,
         "institucion": institucion_nombre,
         "organizacion_id": org_id_val,
+        "acceso_boveda_legal": acceso_legal,
         "usuario": usuario_dict
     }
 
@@ -220,6 +219,7 @@ def validar_sesion(usuario_id: int = Query(...)):
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
     
     usuario = dict(usr)
+    usuario["acceso_boveda_legal"] = verificar_acceso_boveda_legal(usuario.get("id"), usuario.get("correo"))
     usuario["organizacion"] = {
         "id": usuario.get("organizacion_id"),
         "nombre": usuario.get("organizacion_nombre"),

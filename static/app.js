@@ -663,6 +663,7 @@ const I18N_DICCIONARIO = {
     audit_btn_backup: '💾 Copia de Seguridad (.xlsx)',
     cfg_lbl_institucion: 'Alcance / Institución',
     ctrl_avance_titulo: '🎛️ Control Manual de Progreso y Modo de Pruebas',
+    side_boveda_legal: '⚖️ Bóveda Legal & Compliance',
     toast_idioma_cambiado: '✓ Idioma actualizado a Español.'
   },
   en: {
@@ -810,6 +811,7 @@ const I18N_DICCIONARIO = {
     audit_btn_backup: '💾 Backup Copy (.xlsx)',
     cfg_lbl_institucion: 'Scope / Institution',
     ctrl_avance_titulo: '🎛️ Manual Progress Control & Test Mode',
+    side_boveda_legal: '⚖️ Legal Vault & Compliance',
     toast_idioma_cambiado: '✓ Language updated to English.'
   },
   pt: {
@@ -957,6 +959,7 @@ const I18N_DICCIONARIO = {
     audit_btn_backup: '💾 Cópia de Segurança (.xlsx)',
     cfg_lbl_institucion: 'Escopo / Instituição',
     ctrl_avance_titulo: '🎛️ Controle Manual de Progresso e Modo de Testes',
+    side_boveda_legal: '⚖️ Cofre Legal & Compliance',
     toast_idioma_cambiado: '✓ Idioma atualizado para Português.'
   }
 };
@@ -1395,6 +1398,22 @@ function configurarVistasSegunRol(forzarNavegacionInicial = false) {
 
   let linksHtml = '';
 
+  const tieneAccesoBovedaLegal = Boolean(
+    currentUser && (
+      rol.includes('super') ||
+      rol.includes('auditor') ||
+      currentUser.acceso_boveda_legal === true ||
+      String(currentUser.correo || '').toLowerCase().trim() === 'alexander.nino.583@gmail.com'
+    )
+  );
+
+  const linkBovedaHtml = tieneAccesoBovedaLegal ? `
+      <a id="nav-item-boveda-legal" onclick="navegarVista('boveda-legal')" class="sidebar-link border border-amber-400/30 bg-amber-500/10 hover:bg-amber-500/20">
+        <i data-lucide="scale" class="w-4 h-4 shrink-0 text-amber-400"></i>
+        <span class="font-extrabold text-amber-200">${t('side_boveda_legal', '⚖️ Bóveda Legal & Compliance')}</span>
+      </a>
+  ` : '';
+
   if (rol.includes('super')) {
     linksHtml = `
       <div class="px-3 pt-1 pb-1">
@@ -1424,10 +1443,22 @@ function configurarVistasSegunRol(forzarNavegacionInicial = false) {
       <div class="px-3 pt-3 pb-1">
         <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">${t('side_sec_seguridad', 'Seguridad & Ajustes')}</span>
       </div>
+      ${linkBovedaHtml}
       <a id="nav-item-celador" onclick="navegarVista('celador')" class="sidebar-link">
         <i data-lucide="clipboard-list" class="w-4 h-4 shrink-0 text-cyan-400"></i>
         <span>${t('side_registro_actividad', 'Registro de Actividad')}</span>
       </a>
+      <a id="nav-item-configuraciones" onclick="navegarVista('configuraciones')" class="sidebar-link">
+        <i data-lucide="settings" class="w-4 h-4 shrink-0 text-slate-300"></i>
+        <span>${t('side_configuracion_espacio', 'Configuración & Espacio')}</span>
+      </a>
+    `;
+  } else if (rol.includes('auditor')) {
+    linksHtml = `
+      <div class="px-3 pt-1 pb-1">
+        <span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-400">Auditoría Jurídica & Ley 1581</span>
+      </div>
+      ${linkBovedaHtml}
       <a id="nav-item-configuraciones" onclick="navegarVista('configuraciones')" class="sidebar-link">
         <i data-lucide="settings" class="w-4 h-4 shrink-0 text-slate-300"></i>
         <span>${t('side_configuracion_espacio', 'Configuración & Espacio')}</span>
@@ -1539,6 +1570,7 @@ function configurarVistasSegunRol(forzarNavegacionInicial = false) {
       <div class="px-3 pt-3 pb-1">
         <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">${t('side_sec_seguridad', 'Seguridad & Ajustes')}</span>
       </div>
+      ${linkBovedaHtml}
       <a id="nav-item-celador" onclick="navegarVista('celador')" class="sidebar-link">
         <i data-lucide="clipboard-list" class="w-4 h-4 shrink-0 text-cyan-400"></i>
         <span>${t('side_registro_actividad', 'Registro de Actividad')}</span>
@@ -1562,7 +1594,7 @@ function configurarVistasSegunRol(forzarNavegacionInicial = false) {
     }
   }
 
-  const todasVistas = ['nodos', 'admin-convenio', 'directorio', 'aprendiz', 'mentor-clase', 'metricas', 'catalogo', 'celador', 'configuraciones'];
+  const todasVistas = ['nodos', 'admin-convenio', 'directorio', 'aprendiz', 'mentor-clase', 'metricas', 'catalogo', 'celador', 'boveda-legal', 'configuraciones'];
   const vistaActivaActual = todasVistas.find(v => {
     const el = document.getElementById(`vista-${v}`);
     return el && !el.classList.contains('hidden');
@@ -1572,6 +1604,8 @@ function configurarVistasSegunRol(forzarNavegacionInicial = false) {
     // Selección de vista de aterrizaje inicial según rol normalizado
     if (rol.includes('super')) {
       navegarVista('nodos');
+    } else if (rol.includes('auditor')) {
+      navegarVista('boveda-legal');
     } else if (rol.includes('mentor')) {
       navegarVista('mentor-clase');
     } else if (rol.includes('aprendiz') || rol.includes('estudiante')) {
@@ -1593,6 +1627,8 @@ function volverDesdeConfiguraciones() {
   const rol = currentUser ? String(currentUser.rol || '').toLowerCase().trim() : '';
   if (rol.includes('super')) {
     navegarVista('nodos');
+  } else if (rol.includes('auditor')) {
+    navegarVista('boveda-legal');
   } else if (rol.includes('mentor')) {
     navegarVista('mentor-clase');
   } else if (rol.includes('aprendiz') || rol.includes('estudiante')) {
@@ -1620,8 +1656,8 @@ function navegarVista(vistaId) {
     subTabApertura = 'mentores';
   }
 
-  const todasVistas = ['nodos', 'admin-convenio', 'directorio', 'aprendiz', 'mentor-clase', 'metricas', 'catalogo', 'celador', 'configuraciones'];
-  const todosLinks = ['nodos', 'admin-convenio', 'admin-desempeno', 'admin-aprendices', 'admin-mentores', 'directorio', 'aprendiz', 'mentor-clase', 'metricas', 'catalogo', 'celador', 'configuraciones'];
+  const todasVistas = ['nodos', 'admin-convenio', 'directorio', 'aprendiz', 'mentor-clase', 'metricas', 'catalogo', 'celador', 'boveda-legal', 'configuraciones'];
+  const todosLinks = ['nodos', 'admin-convenio', 'admin-desempeno', 'admin-aprendices', 'admin-mentores', 'directorio', 'aprendiz', 'mentor-clase', 'metricas', 'catalogo', 'celador', 'boveda-legal', 'configuraciones'];
 
   // Marcar link activo en el menú lateral
   todosLinks.forEach(lId => {
@@ -1680,6 +1716,8 @@ function navegarVista(vistaId) {
       refrescarTodosSelectoresOrganizaciones();
       cambiarTabCelador('integrantes');
     }
+  } else if (vistaId === 'boveda-legal') {
+    cargarVistaBovedaLegal();
   } else if (vistaId === 'configuraciones') {
     inicializarVistaConfiguraciones(subTabApertura);
   }
@@ -2358,12 +2396,19 @@ function abrirModalCrearOrg() {
   if (radioLibre) radioLibre.checked = true;
   toggleDominioOrg('crear');
   removerLogoCrearOrg();
+  const checkLegal = document.getElementById('check-legal-convenio-org');
+  if (checkLegal) checkLegal.checked = false;
+  if (typeof actualizarEstadoBotonCrearOrgLegal === 'function') actualizarEstadoBotonCrearOrgLegal();
   document.getElementById('modal-crear-org').classList.remove('hidden');
   refrescarIconos();
 }
 
 async function guardarNuevaOrg(event) {
   event.preventDefault();
+  const checkLegal = document.getElementById('check-legal-convenio-org');
+  if (checkLegal && !checkLegal.checked) {
+    return mostrarToast('⚖️ Debes confirmar la existencia de Convenio / Alianza de Cooperación y autorización de uso de logos (Ley 1581 de 2012).', 'advertencia');
+  }
   const nombre = document.getElementById('org-nombre').value.trim();
   const tipo_organizacion = document.getElementById('org-tipo').value;
   const licencias_asignadas = parseInt(document.getElementById('org-licencias').value) || 500;
@@ -2384,7 +2429,9 @@ async function guardarNuevaOrg(event) {
     dominio_permitido,
     licencias_asignadas,
     max_administradores: 2,
-    max_mentores: 15
+    max_mentores: 15,
+    confirmacion_convenio_logos: true,
+    correo_responsable: currentUser?.correo || 'alexander.nino.583@gmail.com'
   };
   if (crearOrgLogoBase64) {
     payload.logo_url = crearOrgLogoBase64;
@@ -2400,11 +2447,12 @@ async function guardarNuevaOrg(event) {
     if (!res.ok) throw new Error(data.detail || 'Error al crear institución');
 
     const descDom = dominio_permitido !== 'LIBRE' ? `@${dominio_permitido}` : 'Sin restricción de dominio';
-    mostrarToast(`✓ Institución '${nombre}' aprovisionada con éxito (${descDom}).`, 'exito');
+    mostrarToast(`✓ Institución '${nombre}' aprovisionada en Azure SQL y registrada en la ⚖️ Bóveda Legal (${descDom}).`, 'exito');
     cerrarModal('modal-crear-org');
     removerLogoCrearOrg();
-    cargarNodosInstitucionales();
+    await cargarNodosInstitucionales();
     await refrescarTodosSelectoresOrganizaciones(data.id);
+    if (typeof cargarAnaliticaPorOrganizacion === 'function') cargarAnaliticaPorOrganizacion(0);
   } catch (err) {
     mostrarToast(err.message, 'error');
   }
@@ -2625,6 +2673,10 @@ function descargarPlantillaExcel() {
 
 async function procesarCargaExcel(event) {
   event.preventDefault();
+  const checkLegal = document.getElementById('check-legal-habeas-excel');
+  if (checkLegal && !checkLegal.checked) {
+    return mostrarToast('⚖️ Debes marcar la casilla obligatoria de Habeas Data (Ley 1581 de 2012 y Art. 7 Menores de Edad) para procesar la base de datos.', 'advertencia');
+  }
   const orgId = document.getElementById('excel-org-select').value;
   const fileInput = document.getElementById('excel-file-input');
   const btnSubmit = document.getElementById('btn-submit-excel');
@@ -2640,6 +2692,8 @@ async function procesarCargaExcel(event) {
   const formData = new FormData();
   formData.append('organizacion_id', orgId);
   formData.append('modo_dominio', modo_dominio);
+  formData.append('confirmacion_habeas_data', 'true');
+  formData.append('correo_responsable', currentUser?.correo || 'alexander.nino.583@gmail.com');
   formData.append('archivo', fileInput.files[0]);
 
   btnSubmit.disabled = true;
@@ -2655,13 +2709,14 @@ async function procesarCargaExcel(event) {
     if (!res.ok) throw new Error(data.detail || 'Error procesando el archivo Excel');
 
     const des = data.desglose || {};
-    mostrarToast(`✓ ${data.registrados} usuarios registrados (${des.administradores || 0} Admins, ${des.mentores || 0} Mentores, ${des.aprendices || 0} Aprendices).`, 'exito');
+    mostrarToast(`✓ ${data.registrados} usuarios registrados y Acta Habeas Data sellada en la ⚖️ Bóveda Legal (${des.administradores || 0} Admins, ${des.mentores || 0} Mentores, ${des.aprendices || 0} Aprendices).`, 'exito');
     
     if (data.alertas && data.alertas.length > 0) {
       data.alertas.slice(0, 3).forEach(a => mostrarToast(a, 'advertencia'));
     }
 
     fileInput.value = '';
+    if (checkLegal) checkLegal.checked = false;
     const selFiltro = document.getElementById('select-filtro-org-jerarquia');
     if (selFiltro) selFiltro.value = String(orgId);
     await cargarJerarquia3Columnas(orgId);
@@ -2671,8 +2726,8 @@ async function procesarCargaExcel(event) {
   } catch (err) {
     mostrarToast(err.message, 'error');
   } finally {
-    btnSubmit.disabled = false;
     btnSubmit.innerHTML = `<i data-lucide="upload" class="w-4 h-4"></i><span>Procesar y Cargar Base de Datos</span>`;
+    if (typeof actualizarEstadoBotonExcelLegal === 'function') actualizarEstadoBotonExcelLegal();
     refrescarIconos();
   }
 }
@@ -2821,7 +2876,7 @@ function renderizarTableroJerarquico(data) {
           ` : `<span class="badge-corp ${obtenerClaseBadgeRol(u.rol)} text-[10px]">${u.rol}</span>`}
           <span class="text-slate-500 font-medium text-[10px] truncate max-w-[130px] flex items-center gap-1">
             <i data-lucide="building-2" class="w-3 h-3 text-slate-400"></i>
-            <span>${u.organizacion_nombre || 'Corporación Universitaria Minuto de Dios'}</span>
+            <span>${u.organizacion_nombre || 'Sin Institución Asignada'}</span>
           </span>
         </div>
       </div>
@@ -2932,7 +2987,7 @@ function renderizarTableroJerarquico(data) {
               </div>
             ` : ''}
             <div class="flex items-center justify-between text-[10px] text-slate-500 mb-1">
-              <span>Mentor: <strong class="text-cyan-700 font-semibold">${a.mentor_nombre || 'alvaro Niño'}</strong></span>
+              <span>Mentor: <strong class="text-cyan-700 font-semibold">${a.mentor_nombre || 'Sin tutor asignado'}</strong></span>
               <span class="font-bold text-[#0a192f]">${avance}%</span>
             </div>
             <div class="progress-track-cyan">
@@ -2993,7 +3048,7 @@ function renderizarDirectorioTabular(data) {
           </select>
         ` : `<span class="badge-corp ${obtenerClaseBadgeRol(u.rol)}">${u.rol}</span>`}
       </td>
-      <td class="py-2.5 text-slate-600 text-xs">${u.organizacion_nombre || 'Corporación Universitaria Minuto de Dios'}</td>
+      <td class="py-2.5 text-slate-600 text-xs">${u.organizacion_nombre || 'Sin Institución Asignada'}</td>
       <td class="py-2.5 text-slate-500 text-xs">${u.mentor_nombre || (u.mentor_id ? `#${u.mentor_id}` : '-')}</td>
       <td class="py-2.5 text-right">
         ${puedeEditarCargos ? `
@@ -4664,12 +4719,19 @@ function renderizarCuadroHonorTop5AprendicesMentor(alumnos) {
 function abrirModalCargarExcelConvenio() {
   const finp = document.getElementById('excel-file-convenio-input');
   if (finp) finp.value = '';
+  const chk = document.getElementById('check-legal-habeas-convenio');
+  if (chk) chk.checked = false;
+  if (typeof actualizarEstadoBotonExcelConvenioLegal === 'function') actualizarEstadoBotonExcelConvenioLegal();
   document.getElementById('modal-cargar-excel-convenio').classList.remove('hidden');
   refrescarIconos();
 }
 
 async function procesarCargaExcelConvenio(event) {
   event.preventDefault();
+  const chk = document.getElementById('check-legal-habeas-convenio');
+  if (chk && !chk.checked) {
+    return mostrarToast('⚖️ Debes marcar la declaración obligatoria de Habeas Data (Ley 1581 de 2012 y Art. 7 Menores) para cargar el archivo.', 'advertencia');
+  }
   if (!currentUser || !currentUser.organizacion_id) {
     return mostrarToast('No se encontró la organización asociada a tu cuenta institucional.', 'error');
   }
@@ -4686,6 +4748,8 @@ async function procesarCargaExcelConvenio(event) {
   const formData = new FormData();
   formData.append('organizacion_id', currentUser.organizacion_id);
   formData.append('modo_dominio', modo_dominio);
+  formData.append('confirmacion_habeas_data', 'true');
+  formData.append('correo_responsable', currentUser.correo || 'admin@institucion.edu.co');
   formData.append('archivo', fileInput.files[0]);
 
   btnSubmit.disabled = true;
@@ -4701,7 +4765,7 @@ async function procesarCargaExcelConvenio(event) {
     if (!res.ok) throw new Error(data.detail || 'Error al procesar el archivo Excel');
 
     const des = data.desglose || {};
-    mostrarToast(`✓ ${data.registrados} usuarios registrados (${des.administradores || 0} Admins, ${des.mentores || 0} Mentores, ${des.aprendices || 0} Aprendices).`, 'exito');
+    mostrarToast(`✓ ${data.registrados} usuarios registrados y Acta Habeas Data sellada en la Bóveda Legal (${des.administradores || 0} Admins, ${des.mentores || 0} Mentores, ${des.aprendices || 0} Aprendices).`, 'exito');
 
     if (data.alertas && data.alertas.length > 0) {
       data.alertas.slice(0, 3).forEach(a => mostrarToast(a, 'advertencia'));
@@ -4712,8 +4776,8 @@ async function procesarCargaExcelConvenio(event) {
   } catch (err) {
     mostrarToast(err.message, 'error');
   } finally {
-    btnSubmit.disabled = false;
     btnSubmit.innerHTML = `<i data-lucide="upload" class="w-4 h-4"></i><span>Procesar y Cargar</span>`;
+    if (typeof actualizarEstadoBotonExcelConvenioLegal === 'function') actualizarEstadoBotonExcelConvenioLegal();
     refrescarIconos();
   }
 }
@@ -9045,6 +9109,19 @@ function inicializarVistaConfiguraciones(subTabApertura = null) {
     }
   }
 
+  // Tarjeta de Asignación de Correo de Auditoría Legal: EXCLUSIVA para Super Administrador
+  const cardBovedaCfg = document.getElementById('card-config-correo-boveda-legal');
+  if (cardBovedaCfg) {
+    if (currentUser.rol === 'Super Administrador') {
+      cardBovedaCfg.classList.remove('hidden');
+      if (typeof cargarCorreosAutorizadosBovedaEnConfig === 'function') {
+        cargarCorreosAutorizadosBovedaEnConfig();
+      }
+    } else {
+      cardBovedaCfg.classList.add('hidden');
+    }
+  }
+
   cambiarTabConfiguracion('cuenta');
   refrescarIconos();
 }
@@ -11074,4 +11151,425 @@ function descargarBackupAuditoriaExcel() {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+}
+
+// =====================================================================
+// BÓVEDA EXCLUSIVA DE AUDITORÍA & COMPLIANCE LEGAL (LEY 1581 DE 2012)
+// =====================================================================
+let bovedaLegalCache = {
+  configuraciones: [],
+  convenios: [],
+  actas: [],
+  snapshots: [],
+  politicas: {}
+};
+
+function obtenerCorreoSolicitanteBoveda() {
+  return String(currentUser?.correo || '').toLowerCase().trim();
+}
+
+function actualizarEstadoBotonCrearOrgLegal() {
+  const chk = document.getElementById('check-legal-convenio-org');
+  const btn = document.getElementById('btn-submit-crear-org');
+  if (!btn) return;
+  const habilitado = Boolean(chk && chk.checked);
+  btn.disabled = !habilitado;
+  if (habilitado) {
+    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+  } else {
+    btn.classList.add('opacity-50', 'cursor-not-allowed');
+  }
+}
+
+function actualizarEstadoBotonExcelLegal() {
+  const chk = document.getElementById('check-legal-habeas-excel');
+  const btn = document.getElementById('btn-submit-excel');
+  if (!btn) return;
+  const habilitado = Boolean(chk && chk.checked);
+  btn.disabled = !habilitado;
+  if (habilitado) {
+    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+  } else {
+    btn.classList.add('opacity-50', 'cursor-not-allowed');
+  }
+}
+
+function actualizarEstadoBotonExcelConvenioLegal() {
+  const chk = document.getElementById('check-legal-habeas-convenio');
+  const btn = document.getElementById('btn-submit-excel-convenio');
+  if (!btn) return;
+  const habilitado = Boolean(chk && chk.checked);
+  btn.disabled = !habilitado;
+  if (habilitado) {
+    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+  } else {
+    btn.classList.add('opacity-50', 'cursor-not-allowed');
+  }
+}
+
+function abrirSelectorCargaBaseDatosDirecto() {
+  const card = document.getElementById('card-carga-masiva-excel');
+  const lbl = document.getElementById('lbl-toggle-carga-excel');
+  const selFiltro = document.getElementById('select-filtro-org-jerarquia')?.value || '';
+  if (card) {
+    card.classList.remove('hidden');
+    if (lbl) lbl.innerText = '✕ Ocultar Cargador de Base de Datos';
+    refrescarTodosSelectoresOrganizaciones(selFiltro || null);
+    const selExcel = document.getElementById('excel-org-select');
+    if (selExcel && selFiltro) selExcel.value = selFiltro;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  refrescarIconos();
+}
+
+function cambiarTabBovedaLegal(tab) {
+  const tabs = ['convenios', 'actas', 'snapshots', 'politicas'];
+  tabs.forEach(tId => {
+    const btn = document.getElementById(`btn-tab-boveda-${tId}`);
+    const panel = document.getElementById(`tab-boveda-${tId}`);
+    if (btn) {
+      if (tId === tab) {
+        btn.className = 'px-4 py-2.5 rounded-t-xl text-xs font-bold bg-[#0a192f] text-white flex items-center gap-2 cursor-pointer transition-all shadow-sm';
+      } else {
+        btn.className = 'px-4 py-2.5 rounded-t-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center gap-2 cursor-pointer transition-all';
+      }
+    }
+    if (panel) {
+      if (tId === tab) panel.classList.remove('hidden');
+      else panel.classList.add('hidden');
+    }
+  });
+  refrescarIconos();
+}
+
+async function cargarVistaBovedaLegal() {
+  const correo = obtenerCorreoSolicitanteBoveda();
+  if (!correo) return;
+
+  const panelSuper = document.getElementById('panel-asignar-correo-boveda-legal');
+  if (panelSuper) {
+    if (currentUser?.rol === 'Super Administrador' || correo === 'alexander.nino.583@gmail.com') {
+      panelSuper.classList.remove('hidden');
+    } else {
+      panelSuper.classList.add('hidden');
+    }
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/boveda-legal/estado?correo_solicitante=${encodeURIComponent(correo)}`);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.detail || 'Acceso restringido a la Bóveda Legal');
+
+    bovedaLegalCache.configuraciones = json.configuraciones_correo || [];
+    bovedaLegalCache.convenios = json.convenios_institucionales || [];
+    bovedaLegalCache.actas = json.actas_habeas_data || [];
+    bovedaLegalCache.snapshots = json.snapshots_inmutables || [];
+    bovedaLegalCache.politicas = json.politicas_oficiales || {};
+
+    const resM = json.resumen || {};
+    const elConv = document.getElementById('kpi-boveda-convenios');
+    const elAct = document.getElementById('kpi-boveda-actas');
+    const elTit = document.getElementById('kpi-boveda-titulares');
+    const elSnap = document.getElementById('kpi-boveda-snapshots');
+    if (elConv) elConv.innerText = resM.total_convenios ?? bovedaLegalCache.convenios.length;
+    if (elAct) elAct.innerText = resM.total_actas_excel ?? bovedaLegalCache.actas.length;
+    if (elTit) elTit.innerText = resM.total_titulares_procesados ?? 0;
+    if (elSnap) elSnap.innerText = resM.total_snapshots ?? bovedaLegalCache.snapshots.length;
+
+    renderizarCorreosAutorizadosBoveda(bovedaLegalCache.configuraciones, 'lista-correos-autorizados-boveda');
+    renderizarCorreosAutorizadosBoveda(bovedaLegalCache.configuraciones, 'cfg-lista-correos-boveda');
+    renderizarTablaBovedaConvenios(bovedaLegalCache.convenios);
+    renderizarTablaBovedaActas(bovedaLegalCache.actas);
+    renderizarTablaBovedaSnapshots(bovedaLegalCache.snapshots);
+    renderizarPoliticasOficialesBoveda(bovedaLegalCache.politicas);
+    refrescarIconos();
+  } catch (err) {
+    mostrarToast(err.message, 'error');
+  }
+}
+
+async function cargarCorreosAutorizadosBovedaEnConfig() {
+  const correo = obtenerCorreoSolicitanteBoveda();
+  if (!correo) return;
+  try {
+    const res = await fetch(`${API_BASE}/api/boveda-legal/estado?correo_solicitante=${encodeURIComponent(correo)}`);
+    if (!res.ok) return;
+    const json = await res.json();
+    bovedaLegalCache.configuraciones = json.configuraciones_correo || [];
+    renderizarCorreosAutorizadosBoveda(bovedaLegalCache.configuraciones, 'cfg-lista-correos-boveda');
+  } catch (e) {
+    console.warn('No se pudo cargar lista de correos legales en configuración:', e);
+  }
+}
+
+function renderizarCorreosAutorizadosBoveda(lista, containerId) {
+  const cont = document.getElementById(containerId);
+  if (!cont) return;
+  const activos = (lista || []).filter(c => Number(c.activo) === 1);
+  if (activos.length === 0) {
+    cont.innerHTML = `<span class="px-3 py-1 rounded-lg bg-slate-100 text-slate-600 text-xs font-medium">Solo Superadministrador (ningún correo jurídico externo asignado aún)</span>`;
+    return;
+  }
+  const esSuper = currentUser?.rol === 'Super Administrador' || obtenerCorreoSolicitanteBoveda() === 'alexander.nino.583@gmail.com';
+  cont.innerHTML = activos.map(c => `
+    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-amber-300 shadow-2xs text-xs">
+      <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-600"></i>
+      <span class="font-mono font-bold text-[#0a192f]">${escapeHtml(c.correo_autorizado)}</span>
+      <span class="text-slate-500">(${escapeHtml(c.nombre_responsable || 'Auditor Legal')})</span>
+      ${esSuper ? `
+        <button type="button" onclick="revocarCorreoBovedaLegal(${c.id}, '${escapeHtml(c.correo_autorizado)}')" class="text-rose-600 hover:text-rose-800 font-bold ml-1 cursor-pointer" title="Revocar acceso legal">
+          ✕
+        </button>
+      ` : ''}
+    </div>
+  `).join('');
+  refrescarIconos();
+}
+
+function renderizarTablaBovedaConvenios(convenios) {
+  const tbody = document.getElementById('tabla-boveda-convenios');
+  if (!tbody) return;
+  if (!convenios || convenios.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-400">No hay registros de convenios institucionales aún. Cuando aprovisiones una institución en Creador de Entornos, quedará certificada aquí.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = convenios.map(r => `
+    <tr class="hover:bg-slate-50/90 transition-colors">
+      <td class="py-3 px-3 font-mono font-bold text-slate-500">#${r.id}</td>
+      <td class="py-3 px-3 font-mono text-[11px] text-slate-700 whitespace-nowrap">${escapeHtml(r.fecha_hora || '')}</td>
+      <td class="py-3 px-3">
+        <strong class="font-bold text-[#0a192f] block">${escapeHtml(r.organizacion_nombre || 'Institución')}</strong>
+        <span class="text-[10px] text-slate-500 font-mono">ID Org: #${r.organizacion_id || '-'}</span>
+      </td>
+      <td class="py-3 px-3">
+        ${r.logo_institucional ? `<img src="${r.logo_institucional}" class="w-9 h-9 rounded-lg object-contain border border-slate-200 bg-white p-0.5">` : `<span class="text-[10px] text-slate-400">Estándar</span>`}
+      </td>
+      <td class="py-3 px-3">
+        <span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold">
+          ${escapeHtml(r.estado_convenio || 'VIGENTE')}
+        </span>
+      </td>
+      <td class="py-3 px-3 text-[11px]">
+        <span class="font-mono font-semibold text-cyan-800 block">${escapeHtml(r.usuario_correo || '')}</span>
+        <span class="text-[10px] text-slate-500 font-mono">IP: ${escapeHtml(r.ip_origen || 'N/A')}</span>
+      </td>
+      <td class="py-3 px-3 text-[11px] text-slate-600 max-w-xs">
+        <span class="line-clamp-2" title="${escapeHtml(r.declaracion_legal || '')}">${escapeHtml(r.declaracion_legal || '')}</span>
+      </td>
+      <td class="py-3 px-3 font-mono text-[10px] text-slate-500">
+        <span class="px-2 py-0.5 rounded bg-slate-100 border border-slate-200" title="${escapeHtml(r.hash_integridad || '')}">
+          🔒 ${(r.hash_integridad || '').slice(0, 14)}...
+        </span>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderizarTablaBovedaActas(actas) {
+  const tbody = document.getElementById('tabla-boveda-actas');
+  if (!tbody) return;
+  if (!actas || actas.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-slate-400">No se han registrado cargas de Excel aún. Cada importación de base de datos generará un Acta Habeas Data inalterable aquí.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = actas.map(a => `
+    <tr class="hover:bg-slate-50/90 transition-colors">
+      <td class="py-3 px-3 font-mono font-bold text-emerald-800">#ACTA-${a.id}</td>
+      <td class="py-3 px-3 font-mono text-[11px] text-slate-700 whitespace-nowrap">${escapeHtml(a.fecha_hora || '')}</td>
+      <td class="py-3 px-3 font-mono text-[11px] text-slate-600">${escapeHtml(a.ip_origen || '')}</td>
+      <td class="py-3 px-3 font-mono text-[11px] text-cyan-800 font-semibold">${escapeHtml(a.usuario_correo || '')}</td>
+      <td class="py-3 px-3 font-bold text-[#0a192f]">${escapeHtml(a.organizacion_nombre || '')}</td>
+      <td class="py-3 px-3 font-mono text-xs text-slate-700">${escapeHtml(a.archivo_nombre || '')}</td>
+      <td class="py-3 px-3 font-extrabold text-purple-700">${a.cantidad_registros || 0} titulares</td>
+      <td class="py-3 px-3">
+        <span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold">
+          ✓ Ley 1581 + Art. 7 Menores
+        </span>
+      </td>
+      <td class="py-3 px-3 font-mono text-[10px] text-slate-500">
+        <span class="px-2 py-0.5 rounded bg-slate-100 border border-slate-200" title="${escapeHtml(a.hash_integridad || '')}">
+          🔒 ${(a.hash_integridad || '').slice(0, 14)}...
+        </span>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderizarTablaBovedaSnapshots(snapshots) {
+  const tbody = document.getElementById('tabla-boveda-snapshots');
+  if (!tbody) return;
+  if (!snapshots || snapshots.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-400">No hay snapshots registrados aún. Puedes crear uno ahora o se generarán automáticamente antes de cualquier actualización o eliminación.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = snapshots.map(s => `
+    <tr class="hover:bg-slate-50/90 transition-colors">
+      <td class="py-3 px-3 font-mono font-bold text-amber-800">#SNAP-${s.id}</td>
+      <td class="py-3 px-3 font-mono text-[11px] text-slate-700 whitespace-nowrap">${escapeHtml(s.fecha_hora || '')}</td>
+      <td class="py-3 px-3">
+        <span class="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-300 text-[10px] font-bold">
+          ${escapeHtml(s.operacion_origen || '')}
+        </span>
+      </td>
+      <td class="py-3 px-3">
+        <strong class="font-bold text-[#0a192f] block">${escapeHtml(s.entidad_afectada || '')}</strong>
+        <span class="text-[11px] text-slate-500">${escapeHtml(s.descripcion || '')}</span>
+      </td>
+      <td class="py-3 px-3 font-mono text-[11px] text-slate-600">
+        ${escapeHtml(s.usuario_correo || '')}<br>
+        <span class="text-[10px] text-slate-400">IP: ${escapeHtml(s.ip_origen || '')}</span>
+      </td>
+      <td class="py-3 px-3 font-bold text-slate-700">${s.total_registros || 0} reg.</td>
+      <td class="py-3 px-3 font-mono text-[10px] text-slate-500">
+        🔒 ${(s.hash_sha256 || '').slice(0, 12)}...
+      </td>
+      <td class="py-3 px-3 text-right whitespace-nowrap">
+        <div class="inline-flex items-center gap-1.5">
+          <button type="button" onclick="descargarSnapshotBoveda(${s.id}, 'excel')" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition-all cursor-pointer">
+            📊 .XLSX
+          </button>
+          <button type="button" onclick="descargarSnapshotBoveda(${s.id}, 'json')" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold transition-all cursor-pointer">
+            { } .JSON
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderizarPoliticasOficialesBoveda(politicas) {
+  const cont = document.getElementById('contenedor-boveda-politicas');
+  if (!cont) return;
+  const entries = Object.entries(politicas || {});
+  if (entries.length === 0) {
+    cont.innerHTML = `<div class="p-6 text-center text-slate-400 col-span-full">Cargando políticas legales oficiales...</div>`;
+    return;
+  }
+  cont.innerHTML = entries.map(([clave, doc]) => `
+    <div class="corp-card p-6 border border-slate-200 flex flex-col justify-between space-y-4">
+      <div>
+        <div class="flex items-center justify-between gap-2 mb-2">
+          <span class="px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-800 border border-purple-200 text-[10px] font-extrabold uppercase">
+            ${escapeHtml(doc.normativa || 'Ley 1581 de 2012')}
+          </span>
+          <span class="text-[10px] font-mono text-slate-400">${escapeHtml(doc.version || 'v2026.1')}</span>
+        </div>
+        <h4 class="text-sm font-extrabold text-[#0a192f] mb-3">${escapeHtml(doc.titulo || clave)}</h4>
+        <pre class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-700 whitespace-pre-wrap font-sans leading-relaxed max-h-72 overflow-y-auto">${escapeHtml(doc.contenido || '')}</pre>
+      </div>
+      <div class="pt-2 border-t border-slate-100 flex justify-end">
+        <button type="button" onclick="descargarPoliticaOficialTexto('${clave}')" class="px-4 py-2 rounded-xl bg-[#0a192f] hover:bg-slate-800 text-white text-xs font-bold flex items-center gap-2 cursor-pointer">
+          <i data-lucide="download" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span>Descargar Documento Oficial (.txt)</span>
+        </button>
+      </div>
+    </div>
+  `).join('');
+  refrescarIconos();
+}
+
+async function guardarCorreoAutorizadoBovedaLegal(event) {
+  event.preventDefault();
+  const correoNuevo = document.getElementById('input-boveda-correo-autorizado')?.value.trim().toLowerCase();
+  const nombreResp = document.getElementById('input-boveda-nombre-responsable')?.value.trim();
+  const claveAcc = document.getElementById('input-boveda-clave-acceso')?.value || '';
+  await enviarAutorizacionCorreoLegal(correoNuevo, nombreResp, claveAcc);
+  if (document.getElementById('input-boveda-correo-autorizado')) document.getElementById('input-boveda-correo-autorizado').value = '';
+  if (document.getElementById('input-boveda-clave-acceso')) document.getElementById('input-boveda-clave-acceso').value = '';
+}
+
+async function guardarCorreoLegalDesdeConfig(event) {
+  event.preventDefault();
+  const correoNuevo = document.getElementById('cfg-input-boveda-correo')?.value.trim().toLowerCase();
+  const nombreResp = document.getElementById('cfg-input-boveda-nombre')?.value.trim();
+  const claveAcc = document.getElementById('cfg-input-boveda-clave')?.value || '';
+  await enviarAutorizacionCorreoLegal(correoNuevo, nombreResp, claveAcc);
+  if (document.getElementById('cfg-input-boveda-correo')) document.getElementById('cfg-input-boveda-correo').value = '';
+  if (document.getElementById('cfg-input-boveda-clave')) document.getElementById('cfg-input-boveda-clave').value = '';
+}
+
+async function enviarAutorizacionCorreoLegal(correoAutorizado, nombreResponsable, passwordAcceso) {
+  if (!correoAutorizado) return mostrarToast('Ingresa el correo legal a autorizar.', 'advertencia');
+  try {
+    const res = await fetch(`${API_BASE}/api/boveda-legal/autorizar-correo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        correo_solicitante: obtenerCorreoSolicitanteBoveda(),
+        correo_autorizado: correoAutorizado,
+        nombre_responsable: nombreResponsable || 'Auditor Legal & Compliance',
+        password_acceso: passwordAcceso || null
+      })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.detail || 'Error al autorizar correo legal');
+    mostrarToast(json.mensaje || `✓ Correo legal '${correoAutorizado}' autorizado en Azure SQL.`, 'exito');
+    await cargarVistaBovedaLegal();
+  } catch (err) {
+    mostrarToast(err.message, 'error');
+  }
+}
+
+async function revocarCorreoBovedaLegal(configId, correoTxt) {
+  if (!confirm(`¿Revocar el acceso a la Bóveda Legal para el correo ${correoTxt}?`)) return;
+  try {
+    const correo = obtenerCorreoSolicitanteBoveda();
+    const res = await fetch(`${API_BASE}/api/boveda-legal/autorizar-correo/${configId}?correo_solicitante=${encodeURIComponent(correo)}`, {
+      method: 'DELETE'
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.detail || 'Error al revocar correo');
+    mostrarToast(json.mensaje || '✓ Acceso legal revocado.', 'info');
+    await cargarVistaBovedaLegal();
+  } catch (err) {
+    mostrarToast(err.message, 'error');
+  }
+}
+
+async function crearSnapshotManualBovedaLegal() {
+  const correo = obtenerCorreoSolicitanteBoveda();
+  try {
+    mostrarToast('📸 Generando Snapshot Inmutable en Azure SQL...', 'info');
+    const res = await fetch(`${API_BASE}/api/boveda-legal/snapshots/crear-manual`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        correo_solicitante: correo,
+        motivo: 'Snapshot inmutable manual generado desde Bóveda Legal & Compliance'
+      })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.detail || 'Error al crear snapshot');
+    mostrarToast(json.mensaje || '✓ Snapshot inmutable creado y persistido en Azure SQL.', 'exito');
+    await cargarVistaBovedaLegal();
+    cambiarTabBovedaLegal('snapshots');
+  } catch (err) {
+    mostrarToast(err.message, 'error');
+  }
+}
+
+function descargarSnapshotBoveda(snapshotId, formato) {
+  const correo = obtenerCorreoSolicitanteBoveda();
+  const endpoint = formato === 'json' ? 'descargar-json' : 'descargar-excel';
+  window.location.href = `${API_BASE}/api/boveda-legal/snapshots/${snapshotId}/${endpoint}?correo_solicitante=${encodeURIComponent(correo)}`;
+}
+
+function descargarExpedienteCompletoBovedaLegal() {
+  const correo = obtenerCorreoSolicitanteBoveda();
+  mostrarToast('📥 Descargando Expediente Legal Completo (.xlsx) con Convenios, Actas Habeas Data, Snapshots y Políticas...', 'info');
+  window.location.href = `${API_BASE}/api/boveda-legal/exportar-expediente-completo?correo_solicitante=${encodeURIComponent(correo)}`;
+}
+
+function descargarPoliticaOficialTexto(clave) {
+  const doc = (bovedaLegalCache.politicas || {})[clave];
+  if (!doc) return;
+  const blob = new Blob([`${doc.titulo}\nNormativa: ${doc.normativa}\nVersión: ${doc.version}\n\n${doc.contenido}`], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${clave}_ley_1581_colombia.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }

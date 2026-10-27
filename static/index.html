@@ -472,8 +472,19 @@
                 </div>
               </div>
 
+              <!-- CHECKBOX LEGAL OBLIGATORIO HABEAS DATA (LEY 1581 DE 2012 & ART. 7 MENORES DE EDAD) -->
+              <div class="p-3.5 rounded-xl bg-amber-50/90 border border-amber-300/90 shadow-2xs">
+                <label class="flex items-start gap-2.5 cursor-pointer select-none">
+                  <input type="checkbox" id="check-legal-habeas-excel" onchange="actualizarEstadoBotonExcelLegal()" class="mt-0.5 w-4 h-4 rounded text-cyan-700 focus:ring-cyan-600 border-amber-400 cursor-pointer shrink-0">
+                  <span class="text-[11px] text-slate-800 leading-relaxed">
+                    <strong class="text-[#0a192f] font-extrabold">Declaración Obligatoria de Habeas Data (Ley 1581 de 2012 y Decreto 1377 de 2013):</strong>
+                    Certifico bajo gravedad de juramento que la Institución cuenta con la autorización previa, expresa e informada de cada titular (y de los padres/acudientes legales conforme al <strong>Art. 7 de la Ley 1581 de 2012</strong> cuando incluya menores de edad en colegios o instituciones educativas) para el tratamiento académico de sus datos en la plataforma. Esta declaración quedará registrada de forma inalterable en la <strong>⚖️ Bóveda Legal & Compliance</strong> con fecha, hora exacta e IP.
+                  </span>
+                </label>
+              </div>
+
               <div class="flex flex-wrap items-center gap-3 pt-1">
-                <button type="submit" id="btn-submit-excel" class="btn-corp-primario">
+                <button type="submit" id="btn-submit-excel" disabled class="btn-corp-primario opacity-50 cursor-not-allowed" title="Debes marcar la casilla legal de Habeas Data para habilitar la importación">
                   <i data-lucide="upload" class="w-4 h-4 text-cyan-300"></i>
                   <span>Procesar y Cargar Base de Datos</span>
                 </button>
@@ -493,8 +504,12 @@
               </select>
             </div>
 
-            <!-- Botón Organizar Grupos, Añadir Integrante y Alternador de Vista -->
+            <!-- Botón Cargar Base de Datos, Añadir Integrante, Grupos de Trabajo y Alternador de Vista -->
             <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+              <button type="button" id="btn-acceso-rapido-cargar-bd" onclick="abrirSelectorCargaBaseDatosDirecto()" class="btn-corp-secundario border-cyan-300 bg-cyan-50/70 hover:bg-cyan-100/80 text-cyan-900 font-bold" title="Cargar Base de Datos Excel para la institución seleccionada">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4 text-cyan-700"></i>
+                <span>📥 Cargar Base de Datos</span>
+              </button>
               <button onclick="abrirModalCrearIntegranteManual()" class="btn-corp-primario" title="Añadir manualmente un integrante (Administrador, Mentor o Aprendiz)">
                 <i data-lucide="user-plus" class="w-4 h-4 text-cyan-300"></i>
                 <span>+ Añadir Integrante</span>
@@ -2270,6 +2285,220 @@
         </section>
 
         <!-- ===============================================================
+             VISTA 6.5: BÓVEDA EXCLUSIVA DE AUDITORÍA & COMPLIANCE LEGAL
+             (LEY 1581 DE 2012 Y DECRETO 1377 DE 2013 - ACCESO BLINDADO)
+             =============================================================== -->
+        <section id="vista-boveda-legal" class="vista-seccion hidden space-y-6">
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+            <div>
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-300 text-amber-900 text-[11px] font-extrabold uppercase tracking-wider mb-2">
+                <i data-lucide="scale" class="w-3.5 h-3.5 text-amber-700"></i>
+                <span>LEY 1581 DE 2012 & DECRETO 1377 DE 2013 · COLOMBIA · AUDITORÍA INMUTABLE</span>
+              </div>
+              <h1 class="text-3xl font-extrabold text-[#0a192f] tracking-tight flex items-center gap-2.5">
+                <span>⚖️ Bóveda Exclusiva de Auditoría & Compliance Legal</span>
+              </h1>
+              <p class="text-xs text-slate-600 mt-1 max-w-3xl leading-relaxed">
+                Repositorio probatorio inalterable en <strong>Azure SQL Database</strong>. Conserva el historial de convenios institucionales, actas de consentimiento Habeas Data (incluyendo Art. 7 para menores de edad en colegios), copias de seguridad (snapshots) previas a modificaciones o eliminaciones operativas y los textos oficiales de políticas legales.
+              </p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+              <button type="button" onclick="crearSnapshotManualBovedaLegal()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer">
+                <i data-lucide="camera" class="w-4 h-4 text-cyan-400"></i>
+                <span>📸 Crear Snapshot Inmutable Ahora</span>
+              </button>
+              <button type="button" onclick="descargarExpedienteCompletoBovedaLegal()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                <span>📥 Descargar Expediente Legal Completo (.xlsx)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- KPIs de la Bóveda Legal -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="corp-card p-5 border-l-4 border-l-cyan-600">
+              <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Convenios Aprovisionados</p>
+              <p id="kpi-boveda-convenios" class="text-2xl font-black text-[#0a192f] mt-1">0</p>
+              <p class="text-[11px] text-slate-500 mt-1">Con autorización de marca/logos</p>
+            </div>
+            <div class="corp-card p-5 border-l-4 border-l-emerald-600">
+              <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Actas Habeas Data (Excel)</p>
+              <p id="kpi-boveda-actas" class="text-2xl font-black text-emerald-700 mt-1">0</p>
+              <p class="text-[11px] text-slate-500 mt-1">Cargas con fe de consentimiento</p>
+            </div>
+            <div class="corp-card p-5 border-l-4 border-l-purple-600">
+              <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Titulares Cubiertos en Actas</p>
+              <p id="kpi-boveda-titulares" class="text-2xl font-black text-purple-700 mt-1">0</p>
+              <p class="text-[11px] text-slate-500 mt-1">Registros con trazabilidad Ley 1581</p>
+            </div>
+            <div class="corp-card p-5 border-l-4 border-l-amber-600">
+              <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Snapshots / Copias Inmutables</p>
+              <p id="kpi-boveda-snapshots" class="text-2xl font-black text-amber-700 mt-1">0</p>
+              <p class="text-[11px] text-slate-500 mt-1">Respaldos pre-edición y pre-borrado</p>
+            </div>
+          </div>
+
+          <!-- Panel Exclusivo SuperAdmin: Asignación de Correo de Auditoría Legal / Compliance -->
+          <div id="panel-asignar-correo-boveda-legal" class="corp-card p-6 border border-amber-300 bg-gradient-to-r from-amber-50/70 via-white to-cyan-50/40 space-y-4">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-3 border-b border-amber-200/80">
+              <div>
+                <h3 class="text-sm font-extrabold text-[#0a192f] flex items-center gap-2">
+                  <i data-lucide="shield-check" class="w-4 h-4 text-amber-700"></i>
+                  <span>Asignación de Correo Exclusivo de Auditoría Legal & Compliance</span>
+                </h3>
+                <p class="text-xs text-slate-600 mt-0.5">
+                  Solo el Superadministrador y el correo jurídico autorizado aquí pueden ver y consultar esta Bóveda Legal. Ningún Administrador institucional, Mentor ni Aprendiz tiene acceso.
+                </p>
+              </div>
+              <span class="px-3 py-1 rounded-full bg-[#0a192f] text-cyan-300 text-[10px] font-bold uppercase tracking-wider shrink-0">
+                Control Exclusivo SuperAdmin
+              </span>
+            </div>
+
+            <form onsubmit="guardarCorreoAutorizadoBovedaLegal(event)" class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-700 mb-1">Correo de Auditoría Legal Autorizado</label>
+                <input id="input-boveda-correo-autorizado" type="email" required placeholder="juridica@consultoria.com" class="corp-input w-full px-3 py-2 rounded-xl text-xs font-mono">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-700 mb-1">Nombre del Auditor / Oficial de Cumplimiento</label>
+                <input id="input-boveda-nombre-responsable" type="text" required placeholder="Ej: Dirección Jurídica & Compliance" class="corp-input w-full px-3 py-2 rounded-xl text-xs">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-700 mb-1">Contraseña de Acceso Directo (Opcional)</label>
+                <input id="input-boveda-clave-acceso" type="password" placeholder="Clave si inicia sesión directo" class="corp-input w-full px-3 py-2 rounded-xl text-xs font-mono">
+              </div>
+              <div>
+                <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-[#0a192f] hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer">
+                  <i data-lucide="user-check" class="w-4 h-4 text-cyan-400"></i>
+                  <span>Autorizar Correo Legal</span>
+                </button>
+              </div>
+            </form>
+
+            <div>
+              <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Correos Jurídicos Autorizados Actualmente:</p>
+              <div id="lista-correos-autorizados-boveda" class="flex flex-wrap gap-2">
+                <span class="text-xs text-slate-400 italic">Cargando correos autorizados...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pestañas de la Bóveda Legal -->
+          <div class="flex flex-wrap border-b border-slate-200 gap-2 pb-1">
+            <button id="btn-tab-boveda-convenios" onclick="cambiarTabBovedaLegal('convenios')" class="px-4 py-2.5 rounded-t-xl text-xs font-bold bg-[#0a192f] text-white flex items-center gap-2 cursor-pointer transition-all">
+              <i data-lucide="building-2" class="w-4 h-4 text-cyan-400"></i>
+              <span>1. Historial de Convenios & Logos</span>
+            </button>
+            <button id="btn-tab-boveda-actas" onclick="cambiarTabBovedaLegal('actas')" class="px-4 py-2.5 rounded-t-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center gap-2 cursor-pointer transition-all">
+              <i data-lucide="file-check-2" class="w-4 h-4 text-emerald-600"></i>
+              <span>2. Actas de Consentimiento Habeas Data (Excel)</span>
+            </button>
+            <button id="btn-tab-boveda-snapshots" onclick="cambiarTabBovedaLegal('snapshots')" class="px-4 py-2.5 rounded-t-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center gap-2 cursor-pointer transition-all">
+              <i data-lucide="hard-drive-download" class="w-4 h-4 text-amber-600"></i>
+              <span>3. Copias de Seguridad Inmutables (Snapshots)</span>
+            </button>
+            <button id="btn-tab-boveda-politicas" onclick="cambiarTabBovedaLegal('politicas')" class="px-4 py-2.5 rounded-t-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center gap-2 cursor-pointer transition-all">
+              <i data-lucide="scroll-text" class="w-4 h-4 text-purple-600"></i>
+              <span>4. Textos Oficiales de Políticas & Indemnidad</span>
+            </button>
+          </div>
+
+          <!-- TAB 1: HISTORIAL DE CONVENIOS Y APROVISIONAMIENTO -->
+          <div id="tab-boveda-convenios" class="corp-card p-6 border border-slate-200 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 class="text-sm font-extrabold text-[#0a192f]">Historial Inalterable de Convenios y Aprovisionamiento Institucional</h3>
+                <p class="text-xs text-slate-500">Cada registro certifica fecha/hora exacta, estado del convenio, logo institucional cargado, usuario responsable y sello criptográfico SHA-256.</p>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-100 text-slate-700 font-bold uppercase text-[10px]">
+                  <tr>
+                    <th class="py-3 px-3">ID</th>
+                    <th class="py-3 px-3">Fecha / Hora Exacta</th>
+                    <th class="py-3 px-3">Institución / Entidad</th>
+                    <th class="py-3 px-3">Logo</th>
+                    <th class="py-3 px-3">Estado del Convenio</th>
+                    <th class="py-3 px-3">Responsable & IP</th>
+                    <th class="py-3 px-3">Declaración Legal</th>
+                    <th class="py-3 px-3">Sello SHA-256</th>
+                  </tr>
+                </thead>
+                <tbody id="tabla-boveda-convenios" class="divide-y divide-slate-100 text-slate-700">
+                  <tr><td colspan="8" class="py-6 text-center text-slate-400">Cargando historial de convenios...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- TAB 2: ACTAS DE CONSENTIMIENTO HABEAS DATA (CARGAS DE EXCEL) -->
+          <div id="tab-boveda-actas" class="hidden corp-card p-6 border border-slate-200 space-y-4">
+            <div>
+              <h3 class="text-sm font-extrabold text-[#0a192f]">Actas de Consentimiento Habeas Data — Cargas Masivas de Excel (Ley 1581 de 2012 & Art. 7 Menores)</h3>
+              <p class="text-xs text-slate-500">Evidencia legal inmutable de cada importación de base de datos realizada en la plataforma, incluyendo confirmación expresa de autorización de titulares y acudientes.</p>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-100 text-slate-700 font-bold uppercase text-[10px]">
+                  <tr>
+                    <th class="py-3 px-3">Acta #</th>
+                    <th class="py-3 px-3">Fecha / Hora Exacta</th>
+                    <th class="py-3 px-3">Dirección IP</th>
+                    <th class="py-3 px-3">Usuario que Subió</th>
+                    <th class="py-3 px-3">Institución</th>
+                    <th class="py-3 px-3">Archivo Excel</th>
+                    <th class="py-3 px-3">Registros</th>
+                    <th class="py-3 px-3">Certificación Ley 1581 & Art. 7 Menores</th>
+                    <th class="py-3 px-3">Sello SHA-256</th>
+                  </tr>
+                </thead>
+                <tbody id="tabla-boveda-actas" class="divide-y divide-slate-100 text-slate-700">
+                  <tr><td colspan="9" class="py-6 text-center text-slate-400">Cargando actas de Habeas Data...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- TAB 3: COPIAS DE SEGURIDAD INMUTABLES (SNAPSHOTS / BACKUPS PRE-CAMBIO) -->
+          <div id="tab-boveda-snapshots" class="hidden corp-card p-6 border border-slate-200 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 class="text-sm font-extrabold text-[#0a192f]">Copias de Seguridad Inmutables (Snapshots Automáticos Pre-Eliminación / Pre-Actualización)</h3>
+                <p class="text-xs text-slate-500">Aunque se elimine o modifique información operativa en la plataforma, la Bóveda Legal conserva una copia descargable en Excel (.xlsx) y JSON de lo que existía antes del cambio.</p>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-100 text-slate-700 font-bold uppercase text-[10px]">
+                  <tr>
+                    <th class="py-3 px-3">ID Snapshot</th>
+                    <th class="py-3 px-3">Fecha / Hora Exacta</th>
+                    <th class="py-3 px-3">Operación Origen</th>
+                    <th class="py-3 px-3">Entidad / Descripción</th>
+                    <th class="py-3 px-3">Ejecutado Por (IP)</th>
+                    <th class="py-3 px-3">Volumen Respaldado</th>
+                    <th class="py-3 px-3">Sello SHA-256</th>
+                    <th class="py-3 px-3 text-right">Descargar Respaldo</th>
+                  </tr>
+                </thead>
+                <tbody id="tabla-boveda-snapshots" class="divide-y divide-slate-100 text-slate-700">
+                  <tr><td colspan="8" class="py-6 text-center text-slate-400">Cargando snapshots inmutables...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- TAB 4: TEXTOS OFICIALES DE POLÍTICAS LEGALES -->
+          <div id="tab-boveda-politicas" class="hidden space-y-4">
+            <div id="contenedor-boveda-politicas" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <!-- Se pobla dinámicamente con las 4 políticas oficiales -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ===============================================================
              VISTA 7: CONFIGURACIONES & CUENTA
              (COLORIMETRÍA, PERFIL, CONECTIVIDAD, BACKUPS, PAPELERA & POWER BI)
              =============================================================== -->
@@ -2460,6 +2689,47 @@
                   <span>Descargar Copia de Seguridad Institucional (.xlsx)</span>
                 </button>
               </div>
+            </div>
+
+            <!-- EXCLUSIVO SUPER ADMINISTRADOR: CONFIGURACIÓN DE CORREO DE AUDITORÍA LEGAL & BÓVEDA DE COMPLIANCE -->
+            <div id="card-config-correo-boveda-legal" class="hidden corp-card p-6 border border-amber-300 bg-amber-50/40 space-y-4">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-amber-200/80">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="scale" class="w-5 h-5 text-amber-700"></i>
+                    <h3 class="text-sm font-extrabold text-[#0a192f]">⚖️ Bóveda Legal & Asignación de Correo de Auditoría Compliance (Ley 1581 de 2012)</h3>
+                    <span class="px-2.5 py-0.5 rounded-full bg-[#0a192f] text-cyan-300 text-[10px] font-bold">Exclusivo SuperAdmin</span>
+                  </div>
+                  <p class="text-xs text-slate-600 mt-1">
+                    Autoriza un correo exclusivo de Auditoría Legal / Compliance para que pueda inspeccionar la Bóveda Legal inmutable sin tener permisos operativos sobre el resto de la plataforma.
+                  </p>
+                </div>
+                <button type="button" onclick="navegarVista('boveda-legal')" class="px-4 py-2.5 rounded-xl bg-[#0a192f] hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-2 shrink-0 cursor-pointer">
+                  <i data-lucide="shield-check" class="w-4 h-4 text-cyan-400"></i>
+                  <span>Abrir ⚖️ Bóveda Legal & Compliance</span>
+                </button>
+              </div>
+              <form onsubmit="guardarCorreoLegalDesdeConfig(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-700 mb-1">Correo Legal / Compliance Autorizado</label>
+                  <input id="cfg-input-boveda-correo" type="email" required placeholder="compliance@consultoria.com" class="corp-input w-full px-3 py-2 rounded-xl text-xs font-mono">
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-700 mb-1">Nombre del Responsable Jurídico</label>
+                  <input id="cfg-input-boveda-nombre" type="text" required placeholder="Auditoría Legal Externa" class="corp-input w-full px-3 py-2 rounded-xl text-xs">
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-700 mb-1">Contraseña de Acceso (Opcional)</label>
+                  <input id="cfg-input-boveda-clave" type="password" placeholder="Contraseña para login directo" class="corp-input w-full px-3 py-2 rounded-xl text-xs font-mono">
+                </div>
+                <div>
+                  <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer">
+                    <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                    <span>Autorizar Correo Legal</span>
+                  </button>
+                </div>
+              </form>
+              <div id="cfg-lista-correos-boveda" class="flex flex-wrap gap-2 pt-1"></div>
             </div>
           </div>
 
@@ -3140,7 +3410,18 @@
           </div>
         </div>
 
-        <button type="submit" class="w-full py-2.5 rounded-xl btn-corp-submit-modal font-bold text-xs shadow-md mt-2">
+        <!-- CHECKBOX LEGAL OBLIGATORIO: CONVENIO Y AUTORIZACIÓN RECÍPROCA DE LOGOS -->
+        <div class="p-3 rounded-xl bg-amber-50 border border-amber-300">
+          <label class="flex items-start gap-2.5 cursor-pointer select-none">
+            <input type="checkbox" id="check-legal-convenio-org" onchange="actualizarEstadoBotonCrearOrgLegal()" class="mt-0.5 w-4 h-4 rounded text-cyan-700 focus:ring-cyan-600 border-amber-400 cursor-pointer shrink-0">
+            <span class="text-[11px] text-slate-800 leading-snug">
+              <strong class="text-[#0a192f]">Certificación de Convenio y Uso de Marca (Ley 1581 de 2012):</strong>
+              Confirmo la existencia de Convenio / Alianza de Cooperación vigente con esta institución y la autorización expresa para el uso recíproco de logos, signos distintivos y aprovisionamiento del entorno académico.
+            </span>
+          </label>
+        </div>
+
+        <button type="submit" id="btn-submit-crear-org" disabled class="w-full py-2.5 rounded-xl btn-corp-submit-modal font-bold text-xs shadow-md mt-2 opacity-50 cursor-not-allowed">
           Aprovisionar y Desplegar Entorno
         </button>
       </form>
@@ -3715,6 +3996,17 @@
           </div>
         </div>
 
+        <!-- CHECKBOX LEGAL OBLIGATORIO EN MODAL DE EXCEL -->
+        <div class="p-3 rounded-xl bg-amber-50 border border-amber-300">
+          <label class="flex items-start gap-2.5 cursor-pointer select-none">
+            <input type="checkbox" id="check-legal-habeas-convenio" onchange="actualizarEstadoBotonExcelConvenioLegal()" class="mt-0.5 w-4 h-4 rounded text-cyan-700 focus:ring-cyan-600 border-amber-400 cursor-pointer shrink-0">
+            <span class="text-[11px] text-slate-800 leading-snug">
+              <strong class="text-[#0a192f]">Declaración Habeas Data (Ley 1581 de 2012 y Art. 7 Menores):</strong>
+              Declaro que la institución cuenta con la autorización expresa de los titulares y de los padres/acudientes legales (para menores de edad) de todos los registros incluidos en este archivo Excel.
+            </span>
+          </label>
+        </div>
+
         <div class="pt-2 flex items-center justify-between gap-3 border-t border-slate-100">
           <button type="button" onclick="descargarPlantillaExcel()" class="btn-excel-link">
             <i data-lucide="file-down" class="w-3.5 h-3.5"></i>
@@ -3724,7 +4016,7 @@
             <button type="button" onclick="cerrarModal('modal-cargar-excel-convenio')" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700">
               Cancelar
             </button>
-            <button type="submit" id="btn-submit-excel-convenio" class="btn-corp-primario">
+            <button type="submit" id="btn-submit-excel-convenio" disabled class="btn-corp-primario opacity-50 cursor-not-allowed">
               <i data-lucide="upload" class="w-4 h-4"></i>
               <span>Procesar y Cargar</span>
             </button>

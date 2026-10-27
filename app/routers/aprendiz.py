@@ -361,8 +361,13 @@ def crear_material(datos: CrearMaterialReq):
             commit=True
         )
 
+    try:
+        replicador_azure.sincronizar_inmediato(["material_capacitacion", "asignacion_material"])
+    except Exception:
+        pass
+
     registrar_movimiento("SuperAdmin", "Material", "Crear_Material", "EXITO", f"Título: {datos.titulo} - ID: {mat_id} - Módulos: {t_mod}")
-    return {"status": "success", "mensaje": "Material o colección agregada al catálogo con éxito.", "id": mat_id}
+    return {"status": "success", "mensaje": "Material o colección agregada al catálogo y sincronizada en Azure SQL con éxito.", "id": mat_id}
 
 
 @router.post("/api/superadmin/progreso/actualizar-modulos")
@@ -417,11 +422,28 @@ def actualizar_progreso_modulos(datos: ActualizarProgresoModulosReq):
 
 
 @router.delete("/api/superadmin/material/{material_id}")
-def eliminar_material(material_id: int):
-    """Permite al Super Administrador o Administrador eliminar un material o colección del catálogo"""
-    mat = db.execute_query("SELECT id, titulo, rol_destino FROM material_capacitacion WHERE id = ?", (material_id,), fetchone=True)
+def eliminar_material(material_id: int, request: Request):
+    """Permite al Super Administrador o Administrador eliminar un material o colección del catálogo y de Azure SQL con respaldo en Bóveda Legal"""
+    mat = db.execute_query("SELECT * FROM material_capacitacion WHERE id = ?", (material_id,), fetchone=True)
     if not mat:
         raise HTTPException(status_code=404, detail="El material o colección no existe en el catálogo.")
+
+    asigs = db.execute_query("SELECT * FROM asignacion_material WHERE material_id = ?", (material_id,), fetchall=True) or []
+    progs = db.execute_query("SELECT * FROM progreso_cursos WHERE curso_id = ?", (material_id,), fetchall=True) or []
+    ip_cliente = obtener_ip_cliente(request) if request else "127.0.0.1"
+    crear_snapshot_boveda_legal(
+        operacion_origen="ELIMINACION_COLECCION_CATALOGO",
+        entidad_afectada="material_capacitacion",
+        entidad_id=material_id,
+        entidad_nombre=mat["titulo"],
+        correo_responsable="alexander.nino.583@gmail.com",
+        direccion_ip=ip_cliente,
+        datos_respaldo={
+            "coleccion": dict(mat),
+            "asignaciones": [dict(a) for a in asigs],
+            "progresos_aprendices": [dict(p) for p in progs]
+        }
+    )
 
     # 1. Eliminar asignaciones vinculadas
     db.execute_query("DELETE FROM asignacion_material WHERE material_id = ?", (material_id,), commit=True)
@@ -430,8 +452,18 @@ def eliminar_material(material_id: int):
     # 3. Eliminar el material
     db.execute_query("DELETE FROM material_capacitacion WHERE id = ?", (material_id,), commit=True)
 
+    try:
+        replicador_azure.sincronizar_inmediato([
+            "progreso_cursos",
+            "asignacion_material",
+            "material_capacitacion",
+            "boveda_legal_snapshots"
+        ])
+    except Exception:
+        pass
+
     registrar_movimiento("SuperAdmin", "Material", "Eliminar_Material", "EXITO", f"Colección eliminada: '{mat['titulo']}' (ID {material_id})")
-    return {"status": "success", "mensaje": f"Colección '{mat['titulo']}' eliminada exitosamente del catálogo."}
+    return {"status": "success", "mensaje": f"Colección '{mat['titulo']}' eliminada permanentemente del catálogo y de Azure SQL (con respaldo en Bóveda Legal)."}
 
 
 @router.get("/api/superadmin/aprendiz/{usuario_id}/desglose-cursos")

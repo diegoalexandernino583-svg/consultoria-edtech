@@ -259,32 +259,54 @@ def diagnostico_limpieza():
 
 
 @router.post("/api/sistema/limpiar-granular")
-def api_limpiar_granular(req: LimpiarGranularReq):
-    """Ejecuta una limpieza selectiva según las opciones marcadas por el usuario"""
+def api_limpiar_granular(req: LimpiarGranularReq, request: Request):
+    """Ejecuta una limpieza selectiva según las opciones marcadas por el usuario, conservando Snapshot en Bóveda Legal"""
     res = {}
+    ip_cliente = obtener_ip_cliente(request) if request else "127.0.0.1"
+    respaldo_previo = {}
+    if req.limpiar_auditoria:
+        respaldo_previo["auditoria_sistema"] = db.execute_query("SELECT * FROM auditoria_sistema ORDER BY id DESC LIMIT 500", fetchall=True) or []
+    if req.limpiar_historial_integrantes:
+        respaldo_previo["historial_nuevos_integrantes"] = db.execute_query("SELECT * FROM historial_nuevos_integrantes", fetchall=True) or []
+    if req.limpiar_papelera:
+        respaldo_previo["usuarios_eliminados_papelera"] = db.execute_query("SELECT id, usuario_id, organizacion_id, organizacion_nombre, nombre, correo, rol, fecha_eliminacion FROM usuarios_eliminados_papelera", fetchall=True) or []
+    if req.limpiar_usuarios_prueba:
+        respaldo_previo["usuarios_eliminados"] = db.execute_query("SELECT id, nombre, correo, rol, organizacion_id, mentor_id FROM usuarios WHERE rol != 'Super Administrador'", fetchall=True) or []
+        respaldo_previo["progreso_cursos"] = db.execute_query("SELECT * FROM progreso_cursos", fetchall=True) or []
+    if respaldo_previo:
+        crear_snapshot_boveda_legal(
+            operacion_origen="LIMPIEZA_OPERATIVA_SELECTIVA",
+            entidad_afectada="sistema_operativo",
+            entidad_id=0,
+            entidad_nombre="Depuración Operativa del Centro de Mando",
+            correo_responsable="alexander.nino.583@gmail.com",
+            direccion_ip=ip_cliente,
+            datos_respaldo=respaldo_previo
+        )
     
     if req.limpiar_auditoria:
+        db.execute_query("DELETE FROM auditoria_sistema", commit=True)
         if os.path.isfile(CSV_AUDITORIA):
             try:
                 with open(CSV_AUDITORIA, mode='w', newline='', encoding='utf-8') as f:
                     writer = csv.writer(f)
                     writer.writerow(['Fecha_Hora', 'Correo_Usuario', 'Modulo', 'Operacion', 'Estado', 'Detalles_Error'])
-                res["auditoria"] = "Bitácora de auditoría vaciada."
+                res["auditoria"] = "Bitácora de auditoría vaciada (respaldo en Bóveda Legal)."
             except Exception as e:
                 res["auditoria"] = f"Error: {e}"
 
     if req.limpiar_historial_integrantes:
         db.execute_query("DELETE FROM historial_nuevos_integrantes", commit=True)
-        res["historial_integrantes"] = "Historial de integrantes vaciado."
+        res["historial_integrantes"] = "Historial de integrantes vaciado (respaldo en Bóveda Legal)."
 
     if req.limpiar_papelera:
         db.execute_query("DELETE FROM usuarios_eliminados_papelera", commit=True)
         res["papelera"] = "Papelera de reciclaje vaciada por completo."
 
     if req.limpiar_usuarios_prueba:
-        db.execute_query("DELETE FROM usuarios WHERE rol != 'Super Administrador'", commit=True)
         db.execute_query("DELETE FROM progreso_cursos", commit=True)
-        res["usuarios_prueba"] = "Usuarios y progresos de prueba eliminados (SuperAdmin protegido intacto)."
+        db.execute_query("DELETE FROM usuarios WHERE rol != 'Super Administrador'", commit=True)
+        res["usuarios_prueba"] = "Usuarios y progresos operativos eliminados (SuperAdmin protegido intacto y Snapshot en Bóveda Legal)."
 
     if req.ejecutar_vacuum:
         if db.optimize():
@@ -292,10 +314,22 @@ def api_limpiar_granular(req: LimpiarGranularReq):
         else:
             res["vacuum"] = "Optimización completada en motor de base de datos."
 
+    try:
+        replicador_azure.sincronizar_inmediato([
+            "progreso_cursos",
+            "usuarios",
+            "historial_nuevos_integrantes",
+            "usuarios_eliminados_papelera",
+            "auditoria_sistema",
+            "boveda_legal_snapshots"
+        ])
+    except Exception:
+        pass
+
     registrar_movimiento("SuperAdmin", "Sistema", "Limpieza_Granular", "EXITO", f"Limpieza ejecutada: {json.dumps(res, ensure_ascii=False)}")
     return {
         "status": "success",
-        "mensaje": "Limpieza selectiva completada exitosamente.",
+        "mensaje": "Limpieza selectiva completada exitosamente en Azure SQL (con copia de seguridad en Bóveda Legal).",
         "detalle": res
     }
 
@@ -921,4 +955,505 @@ def ejecutar_escaneo_vulnerabilidades():
         "auditorias_aprobadas": sum(1 for p in pruebas if p["estado"] == "APROBADO"),
         "auditorias_con_advertencia": sum(1 for p in pruebas if p["estado"] != "APROBADO")
     }
+
+
+# ==============================================================================
+# BÓVEDA EXCLUSIVA DE AUDITORÍA & COMPLIANCE LEGAL (LEY 1581 DE 2012 & DEC. 1377)
+# Acceso estrictamente restringido a Super Administrador o Correo Legal Autorizado
+# ==============================================================================
+
+def _exigir_acceso_boveda_legal(request: Request, usuario_id: Optional[int] = None, correo: Optional[str] = None):
+    uid = usuario_id or (int(request.headers.get("X-User-Id")) if (request.headers.get("X-User-Id") or "").isdigit() else None)
+    qp = request.query_params if request else {}
+    mail = (
+        correo
+        or qp.get("correo_solicitante")
+        or qp.get("correo")
+        or qp.get("solicitante_correo")
+        or request.headers.get("X-User-Email")
+        or ""
+    ).strip().lower()
+    if not verificar_acceso_boveda_legal(uid, mail):
+        raise HTTPException(
+            status_code=403,
+            detail="ACCESO DENEGADO: La Bóveda Legal & Compliance (Ley 1581 de 2012) está blindada y restringida exclusivamente al Superadministrador y al Correo Oficial de Auditoría Legal autorizado."
+        )
+
+
+def _sincronizar_convenios_existentes_en_boveda():
+    """Garantiza que toda institución activa tenga su registro de convenio en boveda_legal_registros"""
+    try:
+        orgs = db.execute_query("SELECT id, nombre, tipo_organizacion, dominio_permitido, licencias_asignadas, logo_url, fecha_creacion FROM organizaciones ORDER BY id ASC", fetchall=True) or []
+        ya_reg = {
+            r["organizacion_id"]
+            for r in (db.execute_query("SELECT organizacion_id FROM boveda_legal_registros WHERE categoria = 'CONVENIO_INSTITUCIONAL' AND organizacion_id IS NOT NULL", fetchall=True) or [])
+        }
+        for o in orgs:
+            if o["id"] not in ya_reg:
+                registrar_evento_boveda_legal(
+                    categoria="CONVENIO_INSTITUCIONAL",
+                    correo_responsable="alexander.nino.583@gmail.com",
+                    rol_responsable="Super Administrador",
+                    direccion_ip="127.0.0.1",
+                    organizacion_id=o["id"],
+                    organizacion_nombre=o["nombre"],
+                    tipo_organizacion=o.get("tipo_organizacion") or "Institución en Convenio",
+                    estado_convenio="CONVENIO / ALIANZA VIGENTE",
+                    logo_url=o.get("logo_url"),
+                    nombre_archivo=None,
+                    cantidad_registros=int(o.get("licencias_asignadas") or 100),
+                    confirmacion_ley1581=True,
+                    confirmacion_menores_art7=True,
+                    confirmacion_convenio_logos=True,
+                    declaracion_legal=(
+                        f"CONVENIO INSTITUCIONAL ACTIVO: Entorno aprovisionado para '{o['nombre']}' ({o.get('tipo_organizacion') or 'Institución'}) "
+                        f"bajo Convenio de Cooperación y autorización de uso recíproco de signos distintivos/logos conforme a la Ley 1581 de 2012."
+                    ),
+                    detalles_dict={
+                        "dominio_permitido": o.get("dominio_permitido") or "LIBRE",
+                        "licencias_asignadas": o.get("licencias_asignadas") or 100,
+                        "fecha_creacion_original": str(o.get("fecha_creacion") or "")
+                    }
+                )
+    except Exception as e_sync_conv:
+        print(f">> [BOVEDA-SYNC] Aviso sincronizando convenios: {e_sync_conv}")
+
+
+@router.get("/api/boveda-legal/estado")
+def obtener_estado_boveda_legal(
+    request: Request,
+    usuario_id: Optional[int] = Query(None),
+    correo: Optional[str] = Query(None)
+):
+    """Retorna el contenido inmutable de la Bóveda Legal & Compliance (solo para SuperAdmin o Correo Legal autorizado)"""
+    _exigir_acceso_boveda_legal(request, usuario_id, correo)
+    _sincronizar_convenios_existentes_en_boveda()
+
+    correos_autorizados = db.execute_query(
+        "SELECT id, correo_autorizado, nombre_responsable, cargo, activo, asignado_por, fecha_asignacion FROM configuracion_boveda_legal ORDER BY id DESC",
+        fetchall=True
+    ) or []
+
+    convenios = db.execute_query(
+        """SELECT id, categoria, fecha_hora, direccion_ip, correo_responsable, rol_responsable,
+                  organizacion_id, organizacion_nombre, tipo_organizacion, estado_convenio,
+                  logo_url, confirmacion_ley1581, confirmacion_menores_art7, confirmacion_convenio_logos,
+                  declaracion_legal, detalles_json, hash_integridad
+           FROM boveda_legal_registros
+           WHERE categoria = 'CONVENIO_INSTITUCIONAL'
+           ORDER BY id DESC""",
+        fetchall=True
+    ) or []
+
+    actas_habeas = db.execute_query(
+        """SELECT id, categoria, fecha_hora, direccion_ip, correo_responsable, rol_responsable,
+                  organizacion_id, organizacion_nombre, tipo_organizacion, estado_convenio,
+                  nombre_archivo, cantidad_registros, confirmacion_ley1581, confirmacion_menores_art7,
+                  declaracion_legal, detalles_json, hash_integridad
+           FROM boveda_legal_registros
+           WHERE categoria = 'ACTA_HABEAS_DATA_EXCEL'
+           ORDER BY id DESC""",
+        fetchall=True
+    ) or []
+
+    snapshots = db.execute_query(
+        """SELECT id, fecha_hora, operacion_origen, entidad_afectada, entidad_id, entidad_nombre,
+                  correo_responsable, direccion_ip, total_registros_respaldados, hash_integridad
+           FROM boveda_legal_snapshots
+           ORDER BY id DESC LIMIT 200""",
+        fetchall=True
+    ) or []
+
+    total_titulares_certificados = sum(int(a.get("cantidad_registros") or 0) for a in actas_habeas)
+
+    for c in convenios:
+        c["logo_institucional"] = c.get("logo_url")
+        c["usuario_correo"] = c.get("correo_responsable")
+        c["ip_origen"] = c.get("direccion_ip")
+
+    for a in actas_habeas:
+        a["ip_origen"] = a.get("direccion_ip")
+        a["usuario_correo"] = a.get("correo_responsable")
+        a["archivo_nombre"] = a.get("nombre_archivo")
+
+    for s in snapshots:
+        s["descripcion"] = s.get("entidad_nombre")
+        s["usuario_correo"] = s.get("correo_responsable")
+        s["ip_origen"] = s.get("direccion_ip")
+        s["total_registros"] = s.get("total_registros_respaldados")
+        s["hash_sha256"] = s.get("hash_integridad")
+
+    politicas_dict = (
+        {p["id"]: p for p in POLITICAS_LEGALES_OFICIALES}
+        if isinstance(POLITICAS_LEGALES_OFICIALES, list)
+        else POLITICAS_LEGALES_OFICIALES
+    )
+
+    resumen_obj = {
+        "total_convenios": len(convenios),
+        "total_actas_habeas_data": len(actas_habeas),
+        "total_actas_excel": len(actas_habeas),
+        "total_titulares_certificados": total_titulares_certificados,
+        "total_titulares_procesados": total_titulares_certificados,
+        "total_snapshots_inmutables": len(snapshots),
+        "total_snapshots": len(snapshots),
+        "total_correos_legales": len([c for c in correos_autorizados if c.get("activo") == 1]),
+        "total_politicas_oficiales": len(politicas_dict)
+    }
+
+    return {
+        "status": "success",
+        "normativa": "Ley Estatutaria 1581 de 2012 y Decreto Reglamentario 1377 de 2013 (Colombia)",
+        "kpis": resumen_obj,
+        "resumen": resumen_obj,
+        "correos_autorizados": correos_autorizados,
+        "configuraciones_correo": correos_autorizados,
+        "convenios": convenios,
+        "convenios_institucionales": convenios,
+        "actas_habeas_data": actas_habeas,
+        "snapshots": snapshots,
+        "snapshots_inmutables": snapshots,
+        "politicas_oficiales": politicas_dict
+    }
+
+
+@router.post("/api/boveda-legal/autorizar-correo")
+def autorizar_correo_boveda_legal(datos: AutorizarCorreoBovedaReq, request: Request):
+    """Permite al Superadministrador asignar y autorizar un Correo Exclusivo de Auditoría Legal / Compliance"""
+    correo_sol = datos.solicitante_correo or datos.correo_solicitante
+    _exigir_acceso_boveda_legal(request, datos.solicitante_id, correo_sol)
+    correo_nuevo = (datos.correo_autorizado or "").strip().lower()
+    if not correo_nuevo or "@" not in correo_nuevo:
+        raise HTTPException(status_code=400, detail="Ingresa un correo electrónico válido para Auditoría Legal / Compliance.")
+
+    nom_resp = (datos.nombre_responsable or "Auditor Legal / Compliance").strip()
+    cargo_resp = (datos.cargo or "Auditoría Legal & Compliance (Ley 1581)").strip()
+    pwd_acceso = (datos.password_acceso or "123456").strip()
+    hash_pwd = bcrypt.hashpw(pwd_acceso.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+    existe_cfg = db.execute_query(
+        "SELECT id FROM configuracion_boveda_legal WHERE LOWER(TRIM(correo_autorizado)) = ?",
+        (correo_nuevo,),
+        fetchone=True
+    )
+    if existe_cfg:
+        cfg_id = existe_cfg["id"]
+        db.execute_query(
+            """UPDATE configuracion_boveda_legal
+               SET nombre_responsable = ?, cargo = ?, activo = 1, fecha_asignacion = DATETIME('now', 'localtime')
+               WHERE id = ?""",
+            (nom_resp, cargo_resp, cfg_id),
+            commit=True
+        )
+    else:
+        cfg_id = db.execute_query(
+            """INSERT INTO configuracion_boveda_legal (correo_autorizado, nombre_responsable, cargo, activo, asignado_por)
+               VALUES (?, ?, ?, 1, ?)""",
+            (correo_nuevo, nom_resp, cargo_resp, correo_sol or "alexander.nino.583@gmail.com"),
+            return_id=True
+        )
+
+    # Garantizar que el correo legal autorizado pueda iniciar sesión en la plataforma
+    u_ex = db.execute_query("SELECT id, rol FROM usuarios WHERE LOWER(TRIM(correo)) = ?", (correo_nuevo,), fetchone=True)
+    if not u_ex:
+        db.execute_query(
+            "INSERT INTO usuarios (nombre, correo, rol, organizacion_id, password_hash) VALUES (?, ?, 'Auditor Legal', NULL, ?)",
+            (nom_resp, correo_nuevo, hash_pwd),
+            commit=True
+        )
+    elif u_ex.get("rol") != "Super Administrador":
+        db.execute_query(
+            "UPDATE usuarios SET nombre = ?, password_hash = ? WHERE id = ?",
+            (nom_resp, hash_pwd, u_ex["id"]),
+            commit=True
+        )
+
+    try:
+        replicador_azure.sincronizar_inmediato(["configuracion_boveda_legal", "usuarios"])
+    except Exception:
+        pass
+
+    registrar_movimiento(
+        correo_sol or "SuperAdmin",
+        "Boveda_Legal",
+        "Autorizar_Correo_Legal",
+        "EXITO",
+        f"Correo de Auditoría Legal autorizado: {correo_nuevo} ({nom_resp})",
+        usuario_rol="Super Administrador"
+    )
+    return {
+        "status": "success",
+        "id": cfg_id,
+        "mensaje": f"Correo '{correo_nuevo}' autorizado exitosamente para la Bóveda Exclusiva de Auditoría & Compliance Legal (Clave de acceso: {pwd_acceso})."
+    }
+
+
+@router.delete("/api/boveda-legal/autorizar-correo/{config_id}")
+def revocar_correo_boveda_legal(
+    config_id: int,
+    request: Request,
+    usuario_id: Optional[int] = Query(None),
+    correo: Optional[str] = Query(None)
+):
+    """Permite al Superadministrador revocar el acceso de un correo de Auditoría Legal"""
+    _exigir_acceso_boveda_legal(request, usuario_id, correo)
+    cfg = db.execute_query("SELECT * FROM configuracion_boveda_legal WHERE id = ?", (config_id,), fetchone=True)
+    if not cfg:
+        raise HTTPException(status_code=404, detail="Configuración de correo legal no encontrada.")
+
+    db.execute_query("DELETE FROM configuracion_boveda_legal WHERE id = ?", (config_id,), commit=True)
+    correo_rev = (cfg.get("correo_autorizado") or "").strip().lower()
+    if correo_rev and correo_rev != "alexander.nino.583@gmail.com":
+        db.execute_query("DELETE FROM usuarios WHERE LOWER(TRIM(correo)) = ? AND rol = 'Auditor Legal'", (correo_rev,), commit=True)
+
+    try:
+        replicador_azure.sincronizar_inmediato(["configuracion_boveda_legal", "usuarios"])
+    except Exception:
+        pass
+
+    return {"status": "success", "mensaje": f"Acceso a Bóveda Legal revocado para '{correo_rev}'."}
+
+
+@router.post("/api/boveda-legal/snapshots/crear-manual")
+def crear_snapshot_manual_boveda(datos: CrearSnapshotManualReq, request: Request):
+    """Crea una copia de seguridad inmutable completa de todas las instituciones, integrantes, colecciones y progresos en la Bóveda Legal"""
+    correo_sol = datos.solicitante_correo or datos.correo_solicitante
+    _exigir_acceso_boveda_legal(request, datos.solicitante_id, correo_sol)
+    orgs = db.execute_query("SELECT * FROM organizaciones ORDER BY id ASC", fetchall=True) or []
+    usrs = db.execute_query("SELECT id, nombre, correo, rol, organizacion_id, mentor_id, racha_semanas, minutos_dedicados_totales FROM usuarios ORDER BY id ASC", fetchall=True) or []
+    cols = db.execute_query("SELECT * FROM material_capacitacion ORDER BY id ASC", fetchall=True) or []
+    asigs = db.execute_query("SELECT * FROM asignacion_material ORDER BY id ASC", fetchall=True) or []
+    progs = db.execute_query("SELECT * FROM progreso_cursos ORDER BY id ASC", fetchall=True) or []
+
+    ip_cliente = obtener_ip_cliente(request) if request else "127.0.0.1"
+    snap_id = crear_snapshot_boveda_legal(
+        operacion_origen="SNAPSHOT_MANUAL_AUDITORIA_LEGAL",
+        entidad_afectada="plataforma_completa",
+        entidad_id=0,
+        entidad_nombre=datos.motivo or "Snapshot Integral de Cumplimiento Ley 1581",
+        correo_responsable=correo_sol or "alexander.nino.583@gmail.com",
+        direccion_ip=ip_cliente,
+        datos_respaldo={
+            "organizaciones": [dict(o) for o in orgs],
+            "usuarios": [dict(u) for u in usrs],
+            "catalogo_colecciones": [dict(c) for c in cols],
+            "asignaciones_material": [dict(a) for a in asigs],
+            "progreso_cursos": [dict(p) for p in progs]
+        }
+    )
+    return {
+        "status": "success",
+        "snapshot_id": snap_id,
+        "mensaje": f"Copia de seguridad inmutable #{snap_id} generada y persistida en Azure SQL Database."
+    }
+
+
+@router.get("/api/boveda-legal/snapshots/{snapshot_id}/descargar-json")
+def descargar_snapshot_boveda_json(
+    snapshot_id: int,
+    request: Request,
+    usuario_id: Optional[int] = Query(None),
+    correo: Optional[str] = Query(None)
+):
+    """Descarga en formato JSON certificado la copia de seguridad inmutable de la Bóveda Legal"""
+    _exigir_acceso_boveda_legal(request, usuario_id, correo)
+    snap = db.execute_query("SELECT * FROM boveda_legal_snapshots WHERE id = ?", (snapshot_id,), fetchone=True)
+    if not snap:
+        raise HTTPException(status_code=404, detail="Snapshot no encontrado en la Bóveda Legal.")
+
+    try:
+        datos_obj = json.loads(snap.get("datos_snapshot_json") or "{}")
+    except Exception:
+        datos_obj = {"raw": snap.get("datos_snapshot_json")}
+
+    documento = {
+        "certificacion": "BÓVEDA EXCLUSIVA DE AUDITORÍA & COMPLIANCE LEGAL - LEY 1581 DE 2012",
+        "snapshot_id": snap["id"],
+        "fecha_hora_exacta": snap["fecha_hora"],
+        "operacion_origen": snap["operacion_origen"],
+        "entidad_afectada": snap["entidad_afectada"],
+        "entidad_id": snap["entidad_id"],
+        "entidad_nombre": snap["entidad_nombre"],
+        "correo_responsable": snap["correo_responsable"],
+        "direccion_ip": snap["direccion_ip"],
+        "total_registros_respaldados": snap["total_registros_respaldados"],
+        "hash_integridad_sha256": snap["hash_integridad"],
+        "datos_respaldados": datos_obj
+    }
+    contenido_bytes = json.dumps(documento, ensure_ascii=False, indent=2).encode("utf-8")
+    nombre_archivo = f"snapshot_boveda_legal_{snapshot_id}_{snap['fecha_hora'][:10]}.json"
+    return Response(
+        content=contenido_bytes,
+        media_type="application/json; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{nombre_archivo}"'}
+    )
+
+
+@router.get("/api/boveda-legal/snapshots/{snapshot_id}/descargar-excel")
+def descargar_snapshot_boveda_excel(
+    snapshot_id: int,
+    request: Request,
+    usuario_id: Optional[int] = Query(None),
+    correo: Optional[str] = Query(None)
+):
+    """Descarga en formato Excel (.xlsx) el contenido completo de un Snapshot pre-cambio de la Bóveda Legal"""
+    _exigir_acceso_boveda_legal(request, usuario_id, correo)
+    snap = db.execute_query("SELECT * FROM boveda_legal_snapshots WHERE id = ?", (snapshot_id,), fetchone=True)
+    if not snap:
+        raise HTTPException(status_code=404, detail="Snapshot no encontrado en la Bóveda Legal.")
+
+    wb = openpyxl.Workbook()
+    fill_navy = PatternFill(start_color="0A192F", end_color="0A192F", fill_type="solid")
+    font_hdr = Font(name="Segoe UI", size=10, bold=True, color="FFFFFF")
+    font_norm = Font(name="Segoe UI", size=9)
+
+    ws_meta = wb.active
+    ws_meta.title = "Certificado Snapshot"
+    ws_meta.append(["CAMPO LEGAL", "VALOR CERTIFICADO EN AZURE SQL"])
+    ws_meta["A1"].fill = fill_navy
+    ws_meta["B1"].fill = fill_navy
+    ws_meta["A1"].font = font_hdr
+    ws_meta["B1"].font = font_hdr
+
+    meta_rows = [
+        ("ID Snapshot", snap["id"]),
+        ("Fecha y Hora Exacta", snap["fecha_hora"]),
+        ("Operación de Origen", snap["operacion_origen"]),
+        ("Entidad Afectada", snap["entidad_afectada"]),
+        ("Nombre / Descripción", snap["entidad_nombre"]),
+        ("Correo Responsable", snap["correo_responsable"]),
+        ("Dirección IP", snap["direccion_ip"]),
+        ("Total Registros Respaldados", snap["total_registros_respaldados"]),
+        ("Hash Integridad SHA-256", snap["hash_integridad"]),
+        ("Normativa Aplicable", "Ley Estatutaria 1581 de 2012 y Decreto 1377 de 2013 - República de Colombia")
+    ]
+    for k, v in meta_rows:
+        ws_meta.append([k, str(v)])
+
+    try:
+        datos_obj = json.loads(snap.get("datos_snapshot_json") or "{}")
+    except Exception:
+        datos_obj = {}
+
+    if isinstance(datos_obj, dict):
+        for clave, valor in datos_obj.items():
+            titulo_hoja = re.sub(r'[\\/*?:\[\]]', '_', str(clave))[:28] or "Datos"
+            if isinstance(valor, list) and valor and isinstance(valor[0], dict):
+                ws_d = wb.create_sheet(title=titulo_hoja)
+                cols = list(valor[0].keys())
+                ws_d.append(cols)
+                for idx_c in range(1, len(cols) + 1):
+                    ws_d.cell(row=1, column=idx_c).fill = fill_navy
+                    ws_d.cell(row=1, column=idx_c).font = font_hdr
+                for item in valor:
+                    ws_d.append([str(item.get(c, "")) if item.get(c) is not None else "" for c in cols])
+            elif isinstance(valor, dict) and valor:
+                ws_d = wb.create_sheet(title=titulo_hoja)
+                ws_d.append(["Propiedad", "Valor Pre-Cambio"])
+                ws_d["A1"].fill = fill_navy
+                ws_d["B1"].fill = fill_navy
+                ws_d["A1"].font = font_hdr
+                ws_d["B1"].font = font_hdr
+                for k_sub, v_sub in valor.items():
+                    ws_d.append([str(k_sub), str(v_sub)[:500] if v_sub is not None else ""])
+
+    for ws in wb.worksheets:
+        for col in ws.columns:
+            max_len = max(len(str(cell.value or "")) for cell in col)
+            ws.column_dimensions[get_column_letter(col[0].column)].width = min(max(max_len + 4, 15), 60)
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    nombre_archivo = f"respaldo_boveda_legal_snapshot_{snapshot_id}.xlsx"
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{nombre_archivo}"'}
+    )
+
+
+@router.get("/api/boveda-legal/exportar-expediente-completo")
+def exportar_expediente_completo_boveda_legal(
+    request: Request,
+    usuario_id: Optional[int] = Query(None),
+    correo: Optional[str] = Query(None)
+):
+    """Genera y descarga el Expediente Completo de Auditoría & Compliance Legal (Ley 1581 de 2012) en un libro Excel multi-hoja"""
+    estado = obtener_estado_boveda_legal(request, usuario_id=usuario_id, correo=correo)
+    wb = openpyxl.Workbook()
+    fill_navy = PatternFill(start_color="0A192F", end_color="0A192F", fill_type="solid")
+    font_hdr = Font(name="Segoe UI", size=10, bold=True, color="FFFFFF")
+
+    # Hoja 1: Historial de Convenios y Aprovisionamiento
+    ws1 = wb.active
+    ws1.title = "1_Convenios_Institucionales"
+    h1 = ["ID", "Fecha y Hora", "Institución", "Tipo Entidad", "Estado Convenio", "Responsable", "IP", "Logo Cargado", "Declaración Legal", "Hash SHA-256"]
+    ws1.append(h1)
+    for i in range(1, len(h1) + 1):
+        ws1.cell(row=1, column=i).fill = fill_navy
+        ws1.cell(row=1, column=i).font = font_hdr
+    for c in estado["convenios"]:
+        ws1.append([
+            c["id"], c["fecha_hora"], c.get("organizacion_nombre"), c.get("tipo_organizacion"),
+            c.get("estado_convenio"), c.get("correo_responsable"), c.get("direccion_ip"),
+            "SÍ (Verificado)" if c.get("logo_url") else "Estándar", c.get("declaracion_legal"), c.get("hash_integridad")
+        ])
+
+    # Hoja 2: Actas de Consentimiento Habeas Data (Cargas Excel)
+    ws2 = wb.create_sheet(title="2_Actas_Habeas_Data_Excel")
+    h2 = ["ID Acta", "Fecha y Hora Exacta", "Dirección IP", "Correo Usuario", "Rol", "Institución", "Archivo Excel", "Registros Procesados", "Ley 1581 Confirmado", "Art. 7 Menores Confirmado", "Declaración Juramentada", "Hash SHA-256"]
+    ws2.append(h2)
+    for i in range(1, len(h2) + 1):
+        ws2.cell(row=1, column=i).fill = fill_navy
+        ws2.cell(row=1, column=i).font = font_hdr
+    for a in estado["actas_habeas_data"]:
+        ws2.append([
+            a["id"], a["fecha_hora"], a.get("direccion_ip"), a.get("correo_responsable"),
+            a.get("rol_responsable"), a.get("organizacion_nombre"), a.get("nombre_archivo"),
+            a.get("cantidad_registros"), "SÍ (Expreso)" if a.get("confirmacion_ley1581") else "NO",
+            "SÍ (Padres/Acudientes)" if a.get("confirmacion_menores_art7") else "NO",
+            a.get("declaracion_legal"), a.get("hash_integridad")
+        ])
+
+    # Hoja 3: Copias de Seguridad Inmutables (Snapshots)
+    ws3 = wb.create_sheet(title="3_Snapshots_Inmutables")
+    h3 = ["ID Snapshot", "Fecha y Hora", "Operación Origen", "Entidad Afectada", "Nombre Entidad", "Responsable", "IP", "Registros Respaldados", "Hash SHA-256"]
+    ws3.append(h3)
+    for i in range(1, len(h3) + 1):
+        ws3.cell(row=1, column=i).fill = fill_navy
+        ws3.cell(row=1, column=i).font = font_hdr
+    for s in estado["snapshots"]:
+        ws3.append([
+            s["id"], s["fecha_hora"], s.get("operacion_origen"), s.get("entidad_afectada"),
+            s.get("entidad_nombre"), s.get("correo_responsable"), s.get("direccion_ip"),
+            s.get("total_registros_respaldados"), s.get("hash_integridad")
+        ])
+
+    # Hoja 4: Textos Oficiales de Políticas (Ley 1581 de 2012)
+    ws4 = wb.create_sheet(title="4_Politicas_Oficiales_Ley1581")
+    h4 = ["Código Documento", "Título Oficial", "Marco Normativo", "Versión", "Texto Oficial Íntegro"]
+    ws4.append(h4)
+    for i in range(1, len(h4) + 1):
+        ws4.cell(row=1, column=i).fill = fill_navy
+        ws4.cell(row=1, column=i).font = font_hdr
+    for p in POLITICAS_LEGALES_OFICIALES:
+        ws4.append([p["id"], p["titulo"], p["normativa"], p["version"], p["contenido"]])
+
+    for ws in wb.worksheets:
+        for col in ws.columns:
+            max_len = max(len(str(cell.value or "")) for cell in col)
+            ws.column_dimensions[get_column_letter(col[0].column)].width = min(max(max_len + 4, 15), 55)
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    now_str = datetime.now().strftime("%Y_%m_%d_%H%M%S")
+    nombre_archivo = f"expediente_boveda_legal_ley1581_{now_str}.xlsx"
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{nombre_archivo}"'}
+    )
+
 

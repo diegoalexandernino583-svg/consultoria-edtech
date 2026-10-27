@@ -303,6 +303,7 @@ class ReplicadorAzure:
         self.columnas_azure: Dict[str, List[str]] = {}
         self.identidad_azure: Dict[str, bool] = {}
         self._lock = threading.Lock()
+        self._op_lock = threading.Lock()
         self._evento = threading.Event()
         self._ultimo_intento_conexion = 0.0
         self._ultima_reconciliacion = 0.0
@@ -325,6 +326,23 @@ class ReplicadorAzure:
                 self.pendientes.add("*")
         self._evento.set()
 
+    def sincronizar_inmediato(self, tablas: Optional[List[str]] = None) -> int:
+        """Fuerza la réplica inmediata en tiempo real hacia Azure SQL de las tablas indicadas"""
+        if not self.habilitado:
+            return 0
+        with self._lock:
+            if tablas:
+                for t in tablas:
+                    self.pendientes.add(t)
+            else:
+                self.pendientes.add("*")
+        self._evento.set()
+        try:
+            self._ciclo()
+        except Exception:
+            pass
+        return 1
+
     def forzar_sincronizacion_total(self):
         self._ultimo_intento_conexion = 0.0
         self.marcar(None)
@@ -342,20 +360,75 @@ class ReplicadorAzure:
 
     # ---------- Internos ----------
     def _tablas_locales(self, sl) -> List[str]:
-        return [r[0] for r in sl.execute(
+        filas = [r[0] for r in sl.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT IN ('logs_acceso', 'codigos_2fa_persistentes')"
         )]
+        prioridad = [
+            "progreso_cursos",
+            "progreso_quizzes",
+            "asignacion_material",
+            "quizzes_evaluaciones",
+            "registro_actividades_tiempo",
+            "historial_nuevos_integrantes",
+            "usuarios",
+            "material_capacitacion",
+            "organizaciones",
+            "configuracion_boveda_legal",
+            "boveda_legal_registros",
+            "boveda_legal_snapshots",
+        ]
+        return [t for t in prioridad if t in filas] + [t for t in filas if t not in prioridad]
+
+    def _limpiar_restricciones_legadas_azure(self):
+        """Elimina llaves foráneas legadas en Azure SQL que bloqueaban borrados de organizaciones/cursos/usuarios y normaliza columnas de texto"""
+        if not self.conn:
+            return
+        cur = None
+        try:
+            cur = self.conn.cursor()
+            cur.execute("""
+                SELECT fk.name, tp.name
+                FROM sys.foreign_keys fk
+                INNER JOIN sys.tables tp ON fk.parent_object_id = tp.object_id
+            """)
+            fks = cur.fetchall()
+            for fk_name, table_name in fks:
+                try:
+                    cur.execute(f"ALTER TABLE [{table_name}] DROP CONSTRAINT [{fk_name}]")
+                except Exception:
+                    pass
+            try:
+                cur.execute("ALTER TABLE [organizaciones] ALTER COLUMN [fecha_creacion] NVARCHAR(100) NULL")
+            except Exception:
+                pass
+            try:
+                cur.execute("ALTER TABLE [organizaciones] ALTER COLUMN [nombre] NVARCHAR(MAX) NULL")
+            except Exception:
+                pass
+            self.conn.commit()
+        except Exception:
+            try:
+                self.conn.rollback()
+            except Exception:
+                pass
+        finally:
+            if cur:
+                try:
+                    cur.close()
+                except Exception:
+                    pass
 
     def _conectar(self) -> bool:
         if not (SERVER and DATABASE and USERNAME and PASSWORD):
             self.ultimo_error = "Credenciales de Azure SQL incompletas en .env"
             return False
         ahora = time.time()
-        if ahora - self._ultimo_intento_conexion < 20:
+        if ahora - self._ultimo_intento_conexion < 10:
             return False
         self._ultimo_intento_conexion = ahora
         try:
             self.conn = pyodbc.connect(AZURE_CONN_STR.replace("Connection Timeout=8", "Connection Timeout=30"), timeout=30, autocommit=False)
+            self._limpiar_restricciones_legadas_azure()
             self.conectado = True
             self.ultimo_error = ""
             self.cache.clear()
@@ -444,34 +517,36 @@ class ReplicadorAzure:
             locales[t[idx]] = t
         remoto = self.cache[tabla]
 
+        es_inmutable = tabla in ("boveda_legal_registros", "boveda_legal_snapshots")
         nuevos = [v for k, v in locales.items() if k not in remoto]
-        cambiados = [v for k, v in locales.items() if k in remoto and remoto[k] != v]
-        borrados = [k for k in remoto if k not in locales]
+        cambiados = [] if es_inmutable else [v for k, v in locales.items() if k in remoto and remoto[k] != v]
+        borrados = [] if es_inmutable else [k for k in remoto if k not in locales]
         if not (nuevos or cambiados or borrados):
             return 0
 
         cur.fast_executemany = False
+        borrados_ok = []
+        cambiados_ok = []
+        nuevos_ok = []
 
         if borrados:
             for k in borrados:
                 try:
                     cur.execute(f"DELETE FROM [{tabla}] WHERE [id] = ?", (k,))
-                except Exception:
-                    pass
+                    borrados_ok.append(k)
+                except Exception as e_del:
+                    print(f">> [AZURE-DEL] Aviso eliminando id={k} en {tabla}: {str(e_del)[:140]}")
         if cambiados:
             otras = [c for c in cols if c != "id"]
             if otras:
                 set_sql = ", ".join(f"[{c}] = ?" for c in otras)
-                filas = [tuple(v[cols.index(c)] for c in otras) + (v[idx],) for v in cambiados]
-                try:
-                    cur.executemany(f"UPDATE [{tabla}] SET {set_sql} WHERE [id] = ?", filas)
-                except Exception:
-                    cur.fast_executemany = False
-                    for f in filas:
-                        try:
-                            cur.execute(f"UPDATE [{tabla}] SET {set_sql} WHERE [id] = ?", f)
-                        except Exception:
-                            pass
+                for v in cambiados:
+                    f = tuple(v[cols.index(c)] for c in otras) + (v[idx],)
+                    try:
+                        cur.execute(f"UPDATE [{tabla}] SET {set_sql} WHERE [id] = ?", f)
+                        cambiados_ok.append(v)
+                    except Exception as e_upd:
+                        print(f">> [AZURE-UPD] Aviso actualizando id={v[idx]} en {tabla}: {str(e_upd)[:140]}")
         if nuevos:
             marcas = ", ".join("?" for _ in cols)
             identidad = self.identidad_azure.get(tabla)
@@ -481,15 +556,12 @@ class ReplicadorAzure:
                 except Exception:
                     pass
             try:
-                try:
-                    cur.executemany(f"INSERT INTO [{tabla}] ({lista}) VALUES ({marcas})", nuevos)
-                except Exception:
-                    cur.fast_executemany = False
-                    for n in nuevos:
-                        try:
-                            cur.execute(f"INSERT INTO [{tabla}] ({lista}) VALUES ({marcas})", n)
-                        except Exception:
-                            pass
+                for n in nuevos:
+                    try:
+                        cur.execute(f"INSERT INTO [{tabla}] ({lista}) VALUES ({marcas})", n)
+                        nuevos_ok.append(n)
+                    except Exception as e_ins:
+                        print(f">> [AZURE-INS] Aviso insertando id={n[idx]} en {tabla}: {str(e_ins)[:140]}")
             finally:
                 if identidad:
                     try:
@@ -500,73 +572,75 @@ class ReplicadorAzure:
             self.conn.commit()
         except Exception:
             self.conn.rollback()
+            return 0
 
-        for k in borrados:
+        for k in borrados_ok:
             remoto.pop(k, None)
-        for v in nuevos + cambiados:
+        for v in nuevos_ok + cambiados_ok:
             remoto[v[idx]] = v
-        return len(nuevos) + len(cambiados) + len(borrados)
+        return len(nuevos_ok) + len(cambiados_ok) + len(borrados_ok)
 
     def _ciclo(self):
-        with self._lock:
-            pendientes = set(self.pendientes)
-            self.pendientes.clear()
-        if time.time() - self._ultima_reconciliacion > self.INTERVALO_RECONCILIACION:
-            pendientes.add("*")
-        if not pendientes:
-            return
-        if not self.conectado and not self._conectar():
+        with self._op_lock:
             with self._lock:
-                self.pendientes |= pendientes
-            return
+                pendientes = set(self.pendientes)
+                self.pendientes.clear()
+            if time.time() - self._ultima_reconciliacion > self.INTERVALO_RECONCILIACION:
+                pendientes.add("*")
+            if not pendientes:
+                return
+            if not self.conectado and not self._conectar():
+                with self._lock:
+                    self.pendientes |= pendientes
+                return
 
-        sl = sqlite3.connect(SQLITE_DB, timeout=10)
-        try:
-            todas = self._tablas_locales(sl)
-            objetivo = todas if "*" in pendientes else [t for t in todas if t in pendientes]
-            total = 0
-            for tabla in objetivo:
-                cur = None
-                try:
-                    cur = self.conn.cursor()
-                    total += self._sincronizar_tabla(cur, sl, tabla)
-                except pyodbc.Error as e:
+            sl = sqlite3.connect(SQLITE_DB, timeout=10)
+            try:
+                todas = self._tablas_locales(sl)
+                objetivo = todas if "*" in pendientes else [t for t in todas if t in pendientes]
+                total = 0
+                for tabla in objetivo:
+                    cur = None
                     try:
-                        self.conn.rollback()
-                    except Exception:
-                        pass
-                    if "08S01" in str(e) or "Communication link" in str(e) or "08001" in str(e):
-                        raise
-                    self.cache.pop(tabla, None)
-                    self.columnas_azure.pop(tabla, None)
-                    self.ultimo_error = f"{tabla}: {str(e)[:200]}"
-                    print(f">> [AZURE] Aviso en tabla {tabla}: {str(e)[:160]}")
-                finally:
-                    if cur:
+                        cur = self.conn.cursor()
+                        total += self._sincronizar_tabla(cur, sl, tabla)
+                    except pyodbc.Error as e:
                         try:
-                            cur.close()
+                            self.conn.rollback()
                         except Exception:
                             pass
-            if "*" in pendientes:
-                self._ultima_reconciliacion = time.time()
-            self.filas_enviadas += total
-            self.ultima_sync = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            if total:
-                print(f">> [AZURE] {total} fila(s) sincronizadas ({', '.join(objetivo[:6])}{'...' if len(objetivo) > 6 else ''})")
-        except Exception as e:
-            print(f">> [AZURE] Conexión perdida ({str(e)[:120]}). Reintentando en segundo plano...")
-            self.conectado = False
-            db.use_azure = False
-            self.ultimo_error = str(e)[:300]
-            try:
-                self.conn.close()
-            except Exception:
-                pass
-            self.conn = None
-            with self._lock:
-                self.pendientes |= pendientes
-        finally:
-            sl.close()
+                        if "08S01" in str(e) or "Communication link" in str(e) or "08001" in str(e):
+                            raise
+                        self.cache.pop(tabla, None)
+                        self.columnas_azure.pop(tabla, None)
+                        self.ultimo_error = f"{tabla}: {str(e)[:200]}"
+                        print(f">> [AZURE] Aviso en tabla {tabla}: {str(e)[:160]}")
+                    finally:
+                        if cur:
+                            try:
+                                cur.close()
+                            except Exception:
+                                pass
+                if "*" in pendientes:
+                    self._ultima_reconciliacion = time.time()
+                self.filas_enviadas += total
+                self.ultima_sync = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                if total:
+                    print(f">> [AZURE] {total} fila(s) sincronizadas ({', '.join(objetivo[:6])}{'...' if len(objetivo) > 6 else ''})")
+            except Exception as e:
+                print(f">> [AZURE] Conexión perdida ({str(e)[:120]}). Reintentando en segundo plano...")
+                self.conectado = False
+                db.use_azure = False
+                self.ultimo_error = str(e)[:300]
+                try:
+                    self.conn.close()
+                except Exception:
+                    pass
+                self.conn = None
+                with self._lock:
+                    self.pendientes |= pendientes
+            finally:
+                sl.close()
 
     def hidratar_desde_azure(self) -> int:
         """
@@ -596,17 +670,25 @@ class ReplicadorAzure:
                         f[idx_id]: tuple(self._normalizar(v) for v in f)
                         for f in filas_remotas
                     }
-                    if not filas_remotas:
-                        continue
                     cols_sql = ", ".join(cols)
                     placeholders = ", ".join("?" for _ in cols)
                     filas_norm = [tuple(self._normalizar(v) for v in f) for f in filas_remotas]
-                    sl.execute(f"DELETE FROM {tabla}")
-                    sl.executemany(
-                        f"INSERT OR REPLACE INTO {tabla} ({cols_sql}) VALUES ({placeholders})",
-                        filas_norm
-                    )
-                    total_hidratadas += len(filas_norm)
+                    es_inmutable = tabla in ("boveda_legal_registros", "boveda_legal_snapshots")
+                    if es_inmutable:
+                        if filas_norm:
+                            sl.executemany(
+                                f"INSERT OR IGNORE INTO {tabla} ({cols_sql}) VALUES ({placeholders})",
+                                filas_norm
+                            )
+                            total_hidratadas += len(filas_norm)
+                    else:
+                        sl.execute(f"DELETE FROM {tabla}")
+                        if filas_norm:
+                            sl.executemany(
+                                f"INSERT OR REPLACE INTO {tabla} ({cols_sql}) VALUES ({placeholders})",
+                                filas_norm
+                            )
+                            total_hidratadas += len(filas_norm)
                 except Exception as e_t:
                     print(f">> [AZURE-HIDRATAR] Aviso en tabla {tabla}: {str(e_t)[:140]}")
             sl.commit()
@@ -1094,6 +1176,62 @@ class DatabaseManager:
             );
         """)
 
+        # ------------------------------------------------------------------
+        # BÓVEDA EXCLUSIVA DE AUDITORÍA & COMPLIANCE LEGAL (LEY 1581 DE 2012)
+        # Tablas inmutables persistidas en Azure SQL Database
+        # ------------------------------------------------------------------
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS configuracion_boveda_legal (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                correo_autorizado TEXT NOT NULL UNIQUE,
+                nombre_responsable TEXT DEFAULT 'Auditor Legal / Compliance',
+                cargo TEXT DEFAULT 'Auditoría Legal & Compliance',
+                activo INTEGER DEFAULT 1,
+                asignado_por TEXT DEFAULT 'alexander.nino.583@gmail.com',
+                fecha_asignacion TEXT DEFAULT (DATETIME('now', 'localtime'))
+            );
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS boveda_legal_registros (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                categoria TEXT NOT NULL,
+                fecha_hora TEXT NOT NULL,
+                direccion_ip TEXT NOT NULL,
+                correo_responsable TEXT NOT NULL,
+                rol_responsable TEXT NOT NULL,
+                organizacion_id INTEGER NULL,
+                organizacion_nombre TEXT NULL,
+                tipo_organizacion TEXT NULL,
+                estado_convenio TEXT NULL,
+                logo_url TEXT NULL,
+                nombre_archivo TEXT NULL,
+                cantidad_registros INTEGER DEFAULT 0,
+                confirmacion_ley1581 INTEGER DEFAULT 1,
+                confirmacion_menores_art7 INTEGER DEFAULT 1,
+                confirmacion_convenio_logos INTEGER DEFAULT 1,
+                declaracion_legal TEXT NOT NULL,
+                detalles_json TEXT NULL,
+                hash_integridad TEXT NOT NULL
+            );
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS boveda_legal_snapshots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                fecha_hora TEXT NOT NULL,
+                operacion_origen TEXT NOT NULL,
+                entidad_afectada TEXT NOT NULL,
+                entidad_id INTEGER NULL,
+                entidad_nombre TEXT NULL,
+                correo_responsable TEXT NOT NULL,
+                direccion_ip TEXT NOT NULL,
+                total_registros_respaldados INTEGER DEFAULT 0,
+                datos_snapshot_json TEXT NOT NULL,
+                hash_integridad TEXT NOT NULL
+            );
+        """)
+
         # Índices de alta velocidad para consultas instantáneas (<0.2ms)
         indices_sql = [
             "CREATE INDEX IF NOT EXISTS idx_usuarios_correo_lower ON usuarios(LOWER(correo));",
@@ -1104,7 +1242,9 @@ class DatabaseManager:
             "CREATE INDEX IF NOT EXISTS idx_progreso_quiz_apr ON progreso_quizzes(aprendiz_id, quiz_id);",
             "CREATE INDEX IF NOT EXISTS idx_logs_acceso_fecha ON logs_acceso(fecha_hora DESC);",
             "CREATE INDEX IF NOT EXISTS idx_historial_int_org ON historial_nuevos_integrantes(organizacion_id, fecha_dia);",
-            "CREATE INDEX IF NOT EXISTS idx_codigos_2fa_correo ON codigos_2fa_persistentes(correo);"
+            "CREATE INDEX IF NOT EXISTS idx_codigos_2fa_correo ON codigos_2fa_persistentes(correo);",
+            "CREATE INDEX IF NOT EXISTS idx_boveda_reg_cat ON boveda_legal_registros(categoria, fecha_hora DESC);",
+            "CREATE INDEX IF NOT EXISTS idx_boveda_snap_fecha ON boveda_legal_snapshots(fecha_hora DESC);"
         ]
         for idx_q in indices_sql:
             try:
@@ -1293,12 +1433,290 @@ def registrar_en_historial_integrantes(
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (usuario_id, nombre.strip(), correo.strip().lower(), rol, organizacion_id, org_nom, origen, fecha_actual, dia_actual), commit=True)
 
-def generar_html_correo_2fa(nombre: str, codigo: str, rol: str = "Integrante Institucional", correo: str = "", institucion_nombre: str = "Corporación Universitaria Minuto de Dios", organizacion_id: Optional[int] = None) -> str:
+# ------------------------------------------------------------------------------
+# FUNCIONES DE BÓVEDA LEGAL & COMPLIANCE (LEY 1581 DE 2012 Y DECRETO 1377 DE 2013)
+# ------------------------------------------------------------------------------
+
+POLITICAS_LEGALES_OFICIALES = [
+    {
+        "id": "politica_tratamiento_datos_ley1581",
+        "titulo": "Política Oficial de Tratamiento de Datos Personales (Ley 1581 de 2012 y Decreto 1377 de 2013)",
+        "normativa": "Ley Estatutaria 1581 de 2012 · Decreto Reglamentario 1377 de 2013 (Compilado en Decreto 1074 de 2015) · República de Colombia",
+        "version": "v4.0 Blindaje Institucional 2026",
+        "contenido": (
+            "POLÍTICA DE TRATAMIENTO Y PROTECCIÓN DE DATOS PERSONALES - CENTRO DE COMANDO CONSULTORÍA EDTECH\n"
+            "===============================================================================================\n\n"
+            "1. MARCO NORMATIVO Y OBJETO:\n"
+            "En estricto cumplimiento del artículo 15 de la Constitución Política de Colombia, la Ley Estatutaria 1581 de 2012, "
+            "el Decreto Reglamentario 1377 de 2013 (compilado en el Capítulo 25 del Decreto Único Reglamentario 1074 de 2015) y "
+            "las directrices de la Superintendencia de Industria y Comercio (SIC), Consultoría EdTech establece la presente "
+            "Política de Tratamiento de Datos Personales aplicable a Secretarías de Educación, colegios públicos y privados, "
+            "universidades públicas y privadas, centros del SENA y organizaciones empresariales aliadas.\n\n"
+            "2. ROLES DE TRATAMIENTO (RESPONSABLE VS. ENCARGADO - ART. 3 LEY 1581 DE 2012):\n"
+            "- LA INSTITUCIÓN EDUCATIVA O EMPRESA ALIADA actúa en calidad de RESPONSABLE DEL TRATAMIENTO respecto de las bases de "
+            "datos de sus estudiantes, aprendices, docentes, mentores y personal administrativo.\n"
+            "- CONSULTORÍA EDTECH actúa exclusivamente en calidad de ENCARGADA DEL TRATAMIENTO tecnológico (SaaS Multi-tenant), "
+            "procesando los datos únicamente para fines académicos, formativos, de telemetría educativa y certificación bajo "
+            "las instrucciones de la Institución Responsable.\n\n"
+            "3. DERECHOS DE LOS TITULARES (ART. 8 LEY 1581 DE 2012):\n"
+            "Todo titular de datos personales (o su representante legal / acudiente) tiene derecho a: (a) Conocer, actualizar y "
+            "rectificar sus datos personales; (b) Solicitar prueba de la autorización otorgada; (c) Ser informado sobre el uso "
+            "dado a sus datos; (d) Presentar quejas ante la SIC por infracciones a la ley; (e) Revocar la autorización y/o "
+            "solicitar la supresión del dato cuando no se respeten los principios, derechos y garantías constitucionales y legales.\n\n"
+            "4. SEGURIDAD, TRAZABILIDAD E INMUTABILIDAD:\n"
+            "Toda operación de aprovisionamiento institucional, carga masiva de bases de datos (Excel) y modificación operativa "
+            "genera un registro criptográfico SHA-256 inalterable en la Bóveda Exclusiva de Auditoría & Compliance Legal en Azure SQL."
+        )
+    },
+    {
+        "id": "aviso_privacidad_menores_art7",
+        "titulo": "Aviso de Privacidad y Protocolo Especial de Datos de Menores de Edad (Art. 7 Ley 1581 de 2012)",
+        "normativa": "Artículo 7 de la Ley 1581 de 2012 · Artículo 12 del Decreto 1377 de 2013 · Sentencia C-748 de 2011 Corte Constitucional",
+        "version": "v4.0 Protección Reforzada Niños, Niñas y Adolescentes",
+        "contenido": (
+            "AVISO DE PRIVACIDAD Y PROTOCOLO DE PROTECCIÓN DE MENORES DE EDAD (COLEGIOS Y ENTIDADES EDUCATIVAS)\n"
+            "==================================================================================================\n\n"
+            "1. INTERÉS SUPERIOR DE LOS NIÑOS, NIÑAS Y ADOLESCENTES (ART. 7 LEY 1581 DE 2012):\n"
+            "En los entornos correspondientes a Secretarías de Educación, Colegios Públicos, Colegios Privados e instituciones "
+            "de educación básica y media donde participen menores de 18 años, el tratamiento de datos personales responde y "
+            "respeta de manera prevalente el interés superior de los niños, niñas y adolescentes y asegura el respeto de sus "
+            "derechos fundamentales.\n\n"
+            "2. AUTORIZACIÓN PREVIA DE PADRES O ACUDIENTES (ART. 12 DECRETO 1377 DE 2013):\n"
+            "La Institución Educativa declara y certifica bajo la gravedad de juramento, al momento de cargar o registrar bases "
+            "de datos de estudiantes en la plataforma, que cuenta con la autorización previa, expresa e informada otorgada por "
+            "los padres de familia, representantes legales o acudientes debidamente facultados, tras haber escuchado al menor "
+            "en función de su madurez y autonomía.\n\n"
+            "3. FINALIDAD EXCLUSIVAMENTE PEDAGÓGICA:\n"
+            "Los datos recolectados (nombre completo, correo electrónico institucional/académico, rol y progreso en módulos "
+            "formativos) se utilizan única y exclusivamente para la ejecución del programa de formación tecnológica, seguimiento "
+            "pedagógico por mentores autorizados y emisión de reportes académicos institucionales. Queda estrictamente prohibida "
+            "su cesión o comercialización a terceros."
+        )
+    },
+    {
+        "id": "clausula_indemnidad_responsable_encargado",
+        "titulo": "Cláusula de Indemnidad y Delimitación de Responsabilidad (Institución Responsable vs. Consultoría Encargada)",
+        "normativa": "Artículos 17 y 18 de la Ley 1581 de 2012 · Artículos 13 al 25 del Decreto 1377 de 2013",
+        "version": "v4.0 Blindaje Jurídico Contractualmente Vinculante",
+        "contenido": (
+            "CLÁUSULA DE INDEMNIDAD Y DELIMITACIÓN DE RESPONSABILIDADES LEGALES\n"
+            "===================================================================\n\n"
+            "1. DECLARACIÓN EXPRESA EN CARGAS DE BASES DE DATOS (HABEAS DATA):\n"
+            "Cada usuario administrador, coordinador o gestor que incorpore información a la plataforma mediante carga masiva de "
+            "Excel o creación manual suscribe un Acta Digital Inmutable de Consentimiento Habeas Data (con registro de Fecha, Hora, "
+            "Dirección IP, Correo Autenticado y Hash SHA-256), certificando que la entidad de origen obtuvo legalmente el "
+            "consentimiento de los titulares y/o acudientes conforme a la Ley 1581 de 2012.\n\n"
+            "2. INDEMNIDAD A FAVOR DE CONSULTORÍA EDTECH:\n"
+            "La Institución Aliada (Secretaría de Educación, Colegio, Universidad, SENA o Empresa), en su condición de "
+            "RESPONSABLE DEL TRATAMIENTO y originadora de las listas de participantes, mantendrá indemne y libre de todo daño, "
+            "multa, sanción administrativa, reclamación judicial o extrajudicial a CONSULTORÍA EDTECH (ENCARGADA DEL TRATAMIENTO) "
+            "frente a cualquier requerimiento de titulares, padres de familia o autoridades de supervisión (SIC) derivado de la "
+            "omisión o deficiencia en la recolección original del consentimiento informado por parte de la Institución.\n\n"
+            "3. CONSERVACIÓN DE PRUEBA Y COPIAS DE SEGURIDAD (SNAPSHOTS):\n"
+            "Para efectos probatorios ante auditorías legales, la Bóveda Legal conserva copias de respaldo (Snapshots en JSON y "
+            "Excel) previas a cualquier actualización o depuración operativa, garantizando trazabilidad histórica perpetua."
+        )
+    },
+    {
+        "id": "terminos_uso_convenios_logos",
+        "titulo": "Términos de Uso de la Plataforma y Autorización de Uso Recíproco de Logos y Signos Distintivos",
+        "normativa": "Decisión Andina 486 de 2000 (Propiedad Industrial) · Código de Comercio Colombiano · Convenios de Cooperación",
+        "version": "v4.0 Gobernanza Multi-Tenant",
+        "contenido": (
+            "TÉRMINOS DE USO Y AUTORIZACIÓN DE SIGNOS DISTINTIVOS EN CONVENIOS INSTITUCIONALES\n"
+            "=================================================================================\n\n"
+            "1. APROVISIONAMIENTO DE ENTORNOS INSTITUCIONALES:\n"
+            "La creación de cada entorno institucional en el Centro de Comando EdTech responde a la existencia de un Convenio de "
+            "Cooperación Académica, Alianza Interinstitucional, Contrato de Consultoría o Piloto Autorizado.\n\n"
+            "2. AUTORIZACIÓN DE USO DE LOGOS Y MARCAS:\n"
+            "Al activar el checkbox legal obligatorio en el módulo '+ Nueva Institución', se deja constancia de la autorización "
+            "no exclusiva, temporal y limitada al objeto del convenio para la visualización del escudo, emblema o logotipo "
+            "institucional dentro del entorno multi-tenant, reportes ejecutivos y certificados de los participantes de dicha "
+            "institución, respetando en todo momento la identidad visual y el buen nombre de las partes.\n\n"
+            "3. AISLAMIENTO MULTI-TENANT Y CONFIDENCIALIDAD:\n"
+            "Cada institución opera en un espacio lógico aislado. Ningún administrador, mentor o aprendiz de una institución "
+            "puede visualizar ni consultar datos o métricas pertenecientes a otra institución ni acceder a la Bóveda Legal."
+        )
+    }
+]
+
+def verificar_acceso_boveda_legal(usuario_id: Optional[int] = None, correo: Optional[str] = None) -> bool:
+    """
+    Valida estrictamente en Backend si el usuario tiene acceso a la Bóveda Exclusiva de Auditoría & Compliance Legal.
+    SOLO pueden acceder:
+    1) El Superadministrador principal (rol 'Super Administrador' o alexander.nino.583@gmail.com).
+    2) Quien inicie sesión con un Correo de Auditoría Legal / Compliance activo en configuracion_boveda_legal.
+    Ningún administrador institucional, mentor ni aprendiz tiene acceso.
+    """
+    try:
+        correo_norm = (correo or "").strip().lower()
+        if usuario_id:
+            u = db.execute_query("SELECT id, correo, rol FROM usuarios WHERE id = ?", (usuario_id,), fetchone=True)
+            if u:
+                rol_u = (u.get("rol") or "").strip()
+                correo_u = (u.get("correo") or "").strip().lower()
+                if rol_u in ("Super Administrador", "Auditor Legal") or correo_u == "alexander.nino.583@gmail.com":
+                    return True
+                if not correo_norm:
+                    correo_norm = correo_u
+        if correo_norm == "alexander.nino.583@gmail.com":
+            return True
+        if correo_norm:
+            u_by_mail = db.execute_query(
+                "SELECT id, rol FROM usuarios WHERE LOWER(TRIM(correo)) = ?",
+                (correo_norm,),
+                fetchone=True
+            )
+            if u_by_mail and (u_by_mail.get("rol") or "").strip() in ("Super Administrador", "Auditor Legal"):
+                return True
+            autorizado = db.execute_query(
+                "SELECT id FROM configuracion_boveda_legal WHERE LOWER(TRIM(correo_autorizado)) = ? AND activo = 1",
+                (correo_norm,),
+                fetchone=True
+            )
+            if autorizado:
+                return True
+        return False
+    except Exception as e:
+        print(f">> [BOVEDA-AUTH] Error verificando acceso legal: {e}")
+        return False
+
+def registrar_evento_boveda_legal(
+    categoria: str,
+    correo_responsable: str,
+    rol_responsable: str = "Super Administrador",
+    direccion_ip: str = "127.0.0.1",
+    organizacion_id: Optional[int] = None,
+    organizacion_nombre: Optional[str] = None,
+    tipo_organizacion: Optional[str] = None,
+    estado_convenio: Optional[str] = "VIGENTE - AUTORIZADO",
+    logo_url: Optional[str] = None,
+    nombre_archivo: Optional[str] = None,
+    cantidad_registros: int = 0,
+    confirmacion_ley1581: bool = True,
+    confirmacion_menores_art7: bool = True,
+    confirmacion_convenio_logos: bool = True,
+    declaracion_legal: str = "",
+    detalles_dict: Optional[Dict[str, Any]] = None
+) -> Optional[int]:
+    """
+    Inserta un registro legal INMUTABLE en boveda_legal_registros con sello de tiempo exacto, IP y Hash SHA-256,
+    y fuerza su sincronización inmediata con Azure SQL Database.
+    """
+    try:
+        fecha_exacta = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        correo_limpio = (correo_responsable or "alexander.nino.583@gmail.com").strip().lower()
+        org_nom = _sanitizar_org_nombre(organizacion_nombre, organizacion_id) if organizacion_nombre or organizacion_id else "Plataforma Global"
+        detalles_str = json.dumps(detalles_dict or {}, ensure_ascii=False)
+        cadena_hash = f"{categoria}|{fecha_exacta}|{direccion_ip}|{correo_limpio}|{org_id_safe(organizacion_id)}|{org_nom}|{nombre_archivo or ''}|{cantidad_registros}|{declaracion_legal}"
+        hash_sha256 = hashlib.sha256(cadena_hash.encode("utf-8")).hexdigest()
+
+        reg_id = db.execute_query(
+            """INSERT INTO boveda_legal_registros (
+                categoria, fecha_hora, direccion_ip, correo_responsable, rol_responsable,
+                organizacion_id, organizacion_nombre, tipo_organizacion, estado_convenio,
+                logo_url, nombre_archivo, cantidad_registros, confirmacion_ley1581,
+                confirmacion_menores_art7, confirmacion_convenio_logos, declaracion_legal,
+                detalles_json, hash_integridad
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                categoria,
+                fecha_exacta,
+                direccion_ip or "127.0.0.1",
+                correo_limpio,
+                rol_responsable or "Super Administrador",
+                organizacion_id,
+                org_nom,
+                tipo_organizacion or "Institución Educativa / Corporativa",
+                estado_convenio or "VIGENTE - AUTORIZADO",
+                logo_url,
+                nombre_archivo,
+                int(cantidad_registros or 0),
+                1 if confirmacion_ley1581 else 0,
+                1 if confirmacion_menores_art7 else 0,
+                1 if confirmacion_convenio_logos else 0,
+                declaracion_legal or "Autorización legal expresa Ley 1581 de 2012 y Decreto 1377 de 2013.",
+                detalles_str,
+                hash_sha256
+            ),
+            return_id=True
+        )
+        try:
+            replicador_azure.sincronizar_inmediato(["boveda_legal_registros"])
+        except Exception:
+            pass
+        return reg_id
+    except Exception as e:
+        print(f">> [BOVEDA-LEGAL] Error registrando evento inmutable: {e}")
+        return None
+
+def org_id_safe(val: Optional[int]) -> str:
+    return str(val) if val is not None else "GLOBAL"
+
+def crear_snapshot_boveda_legal(
+    operacion_origen: str,
+    entidad_afectada: str,
+    entidad_id: Optional[int] = None,
+    entidad_nombre: Optional[str] = None,
+    correo_responsable: str = "alexander.nino.583@gmail.com",
+    direccion_ip: str = "127.0.0.1",
+    datos_respaldo: Optional[Dict[str, Any]] = None
+) -> Optional[int]:
+    """
+    Conserva en boveda_legal_snapshots una copia de seguridad inmutable (descargable en Excel/JSON)
+    del estado exacto previo a una actualización o eliminación operativa en la plataforma.
+    """
+    try:
+        fecha_exacta = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        payload = datos_respaldo or {}
+        total_regs = 0
+        for v in payload.values():
+            if isinstance(v, list):
+                total_regs += len(v)
+            elif isinstance(v, dict) and v:
+                total_regs += 1
+        if total_regs == 0 and payload:
+            total_regs = 1
+
+        json_str = json.dumps(payload, ensure_ascii=False, default=str)
+        cadena_hash = f"{fecha_exacta}|{operacion_origen}|{entidad_afectada}|{entidad_id}|{correo_responsable}|{json_str}"
+        hash_sha256 = hashlib.sha256(cadena_hash.encode("utf-8")).hexdigest()
+
+        snap_id = db.execute_query(
+            """INSERT INTO boveda_legal_snapshots (
+                fecha_hora, operacion_origen, entidad_afectada, entidad_id, entidad_nombre,
+                correo_responsable, direccion_ip, total_registros_respaldados,
+                datos_snapshot_json, hash_integridad
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                fecha_exacta,
+                operacion_origen,
+                entidad_afectada,
+                entidad_id,
+                entidad_nombre or "Entidad Operativa",
+                (correo_responsable or "alexander.nino.583@gmail.com").strip().lower(),
+                direccion_ip or "127.0.0.1",
+                total_regs,
+                json_str,
+                hash_sha256
+            ),
+            return_id=True
+        )
+        try:
+            replicador_azure.sincronizar_inmediato(["boveda_legal_snapshots"])
+        except Exception:
+            pass
+        return snap_id
+    except Exception as e:
+        print(f">> [BOVEDA-SNAPSHOT] Error creando copia de seguridad legal: {e}")
+        return None
+
+def generar_html_correo_2fa(nombre: str, codigo: str, rol: str = "Integrante Institucional", correo: str = "", institucion_nombre: str = "Plataforma Consultoría EdTech", organizacion_id: Optional[int] = None) -> str:
     """Plantilla ejecutiva de alta gama para el código de verificación 2FA de 6 dígitos que incluye bienvenida por nombre, cargo (rol), ID de institución e institución"""
     nombre_seguro = html.escape((nombre or "Usuario").strip())
     rol_seguro = html.escape((rol or "Integrante Institucional").strip())
     correo_seguro = html.escape((correo or "").strip())
-    institucion_segura = html.escape((institucion_nombre or "Corporación Universitaria Minuto de Dios").strip())
+    institucion_segura = html.escape((institucion_nombre or "Plataforma Consultoría EdTech").strip())
     org_id_txt = f" (ID: {organizacion_id})" if organizacion_id else ""
     codigo_limpio = str(codigo).strip()
     fecha_str = datetime.now().strftime("%d/%m/%Y · %H:%M:%S")
@@ -1677,49 +2095,18 @@ def _obtener_urls_puente_https() -> List[str]:
     return urls
 
 def _enviar_via_puente_https(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo_html: Optional[str] = None, codigo_otp: Optional[str] = None) -> bool:
-    """Envía el correo a través del puerto 443 HTTPS hacia el nodo local con SMTP 465 abierto, sincronizando al usuario si es nuevo y obteniendo su institución real"""
+    """Envía el correo a través del puerto 443 HTTPS hacia el nodo local con SMTP 465 abierto, obteniendo su institución real"""
     global ultimo_error_smtp
     corr_l = (destinatario or "").strip().lower()
     usuario_reg = db.execute_query(
         """SELECT u.id, u.organizacion_id, u.mentor_id, u.nombre, u.correo, u.rol, u.password_hash,
-                  COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
+                  COALESCE(o.nombre, 'Plataforma Global EdTech') as institucion_nombre
            FROM usuarios u
            LEFT JOIN organizaciones o ON o.id = u.organizacion_id
            WHERE LOWER(TRIM(u.correo)) = ?""",
         (corr_l,),
         fetchone=True
     )
-    if not usuario_reg:
-        usuario_reg = db.execute_query(
-            """SELECT h.usuario_id as id, h.organizacion_id, NULL as mentor_id, h.nombre, h.correo, h.rol, NULL as password_hash,
-                      COALESCE(o.nombre, h.organizacion_nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
-               FROM historial_nuevos_integrantes h
-               LEFT JOIN organizaciones o ON o.id = h.organizacion_id
-               WHERE LOWER(TRIM(h.correo)) = ?
-               ORDER BY h.id DESC LIMIT 1""",
-            (corr_l,),
-            fetchone=True
-        )
-        if usuario_reg:
-            # Auto-insertar/sincronizar en la tabla usuarios para garantizar coherencia
-            hash_defecto = bcrypt.hashpw("123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            db.execute_query(
-                "INSERT OR IGNORE INTO usuarios (nombre, correo, rol, organizacion_id, password_hash) VALUES (?, ?, ?, ?, ?)",
-                (usuario_reg["nombre"], corr_l, usuario_reg["rol"], usuario_reg.get("organizacion_id") or 13, hash_defecto),
-                commit=True
-            )
-            u_sync = db.execute_query(
-                """SELECT u.id, u.organizacion_id, u.mentor_id, u.nombre, u.correo, u.rol, u.password_hash,
-                          COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
-                   FROM usuarios u
-                   LEFT JOIN organizaciones o ON o.id = u.organizacion_id
-                   WHERE LOWER(TRIM(u.correo)) = ?""",
-                (corr_l,),
-                fetchone=True
-            )
-            if u_sync:
-                usuario_reg = u_sync
-
     if not usuario_reg:
         usuario_reg = esta_correo_registrado_en_programa(corr_l)
 
@@ -1732,9 +2119,9 @@ def _enviar_via_puente_https(destinatario: str, asunto: str, cuerpo_texto: str, 
 
     if cod_otp_val or (isinstance(asunto, str) and ("2fa" in asunto.lower() or "código" in asunto.lower())):
         nom_val = (usuario_reg.get("nombre") if usuario_reg else None) or "Usuario"
-        rol_val = (usuario_reg.get("rol") if usuario_reg else None) or "Aprendiz"
-        inst_val = (usuario_reg.get("institucion_nombre") if usuario_reg else None) or "Corporación Universitaria Minuto de Dios"
-        org_id_val = (usuario_reg.get("organizacion_id") if usuario_reg else None) or 13
+        rol_val = (usuario_reg.get("rol") if usuario_reg else None) or "Integrante"
+        inst_val = (usuario_reg.get("institucion_nombre") if usuario_reg else None) or "Plataforma Global EdTech"
+        org_id_val = (usuario_reg.get("organizacion_id") if usuario_reg else None)
         cod_final = cod_otp_val or "123456"
         codigo_otp = cod_final
 
@@ -1744,7 +2131,7 @@ def _enviar_via_puente_https(destinatario: str, asunto: str, cuerpo_texto: str, 
             f"Información de tu cuenta:\n"
             f"• Nombre: {nom_val}\n"
             f"• Cargo / Rol: {rol_val}\n"
-            f"• Institución: {inst_val} (ID: {org_id_val})\n"
+            f"• Institución: {inst_val}\n"
             f"• Correo: {corr_l}\n\n"
             f"Tu código de verificación de 6 dígitos para autorizar el ingreso es:\n\n"
             f"    {cod_final}\n\n"
@@ -1811,9 +2198,9 @@ def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo
             "id": None,
             "nombre": nom_val,
             "correo": destinatario_limpio,
-            "rol": "Aprendiz",
-            "organizacion_id": 13,
-            "institucion_nombre": "Corporación Universitaria Minuto de Dios"
+            "rol": "Integrante",
+            "organizacion_id": None,
+            "institucion_nombre": "Plataforma Global EdTech"
         }
 
     cod_otp_val = str(codigo_otp).strip() if codigo_otp else ""
@@ -1825,9 +2212,9 @@ def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo
 
     if usuario_registrado and (cod_otp_val or (isinstance(asunto, str) and ("2fa" in asunto.lower() or "código" in asunto.lower()))):
         nom_val = usuario_registrado.get("nombre") or "Usuario"
-        rol_val = usuario_registrado.get("rol") or "Aprendiz"
-        inst_val = usuario_registrado.get("institucion_nombre") or "Corporación Universitaria Minuto de Dios"
-        org_id_val = usuario_registrado.get("organizacion_id") or 13
+        rol_val = usuario_registrado.get("rol") or "Integrante"
+        inst_val = usuario_registrado.get("institucion_nombre") or "Plataforma Global EdTech"
+        org_id_val = usuario_registrado.get("organizacion_id")
         cod_final = cod_otp_val or "123456"
         codigo_otp = cod_final
 
@@ -2285,6 +2672,24 @@ class CrearOrgRequest(BaseModel):
     max_administradores: Optional[int] = 2
     max_mentores: Optional[int] = 5
     logo_url: Optional[str] = None
+    confirmacion_convenio_logos: Optional[bool] = True
+    estado_convenio: Optional[str] = "CONVENIO / ALIANZA VIGENTE"
+    correo_responsable: Optional[str] = "alexander.nino.583@gmail.com"
+
+class AutorizarCorreoBovedaReq(BaseModel):
+    correo_autorizado: str
+    nombre_responsable: Optional[str] = "Auditor Legal / Compliance"
+    cargo: Optional[str] = "Auditoría Legal & Compliance (Ley 1581)"
+    password_acceso: Optional[str] = "123456"
+    solicitante_correo: Optional[str] = None
+    correo_solicitante: Optional[str] = None
+    solicitante_id: Optional[int] = None
+
+class CrearSnapshotManualReq(BaseModel):
+    motivo: Optional[str] = "Respaldo Manual de Auditoría Legal y Gobernanza"
+    solicitante_correo: Optional[str] = None
+    correo_solicitante: Optional[str] = None
+    solicitante_id: Optional[int] = None
 
 class ActualizarOrgRequest(BaseModel):
     nombre: str
@@ -2622,47 +3027,11 @@ class SmtpRelayReq(BaseModel):
     secret: str
 
 def _fusionar_usuarios_recibidos(lista_usuarios: Optional[List[Dict[str, Any]]]):
-    """Sincroniza únicamente usuarios pertenecientes a organizaciones activas sin recrear instituciones ni revivir eliminados"""
-    if not lista_usuarios:
-        return
-    try:
-        orgs_activas = {
-            r["id"] for r in (db.execute_query("SELECT id FROM organizaciones", fetchall=True) or [])
-        }
-        eliminados = {
-            (r["correo"] or "").strip().lower()
-            for r in (db.execute_query("SELECT correo FROM usuarios_eliminados_papelera", fetchall=True) or [])
-        }
-        for u in lista_usuarios:
-            correo_u = (u.get("correo") or "").strip().lower()
-            if not correo_u or "@" not in correo_u or correo_u in eliminados:
-                continue
-            org_u = u.get("organizacion_id")
-            if correo_u == "alexander.nino.583@gmail.com":
-                org_u = None
-            elif org_u not in orgs_activas:
-                continue
-            ex = db.execute_query(
-                "SELECT id FROM usuarios WHERE LOWER(TRIM(correo)) = ?",
-                (correo_u,),
-                fetchone=True
-            )
-            if not ex:
-                db.execute_query(
-                    """INSERT OR IGNORE INTO usuarios (organizacion_id, mentor_id, nombre, correo, rol, password_hash)
-                       VALUES (?, ?, ?, ?, ?, ?)""",
-                    (
-                        org_u,
-                        u.get("mentor_id"),
-                        (u.get("nombre") or "Integrante").strip(),
-                        correo_u,
-                        u.get("rol") or "Aprendiz",
-                        u.get("password_hash") or "$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu"
-                    ),
-                    commit=True
-                )
-    except Exception:
-        pass
+    """
+    Desactivado para usuarios eliminados/externos: Azure SQL Database es la única fuente de verdad (Single Source of Truth).
+    Evita que nodos pares antiguos reinserten organizaciones o usuarios que el Superadministrador ya eliminó.
+    """
+    return
 
 class ActualizarUsuarioRemotoReq(BaseModel):
     usuario: Dict[str, Any]

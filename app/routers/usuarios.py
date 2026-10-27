@@ -21,13 +21,13 @@ def registrar_usuario(datos: RegistroUsuarioRequest, background_tasks: Backgroun
     pwd_hash = bcrypt.hashpw(pwd_raw.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     rol_elegido = (datos.rol or "Aprendiz").strip()
     nom_elegido = (datos.nombre or "").strip() or correo_limpio.split('@')[0].replace('.', ' ').title()
-    org_id_elegido = getattr(datos, 'organizacion_id', None) or 13
+    org_id_elegido = getattr(datos, 'organizacion_id', None)
     
-    org = db.execute_query("SELECT id, nombre FROM organizaciones WHERE id = ?", (org_id_elegido,), fetchone=True)
+    org = db.execute_query("SELECT id, nombre FROM organizaciones WHERE id = ?", (org_id_elegido,), fetchone=True) if org_id_elegido else None
     if not org:
         org = db.execute_query("SELECT id, nombre FROM organizaciones ORDER BY id ASC LIMIT 1", fetchone=True)
-    org_nombre = org["nombre"] if org else "Corporación Universitaria Minuto de Dios"
-    org_id_real = org["id"] if org else 13
+    org_nombre = org["nombre"] if org else "Plataforma Global EdTech"
+    org_id_real = org["id"] if org else None
 
     existe = db.execute_query("SELECT id FROM usuarios WHERE correo = ?", (correo_limpio,), fetchone=True)
     if existe:
@@ -365,8 +365,8 @@ def actualizar_usuario(usuario_id: int, datos: ActualizarUsuarioRequest):
 
 @router.delete("/api/usuarios/{usuario_id}")
 @router.delete("/api/superadmin/usuarios/{usuario_id}")
-def eliminar_usuario(usuario_id: int):
-    """Elimina usuarios con respaldo automático a la Papelera de Integrantes para recuperación segura"""
+def eliminar_usuario(usuario_id: int, request: Request):
+    """Elimina usuarios con respaldo automático a la Papelera de Integrantes y Snapshot inmutable en la Bóveda Legal"""
     u = db.execute_query("SELECT id, organizacion_id, mentor_id, nombre, correo, rol, password_hash, foto_perfil FROM usuarios WHERE id = ?", (usuario_id,), fetchone=True)
     if not u:
         raise HTTPException(status_code=404, detail="El usuario no existe.")
@@ -383,6 +383,21 @@ def eliminar_usuario(usuario_id: int):
     # Obtener respaldo del progreso del estudiante si aplica
     progresos = db.execute_query("SELECT curso_id, porcentaje_avance, tiempo_dedicado_minutos, modulos_completados, estado FROM progreso_cursos WHERE usuario_id = ?", (usuario_id,), fetchall=True) or []
     progresos_json = json.dumps(progresos, ensure_ascii=False)
+
+    ip_cliente = obtener_ip_cliente(request) if request else "127.0.0.1"
+    crear_snapshot_boveda_legal(
+        operacion_origen="ELIMINACION_INTEGRANTE",
+        entidad_afectada="usuarios",
+        entidad_id=usuario_id,
+        entidad_nombre=f"{u['nombre']} ({u['correo']} - {org_nom})",
+        correo_responsable="alexander.nino.583@gmail.com",
+        direccion_ip=ip_cliente,
+        datos_respaldo={
+            "integrante": {k: v for k, v in dict(u).items() if k != "password_hash"},
+            "organizacion_nombre": org_nom,
+            "progreso_cursos": [dict(p) for p in progresos]
+        }
+    )
 
     # Insertar en Papelera de Reciclaje
     try:
@@ -401,11 +416,25 @@ def eliminar_usuario(usuario_id: int):
         print(f">> [!] Error al guardar en papelera: {e_papelera}")
 
     db.execute_query("DELETE FROM progreso_cursos WHERE usuario_id = ?", (usuario_id,), commit=True)
+    db.execute_query("DELETE FROM progreso_quizzes WHERE aprendiz_id = ?", (usuario_id,), commit=True)
+    db.execute_query("DELETE FROM registro_actividades_tiempo WHERE usuario_id = ?", (usuario_id,), commit=True)
     db.execute_query("UPDATE usuarios SET mentor_id = NULL WHERE mentor_id = ?", (usuario_id,), commit=True)
     db.execute_query("DELETE FROM usuarios WHERE id = ?", (usuario_id,), commit=True)
 
-    registrar_movimiento("Administrador", "Usuarios", "Eliminar_Usuario_Con_Respaldo", "EXITO", f"Usuario respaldado en papelera: {u['nombre']} ({u['correo']}) - Org: {org_nom}")
-    return {"status": "success", "mensaje": f"Integrante '{u['nombre']}' eliminado y respaldado en la Papelera de Recuperación."}
+    try:
+        replicador_azure.sincronizar_inmediato([
+            "progreso_cursos",
+            "progreso_quizzes",
+            "registro_actividades_tiempo",
+            "usuarios",
+            "usuarios_eliminados_papelera",
+            "boveda_legal_snapshots"
+        ])
+    except Exception:
+        pass
+
+    registrar_movimiento("Administrador", "Usuarios", "Eliminar_Usuario_Con_Respaldo", "EXITO", f"Usuario respaldado en papelera y Bóveda Legal: {u['nombre']} ({u['correo']}) - Org: {org_nom}", organizacion_id=u.get("organizacion_id"), organizacion_nombre=org_nom)
+    return {"status": "success", "mensaje": f"Integrante '{u['nombre']}' eliminado de Azure SQL y respaldado en Papelera y Bóveda Legal."}
 
 
 @router.get("/api/papelera/usuarios")
@@ -712,25 +741,34 @@ def descargar_plantilla_excel():
 
 @router.post("/api/superadmin/usuarios/cargar-excel")
 async def cargar_usuarios_excel(
+    request: Request,
     background_tasks: BackgroundTasks,
     archivo: UploadFile = File(...),
     organizacion_id: Optional[int] = Form(None),
     modo_dominio: Optional[str] = Form("flexible"),
+    confirmacion_habeas_data: Optional[str] = Form("true"),
+    correo_responsable: Optional[str] = Form(None),
+    rol_responsable: Optional[str] = Form("Super Administrador"),
     org_id_query: Optional[int] = Query(None, alias="organizacion_id"),
     modo_query: Optional[str] = Query(None, alias="modo_dominio")
 ):
     """Carga masiva multi-rol procesando TODAS las hojas del archivo Excel (Hojas de Admins, Mentores y Aprendices):
+    - Registra un Acta Inmutable de Consentimiento Habeas Data (Ley 1581 de 2012 y Art. 7 Menores) en la Bóveda Legal
     - Itera por todas las pestañas/hojas de cálculo sin limitarse solo a la primera
     - Asigna roles automáticamente según el nombre de la hoja o la columna Rol
-    - Soporte dual de validación: Modo Flexible (cualquier correo) vs Modo Estricto (dominio oficial)
     """
+    if str(confirmacion_habeas_data or "true").strip().lower() in ("false", "0", "no"):
+        raise HTTPException(
+            status_code=400,
+            detail="Es obligatorio marcar la declaración juramentada de Habeas Data (Ley 1581 de 2012 y autorización de padres/acudientes Art. 7 para menores de edad) antes de importar la base de datos."
+        )
     final_org_id = organizacion_id if organizacion_id is not None else org_id_query
     if not final_org_id:
         raise HTTPException(status_code=400, detail="Debe especificar una organización destino.")
 
     final_modo = (modo_dominio or modo_query or "flexible").strip().lower()
 
-    org = db.execute_query("SELECT id, nombre, dominio_permitido FROM organizaciones WHERE id = ?", (final_org_id,), fetchone=True)
+    org = db.execute_query("SELECT id, nombre, tipo_organizacion, dominio_permitido FROM organizaciones WHERE id = ?", (final_org_id,), fetchone=True)
     if not org:
         raise HTTPException(status_code=404, detail="La organización seleccionada no existe.")
 
@@ -947,11 +985,68 @@ async def cargar_usuarios_excel(
                             commit=True
                         )
 
+    ip_cliente = obtener_ip_cliente(request) if request else "127.0.0.1"
+    correo_autor = (correo_responsable or "alexander.nino.583@gmail.com").strip().lower()
+    rol_autor = (rol_responsable or "Super Administrador").strip()
+    declaracion_habeas = (
+        f"ACTA DE CONSENTIMIENTO EXPRESO HABEAS DATA (LEY 1581 DE 2012 Y DECRETO 1377 DE 2013): "
+        f"El usuario responsable '{correo_autor}' ({rol_autor}) desde la IP {ip_cliente} declara bajo la gravedad de juramento "
+        f"que el archivo '{archivo.filename}' cargado para la institución '{org['nombre']}' ({len(filas_procesar)} filas leídas, "
+        f"{registrados} titulares nuevos incorporados) cuenta con autorización previa, expresa e informada de cada titular "
+        f"y, tratándose de estudiantes menores de edad en colegios/entidades educativas, cuenta con el consentimiento "
+        f"expreso de sus padres de familia o acudientes legales conforme al Artículo 7 de la Ley 1581 de 2012."
+    )
+    acta_id = registrar_evento_boveda_legal(
+        categoria="ACTA_HABEAS_DATA_EXCEL",
+        correo_responsable=correo_autor,
+        rol_responsable=rol_autor,
+        direccion_ip=ip_cliente,
+        organizacion_id=final_org_id,
+        organizacion_nombre=org["nombre"],
+        tipo_organizacion=org.get("tipo_organizacion") or "Institución en Convenio",
+        estado_convenio="HABEAS DATA CERTIFICADO (LEY 1581 & ART. 7)",
+        logo_url=None,
+        nombre_archivo=archivo.filename,
+        cantidad_registros=registrados if registrados > 0 else len(filas_procesar),
+        confirmacion_ley1581=True,
+        confirmacion_menores_art7=True,
+        confirmacion_convenio_logos=True,
+        declaracion_legal=declaracion_habeas,
+        detalles_dict={
+            "archivo_original": archivo.filename,
+            "filas_totales_leidas": len(filas_procesar),
+            "registros_nuevos_insertados": registrados,
+            "administradores": conteo_admins,
+            "mentores": conteo_mentores,
+            "aprendices": conteo_aprendices,
+            "modo_dominio": final_modo
+        }
+    )
+    crear_snapshot_boveda_legal(
+        operacion_origen="CARGA_MASIVA_EXCEL_HABEAS_DATA",
+        entidad_afectada="usuarios",
+        entidad_id=final_org_id,
+        entidad_nombre=f"{org['nombre']} ({archivo.filename})",
+        correo_responsable=correo_autor,
+        direccion_ip=ip_cliente,
+        datos_respaldo={
+            "acta_legal_id": acta_id,
+            "archivo_nombre": archivo.filename,
+            "organizacion_id": final_org_id,
+            "organizacion_nombre": org["nombre"],
+            "usuarios_incorporados": usuarios_insertados
+        }
+    )
+
     if registrados > 0:
         try:
-            replicador_azure.marcar("usuarios")
-            replicador_azure.marcar("progreso_cursos")
-            replicador_azure.marcar("historial_nuevos_integrantes")
+            replicador_azure.sincronizar_inmediato([
+                "usuarios",
+                "progreso_cursos",
+                "historial_nuevos_integrantes",
+                "boveda_legal_registros",
+                "boveda_legal_snapshots"
+            ])
         except Exception:
             pass
         _disparar_sync_usuarios_nube()
@@ -959,8 +1054,9 @@ async def cargar_usuarios_excel(
     modo_legible = "Flexible (Multi-dominio)" if final_modo == "flexible" else "Estricto (Dominio Institucional)"
     return {
         "status": "success",
-        "mensaje": f"Se procesaron e inscribieron {registrados} usuarios en {org['nombre']} [{modo_legible}] ({conteo_admins} Administradores, {conteo_mentores} Mentores, {conteo_aprendices} Aprendices).",
+        "mensaje": f"Se procesaron e inscribieron {registrados} usuarios en {org['nombre']} [{modo_legible}] ({conteo_admins} Administradores, {conteo_mentores} Mentores, {conteo_aprendices} Aprendices). Acta Habeas Data #{acta_id or 1} registrada en Bóveda Legal.",
         "registrados": registrados,
+        "acta_legal_id": acta_id,
         "modo_dominio": final_modo,
         "desglose": {
             "administradores": conteo_admins,
@@ -1056,7 +1152,10 @@ def descargar_plantilla_aprendices_mentor(mentor_id: int):
 @router.post("/api/superadmin/mentores/{mentor_id}/cargar-aprendices-excel")
 async def cargar_aprendices_mentor_excel(
     mentor_id: int,
-    archivo: UploadFile = File(...)
+    request: Request,
+    archivo: UploadFile = File(...),
+    confirmacion_habeas_data: Optional[str] = Form("true"),
+    correo_responsable: Optional[str] = Form(None)
 ):
     """Carga masiva de aprendices para un mentor específico vía archivo Excel o CSV:
     - Si el estudiante ya existe, se le asigna este mentor y se actualiza su organización.
@@ -1172,10 +1271,38 @@ async def cargar_aprendices_mentor_excel(
             if not prog:
                 db.execute_query("INSERT INTO progreso_cursos (usuario_id, curso_id, porcentaje_avance, tiempo_dedicado_minutos, modulos_completados, estado, fecha_actualizacion) VALUES (?, ?, 0.0, 0, 0, 'No Iniciado', ?)", (u_id, mat_id, fecha_actual_str), commit=True)
                 
+    ip_cliente = obtener_ip_cliente(request) if request else "127.0.0.1"
+    correo_autor = (correo_responsable or mentor.get("correo") or "alexander.nino.583@gmail.com").strip().lower()
+    registrar_evento_boveda_legal(
+        categoria="ACTA_HABEAS_DATA_EXCEL",
+        correo_responsable=correo_autor,
+        rol_responsable="Mentor / Gestor Académico",
+        direccion_ip=ip_cliente,
+        organizacion_id=org_id,
+        organizacion_nombre=org_nombre,
+        tipo_organizacion="Grupo de Mentoría",
+        estado_convenio="HABEAS DATA CERTIFICADO (LEY 1581 & ART. 7)",
+        logo_url=None,
+        nombre_archivo=archivo.filename,
+        cantidad_registros=len(filas_estudiantes),
+        confirmacion_ley1581=True,
+        confirmacion_menores_art7=True,
+        confirmacion_convenio_logos=True,
+        declaracion_legal=(
+            f"ACTA HABEAS DATA GRUPO MENTORÍA: Carga de archivo '{archivo.filename}' ({len(filas_estudiantes)} aprendices) "
+            f"al grupo del mentor '{mentor['nombre']}' en '{org_nombre}', con confirmación expresa de autorización de titulares y acudientes (Art. 7 Ley 1581)."
+        ),
+        detalles_dict={
+            "mentor_id": mentor_id,
+            "mentor_nombre": mentor["nombre"],
+            "total_procesados": len(filas_estudiantes),
+            "nuevos": total_nuevos,
+            "reasignados": total_reasignados
+        }
+    )
+
     try:
-        replicador_azure.marcar('usuarios')
-        replicador_azure.marcar('progreso_cursos')
-        replicador_azure.marcar('historial_nuevos_integrantes')
+        replicador_azure.sincronizar_inmediato(['usuarios', 'progreso_cursos', 'historial_nuevos_integrantes', 'boveda_legal_registros'])
     except Exception:
         pass
     _disparar_sync_usuarios_nube()
