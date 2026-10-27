@@ -1,9 +1,43 @@
+const HABILITAR_MODO_PRUEBAS_SUPERADMIN = true; // Cambiar a false en esta única línea para ocultar el panel de Control Manual de Avance / Modo Pruebas
+
 // =====================================================================
-// CLIENTE JAVASCRIPT - CENTRO DE COMANDO EDTECH v2.0
-// GOBERNANZA MULTI-ROL, JERARQUÍAS, EDICIÓN, CHART.JS & RED LOCAL
+// CLIENTE JAVASCRIPT - CENTRO DE COMANDO EDTECH v3.0 (AZURE SQL REAL-TIME)
+// GOBERNANZA MULTI-ROL, JERARQUÍAS, CONTROL MANUAL DE AVANCE & DRILL-DOWN
 // =====================================================================
 
 const API_BASE = (window.location.protocol === 'file:') ? 'http://localhost:8080' : '';
+
+// Blindaje global contra "Failed to execute 'json' on 'Response': Unexpected end of JSON input"
+(function blindarResponseJsonGlobal() {
+  if (typeof Response !== 'undefined' && Response.prototype && !Response.prototype.__jsonBlindado) {
+    const _origJson = Response.prototype.json;
+    Response.prototype.json = async function() {
+      try {
+        const texto = await this.text();
+        if (!texto || !texto.trim()) {
+          return { status: this.ok ? 'success' : 'error', data: [], detail: 'Respuesta vacía del servidor' };
+        }
+        return JSON.parse(texto);
+      } catch (err) {
+        console.warn('Respuesta no-JSON interceptada de forma segura:', err);
+        return { status: 'error', data: [], detail: 'Formato de respuesta inválido o servidor reiniciando' };
+      }
+    };
+    Response.prototype.__jsonBlindado = true;
+  }
+})();
+
+function sanitizarNombreInstitucionUI(val, fallback = 'Plataforma Global') {
+  if (!val) return fallback;
+  if (typeof val === 'object') {
+    return val.nombre || val.organizacion_nombre || val.label || fallback;
+  }
+  const s = String(val).trim();
+  if (!s || s === '[object Object]' || s.toLowerCase() === 'null' || s.toLowerCase() === 'undefined' || s.toLowerCase() === 'none') {
+    return fallback;
+  }
+  return s;
+}
 
 let currentUser = null;
 let current2FAEmail = null;
@@ -346,8 +380,25 @@ function actualizarPerfilSidebar() {
 }
 
 // Actualiza el logo y nombre institucional tanto en sidebar como en top-header
+function actualizarVisibilidadBotonesModoPruebas() {
+  const esSuperAdmin = currentUser && currentUser.rol === 'Super Administrador';
+  const mostrar = Boolean(esSuperAdmin && HABILITAR_MODO_PRUEBAS_SUPERADMIN);
+  ['btn-header-modo-pruebas', 'btn-nodos-modo-pruebas', 'btn-metricas-modo-pruebas'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    if (mostrar) {
+      btn.classList.remove('hidden');
+      btn.classList.add('flex');
+    } else {
+      btn.classList.add('hidden');
+      btn.classList.remove('flex');
+    }
+  });
+}
+
 function actualizarBrandingOrganizacionUI() {
   if (!currentUser) return;
+  actualizarVisibilidadBotonesModoPruebas();
 
   const headerBranding = document.getElementById('header-org-branding');
   const headerLogo = document.getElementById('header-org-logo');
@@ -358,13 +409,25 @@ function actualizarBrandingOrganizacionUI() {
   const sidebarNombre = document.getElementById('sidebar-org-nombre');
   const sidebarPlaceholder = document.getElementById('sidebar-org-logo-placeholder');
 
-  // Para Administradores institucionales, Mentores y Aprendices, y también para Super Administrador si hay una organización:
+  // REGLA DE ORO: El Superadministrador es global; NUNCA mostrar una institución fija debajo de "Centro de Comando"
+  if (currentUser.rol === 'Super Administrador') {
+    if (headerBranding) {
+      headerBranding.classList.add('hidden');
+      headerBranding.classList.remove('flex');
+    }
+    if (sidebarBranding) {
+      sidebarBranding.classList.add('hidden');
+      sidebarBranding.classList.remove('flex');
+    }
+    return;
+  }
+
   let org = currentUser.organizacion || {};
-  let orgNombre = org.nombre || currentUser.organizacion_nombre || '';
+  let orgNombre = sanitizarNombreInstitucionUI(org.nombre || currentUser.organizacion_nombre || '', '');
   let orgLogo = org.logo_url || currentUser.org_logo_url || '';
 
-  if ((!orgNombre || !orgLogo) && allOrganizations && allOrganizations.length > 0) {
-    const orgEncontrada = allOrganizations.find(o => o.id == currentUser.organizacion_id) || allOrganizations[0];
+  if ((!orgNombre || !orgLogo) && currentUser.organizacion_id && allOrganizations && allOrganizations.length > 0) {
+    const orgEncontrada = allOrganizations.find(o => o.id == currentUser.organizacion_id);
     if (orgEncontrada) {
       if (!orgNombre) orgNombre = orgEncontrada.nombre;
       if (!orgLogo) orgLogo = orgEncontrada.logo_url;
@@ -580,6 +643,26 @@ const I18N_DICCIONARIO = {
     v_mentor_tit: 'Mi Clase & Supervisión de Progreso',
     v_mentor_desc: 'Monitorea el avance académico real, tiempo dedicado y rendimiento en quizzes de tus aprendices (Solo Lectura).',
 
+    btn_modo_pruebas: '🎛️ Control de Avance / Pruebas',
+    v_nodos_btn_metricas_globales: '📊 Ver Consolidado & Métricas',
+    v_dir_btn_cargar_bd: '📥 Cargar Base de Datos',
+    kpi_lbl_aprendices: 'Aprendices Reales',
+    kpi_sub_aprendices: 'Estudiantes registrados',
+    kpi_lbl_mentores: 'Mentores Activos',
+    kpi_sub_mentores: 'Tutores asignados',
+    kpi_lbl_admins: 'Cuerpo Administrativo',
+    kpi_sub_admins: 'Líderes institucionales',
+    kpi_lbl_avance: 'Avance Promedio',
+    kpi_lbl_modulos: 'Módulos Hechos',
+    kpi_sub_modulos: 'Completados acumulados',
+    kpi_lbl_tasa: 'Tasa Finalización',
+    kpi_sub_tasa: 'Certificación alcanzada',
+    v_met_drilldown_hint: '💡 Gráficas Interactivas (Drill-Down): Haz clic sobre cualquier segmento del diagrama de pastel/dona o barra para desplegar el desglose explicativo de esa institución o ruta.',
+    v_met_comp_tit: 'Consolidado de Instituciones Activas (Haz clic en cualquiera para ver su desglose)',
+    v_met_comp_sub: 'Conteo real de Aprendices, Mentores, Cuerpo Administrativo y porcentaje de avance persistido en Azure SQL.',
+    audit_btn_backup: '💾 Copia de Seguridad (.xlsx)',
+    cfg_lbl_institucion: 'Alcance / Institución',
+    ctrl_avance_titulo: '🎛️ Control Manual de Progreso y Modo de Pruebas',
     toast_idioma_cambiado: '✓ Idioma actualizado a Español.'
   },
   en: {
@@ -707,6 +790,26 @@ const I18N_DICCIONARIO = {
     v_mentor_tit: 'My Classroom & Progress Supervision',
     v_mentor_desc: 'Monitor real academic progress, study time and quiz performance of your apprentices (Read Only).',
 
+    btn_modo_pruebas: '🎛️ Progress Control / Test Mode',
+    v_nodos_btn_metricas_globales: '📊 View Consolidated & Metrics',
+    v_dir_btn_cargar_bd: '📥 Upload Database',
+    kpi_lbl_aprendices: 'Real Apprentices',
+    kpi_sub_aprendices: 'Registered students',
+    kpi_lbl_mentores: 'Active Mentors',
+    kpi_sub_mentores: 'Assigned tutors',
+    kpi_lbl_admins: 'Administrative Staff',
+    kpi_sub_admins: 'Institutional leaders',
+    kpi_lbl_avance: 'Average Progress',
+    kpi_lbl_modulos: 'Completed Modules',
+    kpi_sub_modulos: 'Cumulative total',
+    kpi_lbl_tasa: 'Completion Rate',
+    kpi_sub_tasa: 'Achieved certification',
+    v_met_drilldown_hint: '💡 Interactive Charts (Drill-Down): Click on any pie/doughnut segment or bar to open the detailed breakdown for that institution or path.',
+    v_met_comp_tit: 'Consolidated Active Institutions (Click any row to view its breakdown)',
+    v_met_comp_sub: 'Real count of Apprentices, Mentors, Administrative Staff and progress percentage persisted in Azure SQL.',
+    audit_btn_backup: '💾 Backup Copy (.xlsx)',
+    cfg_lbl_institucion: 'Scope / Institution',
+    ctrl_avance_titulo: '🎛️ Manual Progress Control & Test Mode',
     toast_idioma_cambiado: '✓ Language updated to English.'
   },
   pt: {
@@ -834,6 +937,26 @@ const I18N_DICCIONARIO = {
     v_mentor_tit: 'Minha Turma & Supervisão de Progresso',
     v_mentor_desc: 'Monitore o progresso acadêmico real, tempo dedicado e desempenho em questionários dos seus aprendizes (Somente Leitura).',
 
+    btn_modo_pruebas: '🎛️ Controle de Progresso / Testes',
+    v_nodos_btn_metricas_globales: '📊 Ver Consolidado & Métricas',
+    v_dir_btn_cargar_bd: '📥 Carregar Banco de Dados',
+    kpi_lbl_aprendices: 'Aprendizes Reais',
+    kpi_sub_aprendices: 'Estudantes registrados',
+    kpi_lbl_mentores: 'Mentores Ativos',
+    kpi_sub_mentores: 'Tutores atribuídos',
+    kpi_lbl_admins: 'Corpo Administrativo',
+    kpi_sub_admins: 'Líderes institucionais',
+    kpi_lbl_avance: 'Avanço Médio',
+    kpi_lbl_modulos: 'Módulos Concluídos',
+    kpi_sub_modulos: 'Total acumulado',
+    kpi_lbl_tasa: 'Taxa de Conclusão',
+    kpi_sub_tasa: 'Certificação alcançada',
+    v_met_drilldown_hint: '💡 Gráficos Interativos (Drill-Down): Clique em qualquer segmento de pizza/rosca ou barra para exibir o detalhamento explicativo daquela instituição ou trilha.',
+    v_met_comp_tit: 'Consolidado de Instituições Ativas (Clique em qualquer uma para ver o detalhamento)',
+    v_met_comp_sub: 'Contagem real de Aprendizes, Mentores, Corpo Administrativo e porcentagem de avanço persistida no Azure SQL.',
+    audit_btn_backup: '💾 Cópia de Segurança (.xlsx)',
+    cfg_lbl_institucion: 'Escopo / Instituição',
+    ctrl_avance_titulo: '🎛️ Controle Manual de Progresso e Modo de Testes',
     toast_idioma_cambiado: '✓ Idioma atualizado para Português.'
   }
 };
@@ -864,13 +987,22 @@ document.addEventListener('click', (e) => {
   }
 });
 
-function cambiarIdiomaApp(lang, mostrarToastNotif = false) {
-  if (!I18N_DICCIONARIO[lang]) lang = 'es';
-  idiomaAppActual = lang;
-  localStorage.setItem('app_idioma', lang);
-  document.documentElement.lang = lang;
+function traducirTextoConDiccionarioAuto(textoOriginal, lang) {
+  if (!textoOriginal || lang === 'es') return textoOriginal;
+  const trimmed = textoOriginal.trim();
+  if (!trimmed) return textoOriginal;
+  const autoDict = window.I18N_AUTO && window.I18N_AUTO[lang] && window.I18N_AUTO[lang].exactos;
+  if (autoDict && autoDict[trimmed]) {
+    return textoOriginal.replace(trimmed, autoDict[trimmed]);
+  }
+  return textoOriginal;
+}
 
-  // 1. Traducir todos los elementos con atributo data-i18n
+function traducirDOMCompleto(raiz = document.body) {
+  const lang = idiomaAppActual || 'es';
+  if (!raiz) return;
+
+  // 1. Atributos data-i18n explícitos
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const clave = el.getAttribute('data-i18n');
     const texto = t(clave);
@@ -882,6 +1014,48 @@ function cambiarIdiomaApp(lang, mostrarToastNotif = false) {
       }
     }
   });
+
+  // 2. Placeholders y titles en elementos interactivos
+  raiz.querySelectorAll('input[placeholder], textarea[placeholder], [title]').forEach(el => {
+    if (el.hasAttribute('placeholder')) {
+      if (el.__origPlaceholderEs === undefined) el.__origPlaceholderEs = el.getAttribute('placeholder');
+      el.setAttribute('placeholder', lang === 'es' ? el.__origPlaceholderEs : traducirTextoConDiccionarioAuto(el.__origPlaceholderEs, lang));
+    }
+    if (el.hasAttribute('title')) {
+      if (el.__origTitleEs === undefined) el.__origTitleEs = el.getAttribute('title');
+      el.setAttribute('title', lang === 'es' ? el.__origTitleEs : traducirTextoConDiccionarioAuto(el.__origTitleEs, lang));
+    }
+  });
+
+  // 3. Nodos de texto en toda la página usando window.I18N_AUTO
+  const walker = document.createTreeWalker(raiz, NodeFilter.SHOW_TEXT, null, false);
+  let node;
+  while ((node = walker.nextNode())) {
+    const parent = node.parentElement;
+    if (!parent) continue;
+    const tag = parent.tagName;
+    if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'CODE' || parent.hasAttribute('data-i18n')) continue;
+    const val = node.nodeValue;
+    if (!val || !val.trim()) continue;
+    if (node.__origTextEs === undefined) {
+      node.__origTextEs = val;
+    }
+    if (lang === 'es') {
+      if (node.nodeValue !== node.__origTextEs) node.nodeValue = node.__origTextEs;
+    } else {
+      const traducido = traducirTextoConDiccionarioAuto(node.__origTextEs, lang);
+      if (traducido !== node.nodeValue) node.nodeValue = traducido;
+    }
+  }
+}
+
+function cambiarIdiomaApp(lang, mostrarToastNotif = false) {
+  if (!I18N_DICCIONARIO[lang]) lang = 'es';
+  idiomaAppActual = lang;
+  localStorage.setItem('app_idioma', lang);
+  document.documentElement.lang = lang;
+
+  traducirDOMCompleto(document.body);
 
   // 2. Actualizar botones selectores de idioma en Configuración
   const botones = document.querySelectorAll('.btn-selector-idioma');
@@ -1525,6 +1699,10 @@ function navegarVista(vistaId) {
     cerrarMenuDesplegable();
   }
 
+  if (typeof traducirDOMCompleto === 'function' && idiomaAppActual && idiomaAppActual !== 'es') {
+    setTimeout(() => traducirDOMCompleto(document.body), 120);
+  }
+
   refrescarIconos();
 }
 
@@ -1876,7 +2054,8 @@ async function iniciarLoginConCredenciales(correo, password) {
       if (typeof aplicarEstilosTemaWeb === 'function') {
         aplicarEstilosTemaWeb(currentUser.tema_decorativo || 'estandar', currentUser.fondo_personalizado);
       }
-      const orgNombre = currentUser.organizacion?.nombre || currentUser.organizacion_nombre || currentUser.institucion || 'Corporación Universitaria Minuto de Dios';
+      const esSuper = currentUser.rol === 'Super Administrador';
+      const orgNombre = esSuper ? 'Gobernanza Global Multi-Tenant' : sanitizarNombreInstitucionUI(currentUser.organizacion?.nombre || currentUser.organizacion_nombre || currentUser.institucion, 'Plataforma EdTech');
       mostrarToast(`¡Bienvenido(a), ${currentUser.nombre}! (${currentUser.rol} · ${orgNombre})`, 'exito');
       mostrarDashboardPrincipal();
     }
@@ -2023,21 +2202,25 @@ async function cargarNodosInstitucionales() {
       const inicial = org.nombre ? org.nombre.trim().charAt(0).toUpperCase() : 'I';
       const cupos = org.licencias_asignadas || 500;
       const estudiantesReales = org.total_estudiantes_reales || 0;
-      const porcentaje = Math.min(100, Math.round((estudiantesReales / cupos) * 100)) || 1;
+      const totalMentores = org.total_mentores || 0;
+      const totalAdmins = org.total_admins || 0;
+      const avancePct = Math.min(100, Math.max(0, Math.round((org.porcentaje_avance !== undefined ? org.porcentaje_avance : 0) * 10) / 10));
+      const esManual = Boolean(org.es_avance_manual);
       const nombreEscapado = (org.nombre || '').replace(/'/g, "\\'");
       const tipoEscapado = (org.tipo_organizacion || 'Institución').replace(/'/g, "\\'");
       const dominioEscapado = (org.dominio_permitido || '').replace(/'/g, "\\'");
 
-      // Botones de acción para Super Administrador
+      // Botones limpios de acción para Super Administrador (sin icono de imagen suelto)
       const botonesAccion = esSuperAdmin ? `
         <div class="flex items-center space-x-1" onclick="event.stopPropagation();">
-          <button onclick="cambiarLogoOrgDirecto(${org.id}, '${nombreEscapado}')" class="btn-icon-edit hover:text-cyan-500" title="Cambiar Logo Institucional">
-            <i data-lucide="camera" class="w-3.5 h-3.5 text-cyan-500"></i>
-          </button>
-          <button onclick="abrirModalEditarOrg(${org.id}, '${nombreEscapado}', '${tipoEscapado}', '${dominioEscapado}', ${cupos})" class="btn-icon-edit" title="Editar Institución y Cupos">
+          ${HABILITAR_MODO_PRUEBAS_SUPERADMIN ? `
+          <button onclick="abrirModalControlAvancePruebas(${org.id})" class="btn-icon-edit text-amber-600 hover:text-amber-700" title="Controlar % de Avance en Azure SQL">
+            <i data-lucide="sliders" class="w-3.5 h-3.5"></i>
+          </button>` : ''}
+          <button onclick="abrirModalEditarOrg(${org.id}, '${nombreEscapado}', '${tipoEscapado}', '${dominioEscapado}', ${cupos})" class="btn-icon-edit" title="Editar Institución, Logo y Cupos">
             <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
           </button>
-          <button onclick="abrirModalConfirmarEliminar(${org.id}, '${nombreEscapado}')" class="btn-icon-delete" title="Eliminar Institución">
+          <button onclick="abrirModalConfirmarEliminar(${org.id}, '${nombreEscapado}')" class="btn-icon-delete" title="Eliminar Institución de Azure SQL">
             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
           </button>
         </div>
@@ -2048,33 +2231,58 @@ async function cargarNodosInstitucionales() {
       const textoChip = esLibre ? '🌐 Libre' : `@${org.dominio_permitido}`;
 
       return `
-        <div onclick="verDetalleNodo(${org.id}, '${nombreEscapado}')" class="nodo-card cursor-pointer">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-3.5">
-              <div class="nodo-avatar overflow-hidden ${esSuperAdmin ? 'hover:ring-2 hover:ring-cyan-400 cursor-pointer' : ''}" style="background-color: ${colorAvatar};" ${esSuperAdmin ? `onclick="event.stopPropagation(); cambiarLogoOrgDirecto(${org.id}, '${nombreEscapado}')" title="Haz clic para cambiar el logo"` : ''}>
-                ${org.logo_url ? `<img src="${org.logo_url}" class="w-full h-full object-contain p-0.5 rounded-full bg-white">` : inicial}
-              </div>
-              <div>
-                <div class="flex items-center space-x-2">
-                  <h4 class="text-sm font-bold nodo-org-title leading-snug">${escapeHtml(org.nombre)}</h4>
-                  <span class="text-[10px] font-mono px-1.5 py-0.5 rounded ${claseChip}">
-                    ${textoChip}
-                  </span>
+        <div onclick="verDetalleNodo(${org.id}, '${nombreEscapado}')" class="nodo-card cursor-pointer flex flex-col justify-between">
+          <div>
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex items-center space-x-3.5">
+                <div class="nodo-avatar overflow-hidden shrink-0" style="background-color: ${colorAvatar};">
+                  ${org.logo_url ? `<img src="${org.logo_url}" class="w-full h-full object-contain p-0.5 rounded-full bg-white">` : inicial}
                 </div>
-                <p class="text-xs text-slate-500 font-medium">
-                  <span class="txt-estudiantes-reales font-bold">${estudiantesReales} estudiantes reales</span> · ${cupos} cupos (${porcentaje}% ocupado)
-                </p>
+                <div>
+                  <div class="flex items-center flex-wrap gap-1.5">
+                    <h4 class="text-sm font-bold nodo-org-title leading-snug">${escapeHtml(org.nombre)}</h4>
+                    <span class="text-[10px] font-mono px-1.5 py-0.5 rounded ${claseChip}">
+                      ${textoChip}
+                    </span>
+                  </div>
+                  <p class="text-[11px] text-slate-500 font-medium mt-0.5">
+                    <span class="font-bold text-sky-800">${totalAdmins} Admin(s)</span> ·
+                    <span class="font-bold text-purple-700">${totalMentores} Mentor(es)</span> ·
+                    <span class="txt-estudiantes-reales font-bold">${estudiantesReales} Aprendiz(ces)</span>
+                    <span class="text-slate-400">(${cupos} cupos)</span>
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center space-x-1.5 shrink-0">
+                ${botonesAccion}
               </div>
             </div>
-            <div class="flex items-center space-x-2">
-              ${botonesAccion}
-              <i data-lucide="chevron-right" class="w-4 h-4 text-slate-400"></i>
+
+            <!-- Barra de Progreso Real / Controlada por SuperAdmin -->
+            <div class="mt-3.5 space-y-1">
+              <div class="flex items-center justify-between text-[11px] font-bold">
+                <span class="text-slate-500 flex items-center gap-1">
+                  <span>Avance Institucional:</span>
+                  ${esManual ? '<span class="px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 text-[9px] font-extrabold">🎛️ Manual</span>' : '<span class="px-1.5 py-0.2 rounded bg-cyan-50 text-cyan-700 text-[9px] font-bold">📊 Azure SQL</span>'}
+                </span>
+                <span class="text-cyan-700 font-extrabold">${avancePct}%</span>
+              </div>
+              <div class="progress-track-cyan">
+                <div class="progress-bar-cyan" style="width: ${avancePct}%;"></div>
+              </div>
             </div>
           </div>
 
-          <!-- Barra de Progreso Cian Idéntica a la Referencia -->
-          <div class="mt-4 progress-track-cyan">
-            <div class="progress-bar-cyan" style="width: ${porcentaje}%;"></div>
+          <!-- Acciones Directas: Reporte de Estado y Métricas + Gestión de Integrantes -->
+          <div class="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2" onclick="event.stopPropagation();">
+            <button type="button" onclick="abrirReporteEstadoInstitucion(${org.id}, '${nombreEscapado}')" class="px-2.5 py-1.5 rounded-lg bg-cyan-50 hover:bg-cyan-100 text-cyan-900 border border-cyan-200 text-[11px] font-bold flex items-center gap-1.5 transition-all cursor-pointer">
+              <i data-lucide="bar-chart-2" class="w-3.5 h-3.5 text-cyan-700"></i>
+              <span>📊 Reporte de Estado y Métricas</span>
+            </button>
+            <button type="button" onclick="verDetalleNodo(${org.id}, '${nombreEscapado}')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer">
+              <i data-lucide="users" class="w-3.5 h-3.5"></i>
+              <span>Integrantes →</span>
+            </button>
           </div>
         </div>
       `;
@@ -2090,11 +2298,21 @@ async function cargarNodosInstitucionales() {
 }
 
 function verDetalleNodo(id, nombre) {
-  mostrarToast(`Filtrando directorio por: ${nombre}.`, 'info');
+  mostrarToast(`Gestionando estructura e integrantes de: ${nombre}`, 'info');
   const sel = document.getElementById('select-filtro-org-jerarquia');
   if (sel) sel.value = id;
+  const selExcel = document.getElementById('excel-org-select');
+  if (selExcel) selExcel.value = id;
   navegarVista('directorio');
   cargarJerarquia3Columnas(id);
+}
+
+async function abrirReporteEstadoInstitucion(orgId, nombre) {
+  mostrarToast(`📊 Abriendo Reporte de Estado y Métricas de: ${nombre}`, 'info');
+  navegarVista('metricas');
+  const sel = document.getElementById('select-analitica-org');
+  if (sel) sel.value = String(orgId);
+  await cargarAnaliticaPorOrganizacion(orgId);
 }
 
 function toggleDominioOrg(tipo) {
@@ -2308,10 +2526,12 @@ async function guardarEdicionOrg(event) {
       actualizarBrandingOrganizacionUI();
     }
 
-    mostrarToast(`✓ Institución '${nombre}' actualizada. Cupos: ${licencias_asignadas}.`, 'exito');
+    mostrarToast(`✓ Institución '${nombre}' actualizada en Azure SQL. Cupos: ${licencias_asignadas}.`, 'exito');
     cerrarModal('modal-editar-org');
-    cargarNodosInstitucionales();
+    await cargarNodosInstitucionales();
+    await refrescarTodosSelectoresOrganizaciones(id);
     cargarJerarquia3Columnas();
+    if (typeof cargarAnaliticaPorOrganizacion === 'function') cargarAnaliticaPorOrganizacion();
   } catch (err) {
     mostrarToast(err.message, 'error');
   }
@@ -2322,7 +2542,7 @@ function abrirModalConfirmarEliminar(id, nombre) {
   nodoAEliminar = { id, nombre };
   const label = document.getElementById('label-eliminar-mensaje');
   if (label) {
-    label.innerHTML = `⚠️ Estás a punto de eliminar la institución <strong>${nombre}</strong>.<br><br>Esta acción desvinculará a todos sus estudiantes y eliminará sus configuraciones permanentemente.`;
+    label.innerHTML = `⚠️ Estás a punto de eliminar la institución <strong>${nombre}</strong> en Azure SQL.<br><br>Esta acción eliminará la institución y sus usuarios asociados permanentemente.`;
   }
   document.getElementById('modal-confirmar-eliminar').classList.remove('hidden');
   refrescarIconos();
@@ -2333,7 +2553,7 @@ async function ejecutarEliminarNodo() {
 
   const btnEliminar = document.getElementById('btn-ejecutar-eliminar');
   btnEliminar.disabled = true;
-  btnEliminar.innerText = 'Eliminando...';
+  btnEliminar.innerText = 'Eliminando en Azure SQL...';
 
   try {
     const res = await fetch(`${API_BASE}/api/superadmin/organizaciones/${nodoAEliminar.id}`, {
@@ -2342,10 +2562,12 @@ async function ejecutarEliminarNodo() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || 'Error al eliminar');
 
-    mostrarToast(data.mensaje, 'exito');
+    mostrarToast(data.mensaje || '✓ Institución eliminada permanentemente de Azure SQL.', 'exito');
     cerrarModal('modal-confirmar-eliminar');
-    cargarNodosInstitucionales();
+    await cargarNodosInstitucionales();
+    await refrescarTodosSelectoresOrganizaciones();
     cargarJerarquia3Columnas();
+    if (typeof cargarAnaliticaPorOrganizacion === 'function') cargarAnaliticaPorOrganizacion(0);
   } catch (err) {
     mostrarToast(err.message, 'error');
   } finally {
@@ -2354,20 +2576,42 @@ async function ejecutarEliminarNodo() {
   }
 }
 
+function togglePanelCargaExcel() {
+  const card = document.getElementById('card-carga-masiva-excel');
+  const lbl = document.getElementById('lbl-toggle-carga-excel');
+  if (!card) return;
+  const estabaOculto = card.classList.contains('hidden');
+  if (estabaOculto) {
+    card.classList.remove('hidden');
+    if (lbl) lbl.innerText = '✕ Ocultar Cargador de Base de Datos';
+    refrescarTodosSelectoresOrganizaciones(document.getElementById('select-filtro-org-jerarquia')?.value || null);
+  } else {
+    card.classList.add('hidden');
+    if (lbl) lbl.innerText = '📥 Cargar Base de Datos';
+  }
+  refrescarIconos();
+}
+
 function cargarOrganizacionesEnSelects() {
-  const selects = ['excel-org-select', 'mat-asignar-org', 'select-filtro-org-jerarquia', 'edit-user-org'];
+  const selects = ['excel-org-select', 'mat-asignar-org', 'select-filtro-org-jerarquia', 'edit-user-org', 'ctrl-avance-inst-org', 'ctrl-avance-grupo-org', 'ctrl-avance-usr-org'];
   selects.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
+    const prevVal = el.value;
 
     let html = '';
     if (id === 'mat-asignar-org') html = '<option value="">Todas las instituciones (Global)</option>';
     else if (id === 'select-filtro-org-jerarquia') html = '<option value="">Todas las instituciones</option>';
+    else if (allOrganizations.length === 0) html = '<option value="">Crea primero una institución en Creador de Entornos</option>';
     
     allOrganizations.forEach(org => {
-      html += `<option value="${org.id}">${org.nombre} (@${org.dominio_permitido})</option>`;
+      const domTxt = (!org.dominio_permitido || org.dominio_permitido === 'LIBRE') ? 'Libre' : `@${org.dominio_permitido}`;
+      html += `<option value="${org.id}">🏛️ ${org.nombre} (${domTxt})</option>`;
     });
     el.innerHTML = html;
+    if (prevVal && Array.from(el.options).some(o => o.value === String(prevVal))) {
+      el.value = prevVal;
+    }
   });
 }
 
@@ -2418,13 +2662,17 @@ async function procesarCargaExcel(event) {
     }
 
     fileInput.value = '';
-    cargarJerarquia3Columnas(orgId);
-    cargarNodosInstitucionales();
+    const selFiltro = document.getElementById('select-filtro-org-jerarquia');
+    if (selFiltro) selFiltro.value = String(orgId);
+    await cargarJerarquia3Columnas(orgId);
+    await cargarNodosInstitucionales();
+    await refrescarTodosSelectoresOrganizaciones(orgId);
+    if (typeof cargarAnaliticaPorOrganizacion === 'function') cargarAnaliticaPorOrganizacion(orgId);
   } catch (err) {
     mostrarToast(err.message, 'error');
   } finally {
     btnSubmit.disabled = false;
-    btnSubmit.innerHTML = `<i data-lucide="upload" class="w-4 h-4"></i><span>Procesar y Cargar Base de Datos Excel</span>`;
+    btnSubmit.innerHTML = `<i data-lucide="upload" class="w-4 h-4"></i><span>Procesar y Cargar Base de Datos</span>`;
     refrescarIconos();
   }
 }
@@ -2434,12 +2682,16 @@ async function procesarCargaExcel(event) {
 // =====================================================================
 async function cargarJerarquia3Columnas(orgId = null) {
   try {
+    const btnToggleExcel = document.getElementById('btn-toggle-carga-excel');
     const cardExcel = document.getElementById('card-carga-masiva-excel');
     const btnPlantilla = document.getElementById('btn-descargar-plantilla-excel');
-    const esSuperAdmin = currentUser && currentUser.rol === 'Super Administrador';
-    if (cardExcel) {
-      if (esSuperAdmin) cardExcel.classList.remove('hidden');
-      else cardExcel.classList.add('hidden');
+    const esSuperAdmin = currentUser && (currentUser.rol === 'Super Administrador' || currentUser.rol === 'Administrador');
+    if (btnToggleExcel) {
+      if (esSuperAdmin) btnToggleExcel.classList.remove('hidden');
+      else btnToggleExcel.classList.add('hidden');
+    }
+    if (!esSuperAdmin && cardExcel) {
+      cardExcel.classList.add('hidden');
     }
     if (btnPlantilla) {
       if (esSuperAdmin) btnPlantilla.classList.remove('hidden');
@@ -5591,14 +5843,24 @@ async function refrescarTodosSelectoresOrganizaciones(selectedId = null) {
     const jsonOrg = await resOrg.json();
     allOrganizations = jsonOrg.data || [];
 
-    // 1. Selector de Analítica en Métricas
+    cargarOrganizacionesEnSelects();
+
+    // 1. Selector de Analítica en Métricas (Con Vista Consolidada Global para SuperAdmin)
     const selectAnalitica = document.getElementById('select-analitica-org');
     if (selectAnalitica) {
-      const cur = selectedId || parseInt(selectAnalitica.value) || (allOrganizations[0]?.id || '');
-      selectAnalitica.innerHTML = allOrganizations.map(o => 
-        `<option value="${o.id}" ${o.id === cur ? 'selected' : ''}>🏛️ ${o.nombre} (${o.tipo_organizacion || 'Institución'})</option>`
-      ).join('');
-      if (cur) selectAnalitica.value = cur;
+      const prevVal = selectedId !== null ? String(selectedId) : (selectAnalitica.value || '0');
+      if (allOrganizations.length === 0) {
+        selectAnalitica.innerHTML = '<option value="0">🌐 Vista Consolidada Global (Sin instituciones aún)</option>';
+      } else {
+        let htmlAn = '<option value="0">🌐 Vista Consolidada Global (Todas las Instituciones)</option>';
+        htmlAn += allOrganizations.map(o => 
+          `<option value="${o.id}" ${String(o.id) === prevVal ? 'selected' : ''}>🏛️ ${o.nombre} (${o.tipo_organizacion || 'Institución'})</option>`
+        ).join('');
+        selectAnalitica.innerHTML = htmlAn;
+        if (prevVal === '0' || Array.from(selectAnalitica.options).some(opt => opt.value === prevVal)) {
+          selectAnalitica.value = prevVal;
+        }
+      }
     }
 
     // 2. Selector de Grupos de Trabajo
@@ -5606,7 +5868,7 @@ async function refrescarTodosSelectoresOrganizaciones(selectedId = null) {
     if (selectGrupos) {
       const curG = selectedId || parseInt(selectGrupos.value) || (allOrganizations[0]?.id || '');
       selectGrupos.innerHTML = allOrganizations.map(o => 
-        `<option value="${o.id}" ${o.id === curG ? 'selected' : ''}>🏛️ ${o.nombre} (${o.tipo_organizacion || 'Institución'})</option>`
+        `<option value="${o.id}" ${o.id == curG ? 'selected' : ''}>🏛️ ${o.nombre} (${o.tipo_organizacion || 'Institución'})</option>`
       ).join('');
       if (curG) selectGrupos.value = curG;
     }
@@ -5645,35 +5907,20 @@ async function refrescarTodosSelectoresOrganizaciones(selectedId = null) {
       }
     }
 
-    // 5. Selector de Modal Crear Manual
-    const selectManualOrg = document.getElementById('modal-crear-manual-org');
-    if (selectManualOrg) {
-      const curM = selectedId || parseInt(selectManualOrg.value) || (allOrganizations[0]?.id || '');
-      selectManualOrg.innerHTML = allOrganizations.map(o => 
-        `<option value="${o.id}" ${o.id === curM ? 'selected' : ''}>🏛️ ${o.nombre} (${o.tipo_organizacion || 'Institución'})</option>`
-      ).join('');
-      if (curM) selectManualOrg.value = curM;
-    }
-
-    // 6. Selector de Modal Enviar Colección
-    const selectEnviarCol = document.getElementById('modal-enviar-col-org');
-    if (selectEnviarCol) {
-      const curE = selectedId || parseInt(selectEnviarCol.value) || (allOrganizations[0]?.id || '');
-      selectEnviarCol.innerHTML = allOrganizations.map(o => 
-        `<option value="${o.id}" ${o.id === curE ? 'selected' : ''}>🏛️ ${o.nombre} (${o.tipo_organizacion || 'Institución'})</option>`
-      ).join('');
-      if (curE) selectEnviarCol.value = curE;
-    }
-
-    // 7. Selector de Carga Excel general
-    const selectSubirExcel = document.getElementById('subir-excel-org-id');
-    if (selectSubirExcel) {
-      const curS = selectedId || parseInt(selectSubirExcel.value) || (allOrganizations[0]?.id || '');
-      selectSubirExcel.innerHTML = allOrganizations.map(o => 
-        `<option value="${o.id}" ${o.id === curS ? 'selected' : ''}>🏛️ ${o.nombre} (${o.tipo_organizacion || 'Institución'})</option>`
-      ).join('');
-      if (curS) selectSubirExcel.value = curS;
-    }
+    // 5. Selectores de Carga Excel, Crear Manual y Enviar Colección (IDs reales del DOM)
+    ['excel-org-select', 'manual-usr-org', 'select-enviar-org'].forEach(selId => {
+      const el = document.getElementById(selId);
+      if (!el) return;
+      const curVal = selectedId || parseInt(el.value) || (allOrganizations[0]?.id || '');
+      if (allOrganizations.length === 0) {
+        el.innerHTML = '<option value="">Crea primero una institución en Creador de Entornos</option>';
+      } else {
+        el.innerHTML = allOrganizations.map(o => 
+          `<option value="${o.id}" ${o.id == curVal ? 'selected' : ''}>🏛️ ${o.nombre} (${o.tipo_organizacion || 'Institución'})</option>`
+        ).join('');
+        if (curVal) el.value = curVal;
+      }
+    });
   } catch (err) {
     console.warn('Error refrescando selectores de organizaciones:', err);
   }
@@ -5854,7 +6101,8 @@ async function cargarAnaliticaPorOrganizacion(orgId = null) {
       return;
     }
 
-    // Restaurar contenedores institucionales para otros roles
+    actualizarVisibilidadBotonesModoPruebas();
+
     const contPriv = document.getElementById('contenedor-metricas-aprendiz-privadas');
     const barOrg = document.getElementById('barra-selector-metricas-org');
     const tabsInst = document.getElementById('tabs-metricas-institucionales');
@@ -5864,95 +6112,102 @@ async function cargarAnaliticaPorOrganizacion(orgId = null) {
     if (tabsInst) tabsInst.classList.remove('hidden');
     if (tabRend) tabRend.classList.remove('hidden');
 
-    const titMet = document.getElementById('titulo-vista-metricas');
-    const subMet = document.getElementById('subtitulo-vista-metricas');
-    if (currentUser && currentUser.rol === 'Mentor') {
-      if (titMet) titMet.innerText = 'Métricas & Gráficas de Mis Estudiantes';
-      if (subMet) subMet.innerText = 'Seguimiento del rendimiento y avance en colecciones de los alumnos a tu cargo.';
-    } else if (currentUser && currentUser.rol === 'Super Administrador') {
-      if (titMet) titMet.innerText = 'Métricas y Desempeño Global';
-      if (subMet) subMet.innerText = 'Supervisión integral de progreso, avance por módulos y rendimientos de todas las instituciones.';
-    } else {
-      if (titMet) titMet.innerText = 'Métricas y Desempeño Institucional';
-      if (subMet) subMet.innerText = 'Supervisión integral de progreso y rendimientos académicos de la institución.';
-    }
-
     const selectOrg = document.getElementById('select-analitica-org');
     if (!selectOrg) return;
 
-    // Consultar SIEMPRE organizaciones frescas para que cualquier nueva aparezca al instante
+    // Consultar SIEMPRE organizaciones frescas desde Azure SQL
     const resOrg = await fetch(`${API_BASE}/api/organizaciones/listar`);
     const jsonOrg = await resOrg.json();
     allOrganizations = jsonOrg.data || [];
 
-    if (allOrganizations.length === 0) {
-      selectOrg.innerHTML = '<option value="">No hay organizaciones registradas</option>';
-      return;
-    }
-
-    let targetOrgId = orgId;
+    const esSuperAdmin = !currentUser || currentUser.rol === 'Super Administrador';
     const contSelect = document.getElementById('contenedor-select-analitica-org');
     const contBadge = document.getElementById('contenedor-badge-analitica-org');
     const badgeNombre = document.getElementById('badge-analitica-org-nombre');
 
-    if (currentUser && currentUser.rol !== 'Super Administrador') {
-      targetOrgId = currentUser.organizacion_id || allOrganizations[0].id;
+    let targetOrgId = orgId;
+    if (!esSuperAdmin) {
+      targetOrgId = currentUser.organizacion_id || (allOrganizations[0]?.id || 0);
       if (contSelect) contSelect.classList.add('hidden');
       if (contBadge) contBadge.classList.remove('hidden');
-      if (badgeNombre) badgeNombre.innerText = currentUser.organizacion_nombre || 'Mi Institución';
+      if (badgeNombre) badgeNombre.innerText = sanitizarNombreInstitucionUI(currentUser.organizacion_nombre, 'Mi Institución');
     } else {
       if (contSelect) contSelect.classList.remove('hidden');
       if (contBadge) contBadge.classList.add('hidden');
-      if (!targetOrgId) targetOrgId = parseInt(selectOrg.value) || allOrganizations[0].id;
-      selectOrg.innerHTML = allOrganizations.map(o => 
-        `<option value="${o.id}" ${o.id === targetOrgId ? 'selected' : ''}>🏛️ ${o.nombre} (${o.tipo_organizacion || 'Institución'})</option>`
-      ).join('');
-      selectOrg.value = targetOrgId;
+
+      if (targetOrgId === null || targetOrgId === undefined || targetOrgId === '') {
+        const curSelectVal = selectOrg.value;
+        targetOrgId = (curSelectVal !== '' && curSelectVal !== null && !isNaN(parseInt(curSelectVal)))
+          ? parseInt(curSelectVal)
+          : 0; // Por defecto Vista Consolidada Global (0)
+      } else {
+        targetOrgId = parseInt(targetOrgId) || 0;
+      }
+
+      let opcionesHtml = `<option value="0" ${targetOrgId === 0 ? 'selected' : ''}>🌐 Vista Consolidada Global (${allOrganizations.length} Instituciones)</option>`;
+      opcionesHtml += allOrganizations.map(o => {
+        const pct = Math.round((o.porcentaje_avance || 0) * 10) / 10;
+        return `<option value="${o.id}" ${parseInt(o.id) === targetOrgId ? 'selected' : ''}>🏛️ ${escapeHtml(o.nombre)} · ${pct}% Avance (${o.total_estudiantes_reales || 0} Aprendices)</option>`;
+      }).join('');
+      selectOrg.innerHTML = opcionesHtml;
+      selectOrg.value = String(targetOrgId);
     }
 
-    const res = await fetch(`${API_BASE}/api/superadmin/organizaciones/${targetOrgId}/analitica-colecciones`);
+    const endpoint = (targetOrgId === 0)
+      ? `${API_BASE}/api/superadmin/analitica-global`
+      : `${API_BASE}/api/superadmin/organizaciones/${targetOrgId}/analitica-colecciones`;
+
+    const res = await fetch(endpoint);
     const json = await res.json();
-    if (!res.ok) throw new Error(json.detail || 'Error al cargar analítica');
+    if (!res.ok) throw new Error(json.detail || 'Error al cargar analítica desde Azure SQL');
 
     analiticaOrgActual = json;
     let estudiantes = json.estudiantes || [];
+    const mentoresLista = json.mentores || [];
     if (currentUser && currentUser.rol === 'Mentor') {
       estudiantes = estudiantes.filter(e => e.mentor_id === currentUser.id || e.mentor_nombre === currentUser.nombre);
     }
     analiticaEstudiantesActuales = estudiantes;
 
-    const totalEst = estudiantes.length;
-    let promAvance = 0;
-    let modCompletados = 0;
-    let modTotales = 0;
-    let finalizados = 0;
-
-    if (totalEst > 0) {
-      const sumAvance = estudiantes.reduce((acc, curr) => acc + (curr.promedio_avance || 0), 0);
-      promAvance = Math.round(sumAvance / totalEst);
-      modCompletados = estudiantes.reduce((acc, curr) => acc + (curr.modulos_completados || 0), 0);
-      modTotales = estudiantes.reduce((acc, curr) => acc + (curr.modulos_asignados || 0), 0);
-      finalizados = estudiantes.filter(e => (e.promedio_avance || 0) >= 100).length;
+    const badgeModoVista = document.getElementById('badge-modo-vista-metricas');
+    if (badgeModoVista) {
+      badgeModoVista.innerText = (targetOrgId === 0)
+        ? `🌐 Vista Consolidada Global (${allOrganizations.length} Instituciones)`
+        : `🏛️ Vista Individual: ${sanitizarNombreInstitucionUI(json.organizacion?.nombre, 'Institución')}`;
     }
 
     const kpiCol = document.getElementById('kpi-org-colecciones');
     const kpiApr = document.getElementById('kpi-org-aprendices');
+    const kpiMent = document.getElementById('stat-total-mentores');
+    const kpiAdm = document.getElementById('kpi-org-administradores');
     const kpiAvance = document.getElementById('kpi-org-avance-promedio');
+    const kpiAvanceModo = document.getElementById('kpi-org-avance-modo');
     const kpiMod = document.getElementById('kpi-org-modulos');
     const kpiComp = document.getElementById('kpi-org-completados');
     const badgeTotal = document.getElementById('badge-org-total-col');
 
     if (kpiCol) kpiCol.innerText = json.kpis?.total_colecciones || 0;
-    if (kpiApr) kpiApr.innerText = (currentUser && currentUser.rol === 'Mentor') ? totalEst : (json.kpis?.total_aprendices || 0);
-    if (kpiAvance) kpiAvance.innerText = `${(currentUser && currentUser.rol === 'Mentor') ? promAvance : (json.kpis?.promedio_general_org || 0)}%`;
-    if (kpiMod) kpiMod.innerText = (currentUser && currentUser.rol === 'Mentor') ? `${modCompletados} / ${modTotales}` : `${json.kpis?.modulos_completados_totales || 0} / ${json.kpis?.modulos_asignados_totales || 0}`;
-    if (kpiComp) kpiComp.innerText = `${(currentUser && currentUser.rol === 'Mentor') ? (totalEst > 0 ? Math.round((finalizados / totalEst) * 100) : 0) : (json.kpis?.tasa_finalizacion_org || 0)}%`;
+    if (kpiApr) kpiApr.innerText = (currentUser && currentUser.rol === 'Mentor') ? estudiantes.length : (json.kpis?.total_aprendices || 0);
+    if (kpiMent) kpiMent.innerText = json.kpis?.total_mentores ?? mentoresLista.length ?? 0;
+    if (kpiAdm) kpiAdm.innerText = json.kpis?.total_administradores ?? (json.administradores || []).length ?? 0;
+    if (kpiAvance) kpiAvance.innerText = `${json.kpis?.promedio_general_org ?? 0}%`;
+    if (kpiAvanceModo) {
+      kpiAvanceModo.innerText = json.organizacion?.es_avance_manual
+        ? '🎛️ Definido Manualmente (Azure SQL)'
+        : '📊 Sincronizado en Tiempo Real';
+    }
+    if (kpiMod) kpiMod.innerText = `${json.kpis?.modulos_completados_totales || 0} / ${json.kpis?.modulos_asignados_totales || 0}`;
+    if (kpiComp) kpiComp.innerText = `${json.kpis?.tasa_finalizacion_org || 0}%`;
     if (badgeTotal) badgeTotal.innerText = `${(json.colecciones || []).length} colecciones asignadas`;
 
+    renderizarTablaComparativaInstituciones(json);
     renderizarColeccionesOrganizacion(json.colecciones || []);
-    cargarColeccionesEstadoOrganizacion(targetOrgId);
+    if (targetOrgId > 0) {
+      cargarColeccionesEstadoOrganizacion(targetOrgId);
+    }
     renderizarGraficasOrganizacion(json);
     renderizarTablaEstudiantesAnalitica();
+    renderizarCuadroHonorTop10AprendicesMetricas(estudiantes, mentoresLista);
 
     refrescarIconos();
   } catch (e) {
@@ -5961,9 +6216,263 @@ async function cargarAnaliticaPorOrganizacion(orgId = null) {
 }
 
 function cambiarOrganizacionAnalitica(orgId) {
-  if (orgId) {
-    cargarAnaliticaPorOrganizacion(parseInt(orgId));
+  if (orgId === '' || orgId === null || orgId === undefined) return;
+  const panelDrill = document.getElementById('panel-drilldown-metricas');
+  if (panelDrill) panelDrill.classList.add('hidden');
+  cargarAnaliticaPorOrganizacion(parseInt(orgId) || 0);
+}
+
+function renderizarCuadroHonorTop10AprendicesMetricas(estudiantes, mentores) {
+  const tbodyTop = document.getElementById('tabla-metricas-top-estudiantes-body');
+  if (tbodyTop) {
+    if (!estudiantes || estudiantes.length === 0) {
+      tbodyTop.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-slate-400 text-xs">No hay aprendices registrados aún en esta vista. Crea una institución o carga su base de datos.</td></tr>';
+    } else {
+      const top = [...estudiantes].sort((a, b) => (b.promedio_avance || 0) - (a.promedio_avance || 0)).slice(0, 10);
+      tbodyTop.innerHTML = top.map((e, i) => `
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="py-2.5 px-3 font-black text-xs text-amber-700">#${i + 1}</td>
+          <td class="py-2.5 px-3">
+            <strong class="text-xs font-bold text-[#0a192f] block">${escapeHtml(e.nombre)}</strong>
+            <span class="text-[11px] font-mono text-slate-400">${escapeHtml(e.correo)}</span>
+          </td>
+          <td class="py-2.5 px-3 text-xs font-semibold text-purple-800">${escapeHtml(e.mentor_nombre || 'Sin Mentor')}</td>
+          <td class="py-2.5 px-3 text-xs font-bold text-indigo-700">${e.total_modulos_completados || 0} / ${e.total_modulos_asignados || 0} mód.</td>
+          <td class="py-2.5 px-3">
+            <div class="flex items-center gap-2">
+              <div class="w-20 bg-slate-100 rounded-full h-2 overflow-hidden">
+                <div class="bg-emerald-500 h-2 rounded-full" style="width: ${Math.min(100, Math.round(e.promedio_avance || 0))}%"></div>
+              </div>
+              <span class="text-xs font-extrabold text-emerald-700">${Math.round(e.promedio_avance || 0)}%</span>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
   }
+}
+
+function renderizarTablaComparativaInstituciones(data) {
+  const tbody = document.getElementById('tabla-comparativa-instituciones-body');
+  const cardComp = document.getElementById('card-comparativa-instituciones-global');
+  if (!tbody || !cardComp) return;
+
+  const listaInst = (data.instituciones_comparativa && data.instituciones_comparativa.length > 0)
+    ? data.instituciones_comparativa
+    : allOrganizations.map(o => ({
+        id: o.id,
+        nombre: o.nombre,
+        tipo_organizacion: o.tipo_organizacion,
+        licencias_asignadas: o.licencias_asignadas || 500,
+        total_administradores: o.total_admins || 0,
+        total_mentores: o.total_mentores || 0,
+        total_aprendices: o.total_estudiantes_reales || 0,
+        total_colecciones: o.total_colecciones || 0,
+        modulos_completados: 0,
+        modulos_asignados: 0,
+        porcentaje_avance: o.porcentaje_avance || 0,
+        es_avance_manual: o.es_avance_manual || false
+      }));
+
+  if (listaInst.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400 text-xs">No hay instituciones registradas. Crea tu primera institución en <strong>Creador de Entornos</strong>.</td></tr>`;
+    return;
+  }
+
+  window.__ultimasInstitucionesComparativa = listaInst;
+
+  tbody.innerHTML = listaInst.map((inst, idx) => {
+    const pct = Math.min(100, Math.max(0, Math.round((inst.porcentaje_avance || 0) * 10) / 10));
+    const nombreEsc = (inst.nombre || '').replace(/'/g, "\\'");
+    return `
+      <tr onclick="mostrarDrillDownInstitucionPorId(${inst.id})" class="hover:bg-cyan-50/50 transition-colors cursor-pointer">
+        <td class="py-3 pr-3">
+          <div class="flex items-center gap-2">
+            <span class="w-7 h-7 rounded-lg bg-[#0a192f] text-cyan-400 font-black text-xs flex items-center justify-center shrink-0">${(inst.nombre || 'I').charAt(0).toUpperCase()}</span>
+            <div>
+              <strong class="text-xs font-bold text-[#0a192f] block">${escapeHtml(inst.nombre)}</strong>
+              <span class="text-[10px] text-slate-400">${escapeHtml(inst.tipo_organizacion || 'Institución')} · ${inst.licencias_asignadas || 500} cupos</span>
+            </div>
+          </div>
+        </td>
+        <td class="py-3 px-3 text-center font-extrabold text-sky-800">${inst.total_administradores || 0}</td>
+        <td class="py-3 px-3 text-center font-extrabold text-purple-700">${inst.total_mentores || 0}</td>
+        <td class="py-3 px-3 text-center font-extrabold text-cyan-700">${inst.total_aprendices || 0}</td>
+        <td class="py-3 px-3 text-center font-mono text-xs text-indigo-700 font-bold">${inst.modulos_completados || 0} / ${inst.modulos_asignados || 0}</td>
+        <td class="py-3 px-3">
+          <div class="flex items-center gap-2">
+            <div class="w-24 bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200">
+              <div class="h-2.5 rounded-full ${pct >= 80 ? 'bg-emerald-500' : (pct >= 40 ? 'bg-cyan-600' : 'bg-amber-500')}" style="width: ${pct}%"></div>
+            </div>
+            <span class="text-xs font-black text-[#0a192f]">${pct}%</span>
+            ${inst.es_avance_manual ? '<span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[9px] font-extrabold">Manual</span>' : ''}
+          </div>
+        </td>
+        <td class="py-3 pl-3 text-right whitespace-nowrap" onclick="event.stopPropagation();">
+          <div class="inline-flex items-center gap-1.5">
+            <button type="button" onclick="mostrarDrillDownInstitucionPorId(${inst.id})" class="px-2.5 py-1 rounded-lg bg-cyan-50 hover:bg-cyan-100 text-cyan-900 border border-cyan-200 text-[11px] font-bold cursor-pointer" title="Desplegar explicación detallada (Drill-Down)">
+              🔍 Desglose
+            </button>
+            ${HABILITAR_MODO_PRUEBAS_SUPERADMIN && (!currentUser || currentUser.rol === 'Super Administrador') ? `
+            <button type="button" onclick="abrirModalControlAvancePruebas(${inst.id})" class="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-bold cursor-pointer" title="Ajustar porcentaje manualmente">
+              🎛️ %
+            </button>` : ''}
+            <button type="button" onclick="cambiarOrganizacionAnalitica(${inst.id})" class="px-2.5 py-1 rounded-lg bg-[#0a192f] hover:bg-[#112240] text-cyan-300 text-[11px] font-bold cursor-pointer" title="Abrir vista individual de esta institución">
+              Ver Individual →
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function mostrarDrillDownInstitucionPorId(orgId) {
+  const lista = window.__ultimasInstitucionesComparativa || allOrganizations || [];
+  const inst = lista.find(o => parseInt(o.id) === parseInt(orgId));
+  if (!inst) return;
+  mostrarDrillDownMetricas({
+    tipo: 'institucion',
+    institucion: inst,
+    totalInstituciones: lista.length,
+    sumaAvances: lista.reduce((a, b) => a + (b.porcentaje_avance || 0), 0),
+    totalAprendicesGlobal: lista.reduce((a, b) => a + (b.total_aprendices ?? b.total_estudiantes_reales ?? 0), 0)
+  });
+}
+
+function mostrarDrillDownMetricas(payload) {
+  const panel = document.getElementById('panel-drilldown-metricas');
+  const tit = document.getElementById('drilldown-titulo');
+  const badgeModo = document.getElementById('drilldown-badge-modo');
+  const contCards = document.getElementById('drilldown-contenido-dinamico');
+  const contExp = document.getElementById('drilldown-explicacion-texto');
+  const btnAjustar = document.getElementById('btn-drilldown-ajustar-avance');
+  if (!panel || !contCards || !contExp) return;
+
+  panel.classList.remove('hidden');
+
+  if (payload.tipo === 'institucion') {
+    const inst = payload.institucion;
+    const pct = Math.round((inst.porcentaje_avance || 0) * 10) / 10;
+    const aprendices = inst.total_aprendices ?? inst.total_estudiantes_reales ?? 0;
+    const mentores = inst.total_mentores || 0;
+    const admins = inst.total_administradores ?? inst.total_admins ?? 0;
+    const modComp = inst.modulos_completados || 0;
+    const modAsig = inst.modulos_asignados || 0;
+    const colecciones = inst.total_colecciones || 0;
+    const pesoSobreTotal = payload.sumaAvances > 0
+      ? Math.round((pct / payload.sumaAvances) * 1000) / 10
+      : (payload.totalInstituciones > 0 ? Math.round((100 / payload.totalInstituciones) * 10) / 10 : 100);
+
+    if (tit) tit.innerText = `🏛️ ${inst.nombre} — ${pct}% de Avance`;
+    if (badgeModo) {
+      badgeModo.innerText = inst.es_avance_manual ? '🎛️ Porcentaje Controlado Manualmente por SuperAdmin' : '📊 Porcentaje Calculado por Avance Real en Azure SQL';
+      badgeModo.className = inst.es_avance_manual
+        ? 'text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300'
+        : 'text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800';
+    }
+    if (btnAjustar) {
+      btnAjustar.onclick = () => abrirModalControlAvancePruebas(inst.id);
+    }
+
+    contCards.innerHTML = `
+      <div class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
+        <span class="text-[10px] font-bold uppercase text-slate-400 block">Avance Asignado / Real</span>
+        <strong class="text-xl font-black text-emerald-700">${pct}%</strong>
+        <span class="text-[11px] text-slate-500 block mt-0.5">Representa el ${pesoSobreTotal}% del peso gráfico comparativo</span>
+      </div>
+      <div class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
+        <span class="text-[10px] font-bold uppercase text-slate-400 block">Estructura Humana</span>
+        <strong class="text-sm font-black text-[#0a192f] block mt-0.5">${aprendices} Aprendices · ${mentores} Mentores</strong>
+        <span class="text-[11px] text-sky-800 font-bold block mt-0.5">${admins} en Cuerpo Administrativo</span>
+      </div>
+      <div class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
+        <span class="text-[10px] font-bold uppercase text-slate-400 block">Módulos y Colecciones</span>
+        <strong class="text-xl font-black text-indigo-700">${modComp} / ${modAsig}</strong>
+        <span class="text-[11px] text-slate-500 block mt-0.5">${colecciones} colección(es) activa(s)</span>
+      </div>
+      <div class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs flex flex-col justify-between">
+        <span class="text-[10px] font-bold uppercase text-slate-400 block">Acción Directa</span>
+        <button type="button" onclick="cambiarOrganizacionAnalitica(${inst.id})" class="mt-1 w-full py-1.5 px-3 rounded-lg bg-[#0a192f] hover:bg-[#112240] text-cyan-300 font-bold text-xs cursor-pointer">
+          Inspeccionar Institución →
+        </button>
+      </div>
+    `;
+
+    contExp.innerHTML = `
+      <strong>📌 ¿Por qué ${escapeHtml(inst.nombre)} registra un ${pct}% frente al consolidado?</strong><br>
+      • <strong>Origen del indicador:</strong> ${inst.es_avance_manual
+        ? `El Superadministrador fijó manualmente un avance global del <strong>${pct}%</strong> en el módulo de <em>Control de Avance / Modo Pruebas</em> (persistido en Azure SQL).`
+        : `Calculado dinámicamente a partir del progreso de sus <strong>${aprendices} aprendiz(ces)</strong> en <strong>${colecciones} colección(es)</strong> (${modComp} de ${modAsig} módulos completados).`}<br>
+      • <strong>Equipo institucional activo:</strong> Cuenta con <strong>${admins} integrante(s) del Cuerpo Administrativo</strong>, <strong>${mentores} Mentor(es)</strong> y <strong>${aprendices} Aprendiz(ces)</strong>.<br>
+      • <strong>Proporción frente al total:</strong> En la gráfica consolidada, esta institución aporta un peso relativo del <strong>${pesoSobreTotal}%</strong> respecto a la suma de desempeños de las ${payload.totalInstituciones} instituciones activas.
+    `;
+  } else if (payload.tipo === 'coleccion') {
+    const col = payload.coleccion;
+    const pct = Math.round((col.promedio_avance || 0) * 10) / 10;
+    const mat = col.total_aprendices_matriculados || 0;
+    const enProg = col.estudiantes_en_progreso || 0;
+    const comp = col.estudiantes_completados || 0;
+    const sinIni = col.estudiantes_sin_iniciar || 0;
+    if (tit) tit.innerText = `📚 ${col.titulo} — ${pct}% de Avance`;
+    if (badgeModo) badgeModo.innerText = `${col.total_modulos || 3} Módulos Oficiales`;
+
+    contCards.innerHTML = `
+      <div class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
+        <span class="text-[10px] font-bold uppercase text-slate-400 block">Avance en la Ruta</span>
+        <strong class="text-xl font-black text-cyan-700">${pct}%</strong>
+        <span class="text-[11px] text-slate-500 block mt-0.5">${col.total_modulos || 3} módulos totales</span>
+      </div>
+      <div class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
+        <span class="text-[10px] font-bold uppercase text-slate-400 block">Aprendices Matriculados</span>
+        <strong class="text-xl font-black text-[#0a192f]">${mat}</strong>
+        <span class="text-[11px] text-slate-500 block mt-0.5">${sinIni} sin iniciar</span>
+      </div>
+      <div class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
+        <span class="text-[10px] font-bold uppercase text-slate-400 block">En Progreso Activo</span>
+        <strong class="text-xl font-black text-amber-600">${enProg}</strong>
+        <span class="text-[11px] text-slate-500 block mt-0.5">Cursando módulos</span>
+      </div>
+      <div class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
+        <span class="text-[10px] font-bold uppercase text-slate-400 block">Certificados (100%)</span>
+        <strong class="text-xl font-black text-emerald-700">${comp}</strong>
+        <span class="text-[11px] text-slate-500 block mt-0.5">Tasa finalización: ${col.tasa_finalizacion || 0}%</span>
+      </div>
+    `;
+
+    contExp.innerHTML = `
+      <strong>📌 Desglose de la colección "${escapeHtml(col.titulo)}":</strong><br>
+      • De los <strong>${mat} aprendices matriculados</strong> en esta ruta, <strong>${comp}</strong> ya completaron el 100% de los módulos (${col.total_modulos || 3} módulos), <strong>${enProg}</strong> se encuentran en progreso y <strong>${sinIni}</strong> aún no han iniciado.<br>
+      • Puedes modificar este avance por grupo o por integrante usando el botón <strong>"Ajustar % Manualmente"</strong> arriba a la derecha.
+    `;
+  } else if (payload.tipo === 'segmento_modulos') {
+    if (tit) tit.innerText = `📊 Segmento: ${payload.etiqueta} (${payload.cantidad} aprendices · ${payload.porcentajeTotal}%)`;
+    contCards.innerHTML = `
+      <div class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
+        <span class="text-[10px] font-bold uppercase text-slate-400 block">Aprendices en este Nivel</span>
+        <strong class="text-xl font-black text-purple-700">${payload.cantidad}</strong>
+      </div>
+      <div class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
+        <span class="text-[10px] font-bold uppercase text-slate-400 block">Proporción del Total</span>
+        <strong class="text-xl font-black text-cyan-700">${payload.porcentajeTotal}%</strong>
+      </div>
+      <div class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
+        <span class="text-[10px] font-bold uppercase text-slate-400 block">Total Aprendices Evaluados</span>
+        <strong class="text-xl font-black text-[#0a192f]">${payload.totalEstudiantes}</strong>
+      </div>
+      <div class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
+        <span class="text-[10px] font-bold uppercase text-slate-400 block">Mentores / Admins</span>
+        <strong class="text-sm font-black text-sky-800 block mt-1">${payload.totalMentores} Mentores · ${payload.totalAdmins} Admins</strong>
+      </div>
+    `;
+    contExp.innerHTML = `
+      <strong>📌 Explicación del segmento "${escapeHtml(payload.etiqueta)}":</strong><br>
+      • Representa a <strong>${payload.cantidad} de los ${payload.totalEstudiantes} aprendices</strong> (${payload.porcentajeTotal}% del total de la institución), supervisados por <strong>${payload.totalMentores} mentor(es)</strong> y <strong>${payload.totalAdmins} administrador(es)</strong>.
+    `;
+  }
+
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  refrescarIconos();
 }
 
 function renderizarColeccionesOrganizacion(colecciones) {
@@ -6064,78 +6573,214 @@ function renderizarColeccionesOrganizacion(colecciones) {
 }
 
 function renderizarGraficasOrganizacion(data) {
+  const esGlobal = Boolean(data.es_vista_global);
+  const instComparativa = data.instituciones_comparativa || [];
   const colecciones = data.colecciones || [];
   const estudiantes = data.estudiantes || [];
+  const paletaColores = ['#0284c7', '#059669', '#7c3aed', '#ea580c', '#0d9488', '#2563eb', '#db2777', '#d97706'];
+
+  const titBarras = document.getElementById('titulo-grafica-barras-org');
+  const subBarras = document.getElementById('subtitulo-grafica-barras-org');
+  const titDona = document.getElementById('titulo-grafica-dona-org');
+  const subDona = document.getElementById('subtitulo-grafica-dona-org');
+
+  if (esGlobal && instComparativa.length > 0) {
+    if (titBarras) titBarras.innerText = 'Avance (%) por Institución Activa (Haz clic para Drill-Down)';
+    if (subBarras) subBarras.innerText = 'Comparativa en tiempo real del porcentaje de progreso de cada institución registrada.';
+    if (titDona) titDona.innerText = 'Distribución de Avance y Peso por Institución (Pastel / Dona Interactivo)';
+    if (subDona) subDona.innerText = 'Haz clic sobre el segmento o porcentaje de cualquier institución para abrir su desglose.';
+  } else {
+    if (titBarras) titBarras.innerText = 'Avance Promedio (%) por Colección Asignada';
+    if (subBarras) subBarras.innerText = 'Haz clic en cualquier barra para ver cuántos aprendices y módulos explican esa cifra.';
+    if (titDona) titDona.innerText = 'Distribución de Aprendices según Módulos Completados';
+    if (subDona) subDona.innerText = 'Haz clic en cualquier segmento del diagrama de dona para ver la explicación frente al total.';
+  }
 
   const canvasBarras = document.getElementById('chartOrgColeccionesBarras');
   if (canvasBarras && window.Chart) {
     if (chartOrgColeccionesInstance) chartOrgColeccionesInstance.destroy();
 
-    const labels = colecciones.map(c => c.titulo.length > 20 ? c.titulo.substring(0, 20) + '...' : c.titulo);
-    const valores = colecciones.map(c => Math.round(c.promedio_avance || 0));
+    if (esGlobal && instComparativa.length > 0) {
+      const labels = instComparativa.map(i => i.nombre.length > 22 ? i.nombre.substring(0, 22) + '…' : i.nombre);
+      const valores = instComparativa.map(i => Math.round((i.porcentaje_avance || 0) * 10) / 10);
+      const bgColors = instComparativa.map((_, idx) => paletaColores[idx % paletaColores.length]);
 
-    const ctx = canvasBarras.getContext('2d');
-    chartOrgColeccionesInstance = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: labels.length > 0 ? labels : ['Sin colecciones'],
-        datasets: [{
-          label: '% Avance Promedio',
-          data: valores.length > 0 ? valores : [0],
-          backgroundColor: '#0284c7',
-          borderRadius: 8
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          y: { beginAtZero: true, max: 100, ticks: { font: { size: 10 } } },
-          x: { ticks: { font: { size: 10, family: 'Plus Jakarta Sans' } } }
+      chartOrgColeccionesInstance = new Chart(canvasBarras.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [{
+            label: '% de Avance Institucional',
+            data: valores,
+            backgroundColor: bgColors,
+            borderRadius: 8
+          }]
         },
-        plugins: {
-          legend: { display: false }
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          onClick: (evt, elements) => {
+            if (elements && elements.length > 0) {
+              const idx = elements[0].index;
+              const inst = instComparativa[idx];
+              if (inst) mostrarDrillDownInstitucionPorId(inst.id);
+            }
+          },
+          scales: {
+            y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%', font: { size: 10 } } },
+            x: { ticks: { font: { size: 10, family: 'Plus Jakarta Sans' } } }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const inst = instComparativa[ctx.dataIndex];
+                  return ` ${ctx.parsed.y}% Avance (${inst?.total_aprendices || 0} Aprendices, ${inst?.total_mentores || 0} Mentores, ${inst?.total_administradores || 0} Admins) — Clic para desglose`;
+                }
+              }
+            }
+          }
         }
-      }
-    });
+      });
+    } else {
+      const labels = colecciones.map(c => c.titulo.length > 22 ? c.titulo.substring(0, 22) + '…' : c.titulo);
+      const valores = colecciones.map(c => Math.round((c.promedio_avance || 0) * 10) / 10);
+
+      chartOrgColeccionesInstance = new Chart(canvasBarras.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: labels.length > 0 ? labels : ['Sin colecciones asignadas'],
+          datasets: [{
+            label: '% Avance Promedio',
+            data: valores.length > 0 ? valores : [0],
+            backgroundColor: '#0284c7',
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          onClick: (evt, elements) => {
+            if (elements && elements.length > 0 && colecciones[elements[0].index]) {
+              mostrarDrillDownMetricas({ tipo: 'coleccion', coleccion: colecciones[elements[0].index] });
+            }
+          },
+          scales: {
+            y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%', font: { size: 10 } } },
+            x: { ticks: { font: { size: 10, family: 'Plus Jakarta Sans' } } }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+    }
   }
 
   const canvasDona = document.getElementById('chartOrgModulosDona');
   if (canvasDona && window.Chart) {
     if (chartOrgModulosInstance) chartOrgModulosInstance.destroy();
 
-    let c0 = 0, c1 = 0, c2 = 0, c3 = 0;
-    estudiantes.forEach(e => {
-      const m = e.total_modulos_completados || 0;
-      if (m === 0) c0++;
-      else if (m === 1) c1++;
-      else if (m === 2) c2++;
-      else c3++;
-    });
+    if (esGlobal && instComparativa.length > 0) {
+      const labels = instComparativa.map(i => `${i.nombre} (${Math.round((i.porcentaje_avance || 0) * 10) / 10}%)`);
+      // Si todas están en 0%, graficar su tamaño de comunidad o peso uniforme de 1 para que el segmento sea clicable
+      const rawAvances = instComparativa.map(i => Math.round((i.porcentaje_avance || 0) * 10) / 10);
+      const todoCero = rawAvances.every(v => v === 0);
+      const valoresDona = todoCero
+        ? instComparativa.map(i => Math.max(1, (i.total_aprendices || 0) + (i.total_mentores || 0) + (i.total_administradores || 0)))
+        : rawAvances.map(v => Math.max(1, v));
 
-    const ctx = canvasDona.getContext('2d');
-    chartOrgModulosInstance = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: ['0 Módulos (Sin iniciar)', '1 Módulo cursado', '2 Módulos cursados', '3+ Módulos (Certificados)'],
-        datasets: [{
-          data: [c0, c1, c2, c3],
-          backgroundColor: ['#cbd5e1', '#38bdf8', '#0284c7', '#059669'],
-          borderWidth: 2,
-          borderColor: '#ffffff'
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { boxWidth: 12, font: { size: 10, family: 'Plus Jakarta Sans' } }
+      chartOrgModulosInstance = new Chart(canvasDona.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels,
+          datasets: [{
+            data: valoresDona,
+            backgroundColor: instComparativa.map((_, idx) => paletaColores[idx % paletaColores.length]),
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          onClick: (evt, elements) => {
+            if (elements && elements.length > 0) {
+              const inst = instComparativa[elements[0].index];
+              if (inst) mostrarDrillDownInstitucionPorId(inst.id);
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { boxWidth: 12, font: { size: 10, family: 'Plus Jakarta Sans' } }
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const inst = instComparativa[ctx.dataIndex];
+                  const pct = Math.round((inst?.porcentaje_avance || 0) * 10) / 10;
+                  return ` ${inst?.nombre}: ${pct}% Avance | ${inst?.total_aprendices || 0} Aprendices, ${inst?.total_mentores || 0} Mentores, ${inst?.total_administradores || 0} Admins (Haz clic para ver desglose)`;
+                }
+              }
+            }
           }
         }
-      }
-    });
+      });
+    } else {
+      let c0 = 0, c1 = 0, c2 = 0, c3 = 0;
+      estudiantes.forEach(e => {
+        const m = e.total_modulos_completados || 0;
+        if (m === 0) c0++;
+        else if (m === 1) c1++;
+        else if (m === 2) c2++;
+        else c3++;
+      });
+      const etiquetasMod = ['0 Módulos (Sin iniciar)', '1 Módulo cursado', '2 Módulos cursados', '3+ Módulos (Certificados)'];
+      const conteosMod = [c0, c1, c2, c3];
+      const todosCeroMod = conteosMod.every(v => v === 0);
+
+      chartOrgModulosInstance = new Chart(canvasDona.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: etiquetasMod,
+          datasets: [{
+            data: todosCeroMod ? [1, 0, 0, 0] : conteosMod,
+            backgroundColor: ['#cbd5e1', '#38bdf8', '#0284c7', '#059669'],
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          onClick: (evt, elements) => {
+            if (elements && elements.length > 0) {
+              const idx = elements[0].index;
+              const cant = conteosMod[idx] || 0;
+              const tot = estudiantes.length;
+              const pctTot = tot > 0 ? Math.round((cant / tot) * 1000) / 10 : 0;
+              mostrarDrillDownMetricas({
+                tipo: 'segmento_modulos',
+                etiqueta: etiquetasMod[idx],
+                cantidad: cant,
+                porcentajeTotal: pctTot,
+                totalEstudiantes: tot,
+                totalMentores: data.kpis?.total_mentores || 0,
+                totalAdmins: data.kpis?.total_administradores || 0
+              });
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { boxWidth: 12, font: { size: 10, family: 'Plus Jakarta Sans' } }
+            }
+          }
+        }
+      });
+    }
   }
 }
 
@@ -6573,7 +7218,7 @@ function filtrarAuditoria() {
         <td class="py-2.5 px-3 font-semibold text-slate-700 whitespace-nowrap">
           <span class="inline-flex items-center gap-1.5">
             <i data-lucide="building-2" class="w-3.5 h-3.5 text-slate-400"></i>
-            ${escapeHtml(r.organizacion_nombre || 'Plataforma Global')}
+            ${escapeHtml(sanitizarNombreInstitucionUI(r.organizacion_nombre, 'Plataforma Global'))}
           </span>
         </td>
         <td class="py-2.5 px-3 font-bold text-slate-800">${escapeHtml(r.Correo_Usuario || '')}</td>
@@ -6948,7 +7593,7 @@ function renderizarHistorialIntegrantes(registrosPorDia, contenedorId) {
           <td class="py-2.5 px-4 text-slate-600 whitespace-nowrap font-medium">
             <span class="inline-flex items-center gap-1.5">
               <i data-lucide="building-2" class="w-3.5 h-3.5 text-slate-400"></i>
-              ${escapeHtml(item.organizacion_nombre || 'Plataforma Global')}
+              ${escapeHtml(sanitizarNombreInstitucionUI(item.organizacion_nombre, 'Plataforma Global'))}
             </span>
           </td>
           <td class="py-2.5 px-4 whitespace-nowrap">${badgeOrigen}</td>
@@ -8344,14 +8989,23 @@ function inicializarVistaConfiguraciones(subTabApertura = null) {
     inRol.readOnly = true;
   }
 
-  const orgNombre = currentUser.organizacion?.nombre || (allOrganizations.find(o => o.id === currentUser.organizacion_id)?.nombre) || 'Corporación Universitaria Minuto de Dios';
+  const esSuperAdminCfg = currentUser.rol === 'Super Administrador';
+  const orgNombre = esSuperAdminCfg
+    ? 'Administración Global Multi-Tenant (Todas las Instituciones)'
+    : sanitizarNombreInstitucionUI(currentUser.organizacion?.nombre || currentUser.organizacion_nombre || (allOrganizations.find(o => o.id === currentUser.organizacion_id)?.nombre), 'Institución Asignada');
   if (inOrg) {
     inOrg.value = orgNombre;
     inOrg.disabled = true;
     inOrg.readOnly = true;
   }
   if (dispOrg) {
-    dispOrg.innerText = `🏛️ ${orgNombre}`;
+    if (esSuperAdminCfg) {
+      dispOrg.classList.add('hidden');
+      dispOrg.innerText = '';
+    } else {
+      dispOrg.classList.remove('hidden');
+      dispOrg.innerText = `🏛️ ${orgNombre}`;
+    }
   }
 
   if (dispNombre) dispNombre.innerText = currentUser.nombre;
@@ -10159,3 +10813,265 @@ async function ejecutarEscaneoVulnerabilidadesUI(mostrarToastMsg = true) {
   }
 }
 
+
+
+// =====================================================================
+// 15. CONTROL MANUAL DE PROGRESO Y MODO DE PRUEBAS (EXCLUSIVO SUPERADMIN)
+// Persistencia Real en Azure SQL Database y Sincronización Instantánea
+// =====================================================================
+async function abrirModalControlAvancePruebas(orgIdPreseleccionada = null) {
+  if (!HABILITAR_MODO_PRUEBAS_SUPERADMIN) return;
+  if (currentUser && currentUser.rol !== 'Super Administrador') {
+    return mostrarToast('Acceso exclusivo para el Superadministrador.', 'advertencia');
+  }
+
+  await refrescarTodosSelectoresOrganizaciones(orgIdPreseleccionada);
+
+  if (!allOrganizations || allOrganizations.length === 0) {
+    mostrarToast('Primero crea al menos una institución en el Creador de Entornos.', 'advertencia');
+    return;
+  }
+
+  const targetOrgId = orgIdPreseleccionada || allOrganizations[0].id;
+  ['ctrl-avance-inst-org', 'ctrl-avance-grupo-org', 'ctrl-avance-usr-org'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel) sel.value = String(targetOrgId);
+  });
+
+  alCambiarOrgControlInstitucion(targetOrgId);
+  await cargarMentoresYCursosParaControlGrupo(targetOrgId);
+  await cargarIntegrantesParaControlIndividual(targetOrgId);
+
+  cambiarTabControlAvance('institucion');
+  const modal = document.getElementById('modal-control-avance-pruebas');
+  if (modal) modal.classList.remove('hidden');
+  refrescarIconos();
+}
+
+function cambiarTabControlAvance(tab) {
+  const mapa = {
+    institucion: { btn: 'tab-btn-ctrl-inst', form: 'form-ctrl-avance-institucion' },
+    grupo: { btn: 'tab-btn-ctrl-grupo', form: 'form-ctrl-avance-grupo' },
+    integrante: { btn: 'tab-btn-ctrl-usr', form: 'form-ctrl-avance-integrante' }
+  };
+  Object.keys(mapa).forEach(k => {
+    const b = document.getElementById(mapa[k].btn);
+    const f = document.getElementById(mapa[k].form);
+    if (k === tab) {
+      if (b) b.className = 'px-4 py-2.5 text-xs font-extrabold border-b-2 border-amber-600 text-amber-800 flex items-center gap-1.5 whitespace-nowrap cursor-pointer';
+      if (f) f.classList.remove('hidden');
+    } else {
+      if (b) b.className = 'px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-1.5 whitespace-nowrap cursor-pointer';
+      if (f) f.classList.add('hidden');
+    }
+  });
+}
+
+function alCambiarOrgControlInstitucion(orgId) {
+  const org = (allOrganizations || []).find(o => parseInt(o.id) === parseInt(orgId));
+  const pct = org ? Math.round((org.porcentaje_avance || 0) * 10) / 10 : 0;
+  const r = document.getElementById('ctrl-avance-inst-range');
+  const n = document.getElementById('ctrl-avance-inst-num');
+  if (r) r.value = pct;
+  if (n) n.value = pct;
+}
+
+async function cargarMentoresYCursosParaControlGrupo(orgId) {
+  if (!orgId) return;
+  const selMentor = document.getElementById('ctrl-avance-grupo-mentor');
+  const selMat = document.getElementById('ctrl-avance-grupo-material');
+  try {
+    const [resInt, resMat] = await Promise.all([
+      fetch(`${API_BASE}/api/organizaciones/${orgId}/integrantes-por-rol`),
+      fetch(`${API_BASE}/api/material/catalogo`)
+    ]);
+    const dataInt = await resInt.json();
+    const dataMat = await resMat.json();
+    const mentores = dataInt.mentores || [];
+    const materiales = dataMat.data || [];
+
+    if (selMentor) {
+      selMentor.innerHTML = `<option value="0">🌟 Todos los Aprendices de la Institución (${(dataInt.aprendices || []).length})</option>` +
+        mentores.map(m => `<option value="${m.id}">👨‍🏫 Grupo de ${escapeHtml(m.nombre)} (${m.correo})</option>`).join('');
+    }
+    if (selMat) {
+      selMat.innerHTML = `<option value="0">📚 Todas las Colecciones Asignadas</option>` +
+        materiales.map(c => `<option value="${c.id}">📘 ${escapeHtml(c.titulo)} (${c.total_modulos || 3} mód.)</option>`).join('');
+    }
+  } catch (e) {
+    console.warn('Error cargando mentores/cursos para control de grupo:', e);
+  }
+}
+
+async function cargarIntegrantesParaControlIndividual(orgId) {
+  if (!orgId) return;
+  const selUsr = document.getElementById('ctrl-avance-usr-id');
+  const selMat = document.getElementById('ctrl-avance-usr-material');
+  try {
+    const [resInt, resMat] = await Promise.all([
+      fetch(`${API_BASE}/api/organizaciones/${orgId}/integrantes-por-rol`),
+      fetch(`${API_BASE}/api/material/catalogo`)
+    ]);
+    const dataInt = await resInt.json();
+    const dataMat = await resMat.json();
+    const aprendices = dataInt.aprendices || [];
+    const mentores = dataInt.mentores || [];
+    const materiales = dataMat.data || [];
+
+    if (selUsr) {
+      const opciones = [
+        ...aprendices.map(a => `<option value="${a.id}">🎓 [Aprendiz] ${escapeHtml(a.nombre)} (${a.correo})</option>`),
+        ...mentores.map(m => `<option value="${m.id}">👨‍🏫 [Mentor] ${escapeHtml(m.nombre)} (${m.correo})</option>`)
+      ];
+      selUsr.innerHTML = opciones.length > 0
+        ? opciones.join('')
+        : '<option value="">Sin integrantes registrados en esta institución</option>';
+    }
+    if (selMat) {
+      selMat.innerHTML = `<option value="0">📚 Todas las Colecciones Asignadas</option>` +
+        materiales.map(c => `<option value="${c.id}">📘 ${escapeHtml(c.titulo)} (${c.total_modulos || 3} mód.)</option>`).join('');
+    }
+  } catch (e) {
+    console.warn('Error cargando integrantes para control individual:', e);
+  }
+}
+
+async function guardarControlAvanceInstitucion(event) {
+  event.preventDefault();
+  const orgId = parseInt(document.getElementById('ctrl-avance-inst-org')?.value);
+  const pct = parseFloat(document.getElementById('ctrl-avance-inst-num')?.value || 0);
+  const aplicar = Boolean(document.getElementById('ctrl-avance-inst-aplicar-aprendices')?.checked);
+  if (!orgId) return mostrarToast('Selecciona una institución.', 'advertencia');
+
+  try {
+    const res = await fetch(`${API_BASE}/api/superadmin/control-avance/institucion`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        organizacion_id: orgId,
+        porcentaje_avance: pct,
+        aplicar_a_aprendices: aplicar,
+        modo_calculo: 'manual'
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Error al guardar avance institucional');
+
+    mostrarToast(data.mensaje || '✓ Avance institucional guardado en Azure SQL.', 'exito');
+    await sincronizarVistasTrasCambioAvance(orgId);
+  } catch (err) {
+    mostrarToast(err.message, 'error');
+  }
+}
+
+async function restaurarAvanceAutomaticoInstitucion() {
+  const orgId = parseInt(document.getElementById('ctrl-avance-inst-org')?.value);
+  if (!orgId) return;
+  try {
+    const res = await fetch(`${API_BASE}/api/superadmin/control-avance/institucion`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        organizacion_id: orgId,
+        porcentaje_avance: null,
+        aplicar_a_aprendices: false,
+        modo_calculo: 'automatico'
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Error al restaurar cálculo');
+    mostrarToast(data.mensaje || '✓ Cálculo automático restaurado.', 'info');
+    await sincronizarVistasTrasCambioAvance(orgId);
+  } catch (err) {
+    mostrarToast(err.message, 'error');
+  }
+}
+
+async function guardarControlAvanceGrupo(event) {
+  event.preventDefault();
+  const orgId = parseInt(document.getElementById('ctrl-avance-grupo-org')?.value);
+  const mentorIdVal = parseInt(document.getElementById('ctrl-avance-grupo-mentor')?.value || 0);
+  const matIdVal = parseInt(document.getElementById('ctrl-avance-grupo-material')?.value || 0);
+  const pct = parseFloat(document.getElementById('ctrl-avance-grupo-num')?.value || 0);
+  const estado = document.getElementById('ctrl-avance-grupo-estado')?.value || null;
+  const tiempo = parseInt(document.getElementById('ctrl-avance-grupo-tiempo')?.value || 45);
+
+  if (!orgId) return mostrarToast('Selecciona una institución.', 'advertencia');
+
+  try {
+    const res = await fetch(`${API_BASE}/api/superadmin/control-avance/grupo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        organizacion_id: orgId,
+        mentor_id: mentorIdVal > 0 ? mentorIdVal : null,
+        material_id: matIdVal > 0 ? matIdVal : null,
+        porcentaje_avance: pct,
+        estado: estado,
+        tiempo_dedicado_minutos: tiempo
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Error al guardar progreso del grupo');
+
+    mostrarToast(data.mensaje || '✓ Avance del grupo actualizado en Azure SQL.', 'exito');
+    await sincronizarVistasTrasCambioAvance(orgId);
+  } catch (err) {
+    mostrarToast(err.message, 'error');
+  }
+}
+
+async function guardarControlAvanceIntegrante(event) {
+  event.preventDefault();
+  const orgId = parseInt(document.getElementById('ctrl-avance-usr-org')?.value);
+  const usrId = parseInt(document.getElementById('ctrl-avance-usr-id')?.value);
+  const matIdVal = parseInt(document.getElementById('ctrl-avance-usr-material')?.value || 0);
+  const pct = parseFloat(document.getElementById('ctrl-avance-usr-num')?.value || 0);
+  const modRaw = document.getElementById('ctrl-avance-usr-modulos')?.value;
+  const modulos = (modRaw !== '' && modRaw !== null && modRaw !== undefined) ? parseInt(modRaw) : null;
+  const estado = document.getElementById('ctrl-avance-usr-estado')?.value || null;
+
+  if (!usrId) return mostrarToast('Selecciona un integrante.', 'advertencia');
+
+  try {
+    const res = await fetch(`${API_BASE}/api/superadmin/control-avance/integrante`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        usuario_id: usrId,
+        material_id: matIdVal > 0 ? matIdVal : null,
+        porcentaje_avance: pct,
+        modulos_completados: modulos,
+        estado: estado,
+        tiempo_dedicado_minutos: 45
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Error al guardar progreso individual');
+
+    mostrarToast(data.mensaje || '✓ Progreso individual actualizado en Azure SQL.', 'exito');
+    await sincronizarVistasTrasCambioAvance(orgId);
+  } catch (err) {
+    mostrarToast(err.message, 'error');
+  }
+}
+
+async function sincronizarVistasTrasCambioAvance(orgId = null) {
+  await cargarNodosInstitucionales();
+  await refrescarTodosSelectoresOrganizaciones();
+  const selAnalitica = document.getElementById('select-analitica-org');
+  const orgActualMet = selAnalitica ? parseInt(selAnalitica.value || 0) : 0;
+  await cargarAnaliticaPorOrganizacion(orgActualMet);
+  if (typeof cargarJerarquia3Columnas === 'function') cargarJerarquia3Columnas(orgId);
+  if (typeof cargarAuditoria === 'function') cargarAuditoria();
+}
+
+function descargarBackupAuditoriaExcel() {
+  mostrarToast('💾 Generando y descargando Copia de Seguridad (.xlsx) del Registro de Actividad desde Azure SQL...', 'info');
+  const link = document.createElement('a');
+  link.href = `${API_BASE}/api/auditoria/exportar-backup`;
+  link.download = `backup_registro_actividad_${new Date().toISOString().slice(0, 10)}.xlsx`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}

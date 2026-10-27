@@ -488,14 +488,18 @@ def obtener_perfil_usuario(usuario_id: int = Query(...)):
         SELECT u.id, u.nombre, u.correo, u.rol, u.organizacion_id, u.mentor_id, u.foto_perfil,
                u.tema_decorativo, u.fondo_personalizado, u.racha_semanas, u.minutos_dedicados_totales,
                u.colores_personalizados, u.disenos_personalizados_json,
-               COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as organizacion_nombre
+               o.nombre as organizacion_nombre
         FROM usuarios u
         LEFT JOIN organizaciones o ON o.id = u.organizacion_id
         WHERE u.id = ?
     """, (usuario_id,), fetchone=True)
     if not u:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
-    return {"status": "success", "usuario": dict(u)}
+    u_dict = dict(u)
+    if u_dict.get("rol") == "Super Administrador":
+        u_dict["organizacion_id"] = None
+        u_dict["organizacion_nombre"] = None
+    return {"status": "success", "usuario": u_dict}
 
 
 @router.put("/api/usuarios/perfil")
@@ -916,7 +920,40 @@ async def cargar_usuarios_excel(
         asunto_bienvenida = f"✨ Bienvenido a Consultoría EdTech | {org['nombre']} ({u['rol']})"
         background_tasks.add_task(enviar_correo_smtp, u["correo"], asunto_bienvenida, cuerpo_html)
 
+    # Auto-matricular en 0% a los aprendices recién importados en las colecciones asignadas a la institución
+    if conteo_aprendices > 0:
+        cols_org = db.execute_query(
+            "SELECT DISTINCT material_id FROM asignacion_material WHERE organizacion_id = ?",
+            (final_org_id,),
+            fetchall=True
+        ) or []
+        if cols_org:
+            aprs_org = db.execute_query(
+                "SELECT id FROM usuarios WHERE organizacion_id = ? AND rol = 'Aprendiz'",
+                (final_org_id,),
+                fetchall=True
+            ) or []
+            for ap_row in aprs_org:
+                for col_row in cols_org:
+                    ex_prog = db.execute_query(
+                        "SELECT id FROM progreso_cursos WHERE usuario_id = ? AND curso_id = ?",
+                        (ap_row["id"], col_row["material_id"]),
+                        fetchone=True
+                    )
+                    if not ex_prog:
+                        db.execute_query(
+                            "INSERT INTO progreso_cursos (usuario_id, curso_id, porcentaje_avance, tiempo_dedicado_minutos, modulos_completados, estado, fecha_actualizacion) VALUES (?, ?, 0.0, 0, 0, 'No Iniciado', DATETIME('now', 'localtime'))",
+                            (ap_row["id"], col_row["material_id"]),
+                            commit=True
+                        )
+
     if registrados > 0:
+        try:
+            replicador_azure.marcar("usuarios")
+            replicador_azure.marcar("progreso_cursos")
+            replicador_azure.marcar("historial_nuevos_integrantes")
+        except Exception:
+            pass
         _disparar_sync_usuarios_nube()
 
     modo_legible = "Flexible (Multi-dominio)" if final_modo == "flexible" else "Estricto (Dominio Institucional)"
@@ -1135,7 +1172,12 @@ async def cargar_aprendices_mentor_excel(
             if not prog:
                 db.execute_query("INSERT INTO progreso_cursos (usuario_id, curso_id, porcentaje_avance, tiempo_dedicado_minutos, modulos_completados, estado, fecha_actualizacion) VALUES (?, ?, 0.0, 0, 0, 'No Iniciado', ?)", (u_id, mat_id, fecha_actual_str), commit=True)
                 
-    db.commit()
+    try:
+        replicador_azure.marcar('usuarios')
+        replicador_azure.marcar('progreso_cursos')
+        replicador_azure.marcar('historial_nuevos_integrantes')
+    except Exception:
+        pass
     _disparar_sync_usuarios_nube()
 
     if nuevos_para_correo:

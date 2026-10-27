@@ -256,15 +256,27 @@ def listar_organizaciones():
         SELECT o.id, o.nombre, o.tipo_organizacion, o.dominio_permitido, o.licencias_asignadas,
                o.max_administradores, o.max_mentores, o.fecha_creacion, o.estado_activo,
                o.color_primario, o.color_secundario, o.color_acento, o.color_personalizado,
-               o.logo_url,
+               o.logo_url, o.porcentaje_avance_manual,
                (SELECT COUNT(*) FROM usuarios u WHERE u.organizacion_id = o.id) as total_usuarios,
                (SELECT COUNT(*) FROM usuarios u WHERE u.organizacion_id = o.id AND u.rol = 'Aprendiz') as total_estudiantes_reales,
                (SELECT COUNT(*) FROM usuarios u WHERE u.organizacion_id = o.id AND u.rol = 'Mentor') as total_mentores,
-               (SELECT COUNT(*) FROM usuarios u WHERE u.organizacion_id = o.id AND u.rol = 'Administrador') as total_admins
+               (SELECT COUNT(*) FROM usuarios u WHERE u.organizacion_id = o.id AND u.rol = 'Administrador') as total_admins,
+               (SELECT COUNT(DISTINCT a.material_id) FROM asignacion_material a WHERE a.organizacion_id = o.id) as total_colecciones,
+               COALESCE((
+                   SELECT ROUND(AVG(p.porcentaje_avance), 1)
+                   FROM progreso_cursos p
+                   JOIN usuarios u2 ON u2.id = p.usuario_id
+                   WHERE u2.organizacion_id = o.id AND u2.rol = 'Aprendiz'
+               ), 0.0) as promedio_avance_real
         FROM organizaciones o
         ORDER BY o.id ASC
-    """, fetchall=True)
-    return {"status": "success", "data": orgs or []}
+    """, fetchall=True) or []
+    for o in orgs:
+        manual = o.get("porcentaje_avance_manual")
+        real = float(o.get("promedio_avance_real") or 0.0)
+        o["porcentaje_avance"] = round(float(manual), 1) if manual is not None else round(real, 1)
+        o["es_avance_manual"] = manual is not None
+    return {"status": "success", "data": orgs}
 
 
 @router.post("/api/superadmin/organizaciones/crear")
@@ -283,10 +295,13 @@ def crear_organizacion(datos: CrearOrgRequest):
     org_id = db.execute_query("""
         INSERT INTO organizaciones (nombre, tipo_organizacion, dominio_permitido, licencias_asignadas, max_administradores, max_mentores, logo_url)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (datos.nombre.strip(), datos.tipo_organizacion, dom_final, datos.licencias_asignadas or 100, datos.max_administradores or 2, datos.max_mentores or 15, datos.logo_url), commit=True)
-    
-    registrar_movimiento("SuperAdmin", "Organizaciones", "Crear_Organizacion", "EXITO", f"Org: {datos.nombre} - Dominio: {dom_final}")
-    return {"status": "success", "mensaje": f"Organización '{datos.nombre}' creada con éxito.", "id": org_id, "dominio_permitido": dom_final}
+    """, (datos.nombre.strip(), datos.tipo_organizacion, dom_final, datos.licencias_asignadas or 100, datos.max_administradores or 2, datos.max_mentores or 15, datos.logo_url), return_id=True)
+    try:
+        replicador_azure.marcar("organizaciones")
+    except Exception:
+        pass
+    registrar_movimiento("SuperAdmin", "Organizaciones", "Crear_Organizacion", "EXITO", f"Org: {datos.nombre} - Dominio: {dom_final}", organizacion_id=org_id, organizacion_nombre=datos.nombre.strip(), usuario_rol="Super Administrador")
+    return {"status": "success", "mensaje": f"Organización '{datos.nombre}' creada y persistida en Azure SQL con éxito.", "id": org_id, "dominio_permitido": dom_final}
 
 
 @router.put("/api/superadmin/organizaciones/{org_id}")
@@ -331,17 +346,30 @@ def actualizar_organizacion(org_id: int, datos: ActualizarOrgRequest):
 
 @router.delete("/api/superadmin/organizaciones/{org_id}")
 def eliminar_organizacion(org_id: int):
-    """Permite exclusivamente al SuperAdmin eliminar un nodo institucional con advertencia"""
+    """Permite exclusivamente al SuperAdmin eliminar un nodo institucional y limpiar sus registros asociados en Azure SQL"""
     org = db.execute_query("SELECT id, nombre FROM organizaciones WHERE id = ?", (org_id,), fetchone=True)
     if not org:
         raise HTTPException(status_code=404, detail="La institución no existe.")
 
+    # Respaldar y eliminar usuarios de esa institución (preservando siempre al Super Administrador)
+    usrs_org = db.execute_query("SELECT id FROM usuarios WHERE organizacion_id = ? AND rol != 'Super Administrador'", (org_id,), fetchall=True) or []
+    for u_r in usrs_org:
+        db.execute_query("DELETE FROM progreso_cursos WHERE usuario_id = ?", (u_r["id"],), commit=True)
+    db.execute_query("DELETE FROM usuarios WHERE organizacion_id = ? AND rol != 'Super Administrador'", (org_id,), commit=True)
     db.execute_query("UPDATE usuarios SET organizacion_id = NULL WHERE organizacion_id = ?", (org_id,), commit=True)
     db.execute_query("DELETE FROM asignacion_material WHERE organizacion_id = ?", (org_id,), commit=True)
+    db.execute_query("DELETE FROM temas_personalizados WHERE organizacion_id = ?", (org_id,), commit=True)
     db.execute_query("DELETE FROM organizaciones WHERE id = ?", (org_id,), commit=True)
+    try:
+        replicador_azure.marcar("organizaciones")
+        replicador_azure.marcar("usuarios")
+        replicador_azure.marcar("asignacion_material")
+        replicador_azure.marcar("progreso_cursos")
+    except Exception:
+        pass
 
-    registrar_movimiento("SuperAdmin", "Organizaciones", "Eliminar_Organizacion", "EXITO", f"Institución eliminada: {org['nombre']} (ID {org_id})")
-    return {"status": "success", "mensaje": f"Institución '{org['nombre']}' eliminada correctamente. Sus usuarios quedaron desvinculados."}
+    registrar_movimiento("SuperAdmin", "Organizaciones", "Eliminar_Organizacion", "EXITO", f"Institución eliminada: {org['nombre']} (ID {org_id})", organizacion_id=org_id, organizacion_nombre=org["nombre"], usuario_rol="Super Administrador")
+    return {"status": "success", "mensaje": f"Institución '{org['nombre']}' eliminada permanentemente de Azure SQL."}
 
 
 @router.get("/api/admin/convenio/{organizacion_id}")
@@ -1035,50 +1063,158 @@ def desvincular_coleccion_organizacion(material_id: int, organizacion_id: int):
     return {"status": "success", "mensaje": "Colección desvinculada de la organización exitosamente."}
 
 
-@router.get("/api/superadmin/organizaciones/{org_id}/analitica-colecciones")
-def obtener_analitica_colecciones_organizacion(org_id: int):
-    """Retorna la analítica detallada de colecciones, progreso por módulos de aprendices y desempeño de mentores en la organización"""
-    org = db.execute_query("""
-        SELECT id, nombre, tipo_organizacion, dominio_permitido, licencias_asignadas
+def _construir_comparativa_instituciones():
+    """Construye la lista comparativa de todas las instituciones activas con conteos reales de Aprendices, Mentores, Administradores y % de avance"""
+    orgs_all = db.execute_query("""
+        SELECT id, nombre, tipo_organizacion, dominio_permitido, licencias_asignadas,
+               porcentaje_avance_manual, color_primario, color_acento, logo_url
         FROM organizaciones
-        WHERE id = ?
-    """, (org_id,), fetchone=True)
-    if not org:
-        raise HTTPException(status_code=404, detail="Organización no encontrada.")
+        ORDER BY id ASC
+    """, fetchall=True) or []
+    comparativa = []
+    for o in orgs_all:
+        oid = o["id"]
+        c_admin = (db.execute_query("SELECT COUNT(*) as c FROM usuarios WHERE organizacion_id = ? AND rol = 'Administrador'", (oid,), fetchone=True) or {}).get("c", 0)
+        c_men = (db.execute_query("SELECT COUNT(*) as c FROM usuarios WHERE organizacion_id = ? AND rol = 'Mentor'", (oid,), fetchone=True) or {}).get("c", 0)
+        c_apr = (db.execute_query("SELECT COUNT(*) as c FROM usuarios WHERE organizacion_id = ? AND rol = 'Aprendiz'", (oid,), fetchone=True) or {}).get("c", 0)
+        cols = db.execute_query("""
+            SELECT DISTINCT m.id, m.titulo, COALESCE(m.total_modulos, 3) as total_modulos
+            FROM material_capacitacion m
+            JOIN asignacion_material a ON m.id = a.material_id
+            WHERE a.organizacion_id = ?
+        """, (oid,), fetchall=True) or []
+        progs = db.execute_query("""
+            SELECT p.usuario_id, p.curso_id, COALESCE(p.porcentaje_avance, 0) as pct,
+                   COALESCE(p.modulos_completados, 0) as mods, COALESCE(p.tiempo_dedicado_minutos, 0) as mins
+            FROM progreso_cursos p
+            JOIN usuarios u ON u.id = p.usuario_id
+            WHERE u.organizacion_id = ? AND u.rol = 'Aprendiz'
+        """, (oid,), fetchall=True) or []
+        mods_comp = sum(int(p.get("mods") or 0) for p in progs)
+        mods_asig = c_apr * sum(int(c.get("total_modulos") or 3) for c in cols)
+        mins_tot = sum(int(p.get("mins") or 0) for p in progs)
+        prom_real = round(sum(float(p.get("pct") or 0) for p in progs) / len(progs), 1) if progs else 0.0
+        manual_val = o.get("porcentaje_avance_manual")
+        pct_final = round(float(manual_val), 1) if manual_val is not None else prom_real
+        comparativa.append({
+            "id": oid,
+            "nombre": o["nombre"],
+            "tipo_organizacion": o.get("tipo_organizacion") or "Institución",
+            "dominio_permitido": o.get("dominio_permitido") or "LIBRE",
+            "licencias_asignadas": int(o.get("licencias_asignadas") or 100),
+            "total_administradores": int(c_admin or 0),
+            "total_mentores": int(c_men or 0),
+            "total_aprendices": int(c_apr or 0),
+            "total_integrantes": int((c_admin or 0) + (c_men or 0) + (c_apr or 0)),
+            "total_colecciones": len(cols),
+            "modulos_completados": mods_comp,
+            "modulos_asignados": mods_asig,
+            "horas_estudio": round(mins_tot / 60.0, 1),
+            "promedio_real": prom_real,
+            "porcentaje_avance_manual": round(float(manual_val), 1) if manual_val is not None else None,
+            "porcentaje_avance": pct_final,
+            "es_manual": manual_val is not None
+        })
+    return comparativa
 
-    # Colecciones asignadas a esta organización (o globales)
-    colecciones = db.execute_query("""
-        SELECT DISTINCT m.id, m.titulo, m.tipo_material, m.enlace_url, m.rol_destino,
-               COALESCE(m.total_modulos, 3) as total_modulos,
-               a.fecha_asignacion
-        FROM material_capacitacion m
-        JOIN asignacion_material a ON m.id = a.material_id
-        WHERE a.organizacion_id = ?
-        ORDER BY m.id DESC
-    """, (org_id,), fetchall=True) or []
 
-    # Aprendices de la organización
-    aprendices = db.execute_query("""
-        SELECT u.id, u.nombre, u.correo, u.mentor_id, m.nombre as mentor_nombre
-        FROM usuarios u
-        LEFT JOIN usuarios m ON u.mentor_id = m.id
-        WHERE u.organizacion_id = ? AND u.rol = 'Aprendiz'
-        ORDER BY u.nombre ASC
-    """, (org_id,), fetchall=True) or []
+@router.get("/api/superadmin/analitica-global")
+@router.get("/api/superadmin/organizaciones/{org_id}/analitica-colecciones")
+def obtener_analitica_colecciones_organizacion(org_id: int = 0):
+    """Retorna la analítica detallada (Global Consolidada si org_id=0 o Individual por Institución) con desglose de Aprendices, Mentores y Administradores"""
+    comparativa = _construir_comparativa_instituciones()
 
-    # Mentores de la organización
-    mentores = db.execute_query("""
-        SELECT u.id, u.nombre, u.correo,
-               (SELECT COUNT(*) FROM usuarios a WHERE a.mentor_id = u.id AND a.organizacion_id = ?) as total_aprendices_asignados
-        FROM usuarios u
-        WHERE u.organizacion_id = ? AND u.rol = 'Mentor'
-        ORDER BY u.nombre ASC
-    """, (org_id, org_id), fetchall=True) or []
+    if org_id == 0:
+        # VISTA CONSOLIDADA GLOBAL DE TODAS LAS INSTITUCIONES
+        aprendices = db.execute_query("""
+            SELECT u.id, u.nombre, u.correo, u.organizacion_id, o.nombre as organizacion_nombre,
+                   u.mentor_id, m.nombre as mentor_nombre
+            FROM usuarios u
+            LEFT JOIN organizaciones o ON u.organizacion_id = o.id
+            LEFT JOIN usuarios m ON u.mentor_id = m.id
+            WHERE u.rol = 'Aprendiz' AND u.organizacion_id IS NOT NULL
+            ORDER BY o.nombre ASC, u.nombre ASC
+        """, fetchall=True) or []
+        mentores = db.execute_query("""
+            SELECT u.id, u.nombre, u.correo, u.organizacion_id, o.nombre as organizacion_nombre,
+                   (SELECT COUNT(*) FROM usuarios a WHERE a.mentor_id = u.id AND a.rol = 'Aprendiz') as total_aprendices_asignados
+            FROM usuarios u
+            LEFT JOIN organizaciones o ON u.organizacion_id = o.id
+            WHERE u.rol = 'Mentor' AND u.organizacion_id IS NOT NULL
+            ORDER BY o.nombre ASC, u.nombre ASC
+        """, fetchall=True) or []
+        admins = db.execute_query("""
+            SELECT u.id, u.nombre, u.correo, u.organizacion_id, o.nombre as organizacion_nombre
+            FROM usuarios u
+            LEFT JOIN organizaciones o ON u.organizacion_id = o.id
+            WHERE u.rol = 'Administrador' AND u.organizacion_id IS NOT NULL
+            ORDER BY o.nombre ASC, u.nombre ASC
+        """, fetchall=True) or []
+        colecciones = db.execute_query("""
+            SELECT DISTINCT m.id, m.titulo, m.tipo_material, m.enlace_url, m.rol_destino,
+                   COALESCE(m.total_modulos, 3) as total_modulos,
+                   MAX(a.fecha_asignacion) as fecha_asignacion
+            FROM material_capacitacion m
+            JOIN asignacion_material a ON m.id = a.material_id
+            GROUP BY m.id, m.titulo, m.tipo_material, m.enlace_url, m.rol_destino, m.total_modulos
+            ORDER BY m.id DESC
+        """, fetchall=True) or []
+        org_info = {
+            "id": 0,
+            "nombre": "Vista Consolidada Global (Todas las Instituciones)",
+            "tipo_organizacion": "Consolidado Multi-Institucional",
+            "dominio_permitido": "GLOBAL",
+            "licencias_asignadas": sum(item["licencias_asignadas"] for item in comparativa),
+            "porcentaje_avance_manual": None
+        }
+    else:
+        org = db.execute_query("""
+            SELECT id, nombre, tipo_organizacion, dominio_permitido, licencias_asignadas, porcentaje_avance_manual
+            FROM organizaciones
+            WHERE id = ?
+        """, (org_id,), fetchone=True)
+        if not org:
+            raise HTTPException(status_code=404, detail="Organización no encontrada.")
+        org_info = dict(org)
+
+        colecciones = db.execute_query("""
+            SELECT DISTINCT m.id, m.titulo, m.tipo_material, m.enlace_url, m.rol_destino,
+                   COALESCE(m.total_modulos, 3) as total_modulos,
+                   a.fecha_asignacion
+            FROM material_capacitacion m
+            JOIN asignacion_material a ON m.id = a.material_id
+            WHERE a.organizacion_id = ?
+            ORDER BY m.id DESC
+        """, (org_id,), fetchall=True) or []
+
+        aprendices = db.execute_query("""
+            SELECT u.id, u.nombre, u.correo, u.organizacion_id, o.nombre as organizacion_nombre,
+                   u.mentor_id, m.nombre as mentor_nombre
+            FROM usuarios u
+            LEFT JOIN organizaciones o ON u.organizacion_id = o.id
+            LEFT JOIN usuarios m ON u.mentor_id = m.id
+            WHERE u.organizacion_id = ? AND u.rol = 'Aprendiz'
+            ORDER BY u.nombre ASC
+        """, (org_id,), fetchall=True) or []
+
+        mentores = db.execute_query("""
+            SELECT u.id, u.nombre, u.correo, u.organizacion_id,
+                   (SELECT COUNT(*) FROM usuarios a WHERE a.mentor_id = u.id AND a.organizacion_id = ?) as total_aprendices_asignados
+            FROM usuarios u
+            WHERE u.organizacion_id = ? AND u.rol = 'Mentor'
+            ORDER BY u.nombre ASC
+        """, (org_id, org_id), fetchall=True) or []
+
+        admins = db.execute_query("""
+            SELECT u.id, u.nombre, u.correo, u.organizacion_id
+            FROM usuarios u
+            WHERE u.organizacion_id = ? AND u.rol = 'Administrador'
+            ORDER BY u.nombre ASC
+        """, (org_id,), fetchall=True) or []
 
     aprendices_ids = [a["id"] for a in aprendices]
     colecciones_ids = [c["id"] for c in colecciones]
 
-    # Progresos registrados para estos aprendices
     progresos_map = {}
     if aprendices_ids and colecciones_ids:
         placeholders_u = ",".join("?" for _ in aprendices_ids)
@@ -1095,13 +1231,12 @@ def obtener_analitica_colecciones_organizacion(org_id: int):
         for p in progs:
             progresos_map[(p["usuario_id"], p["curso_id"])] = dict(p)
 
-    # Métricas agregadas por cada colección
     colecciones_analitica = []
     total_estudiantes_org = len(aprendices)
 
     for c in colecciones:
         c_id = c["id"]
-        t_mod = c["total_modulos"]
+        t_mod = int(c["total_modulos"] or 3)
         avances_col = []
         modulos_dist = {f"{i}_modulos": 0 for i in range(t_mod + 1)}
         completados_col = 0
@@ -1112,28 +1247,28 @@ def obtener_analitica_colecciones_organizacion(org_id: int):
         for a in aprendices:
             prog = progresos_map.get((a["id"], c_id))
             if prog:
-                m_comp = min(prog.get("modulos_completados", 0), t_mod)
-                pct = round((m_comp / max(1, t_mod)) * 100, 1) if t_mod > 0 else float(prog.get("porcentaje_avance", 0))
-                tiempo_col += prog.get("tiempo_dedicado_minutos", 0)
+                m_comp = min(int(prog.get("modulos_completados") or 0), t_mod)
+                pct_guardado = float(prog.get("porcentaje_avance") or 0.0)
+                pct = pct_guardado if pct_guardado > 0 else (round((m_comp / max(1, t_mod)) * 100, 1) if t_mod > 0 else 0.0)
+                tiempo_col += int(prog.get("tiempo_dedicado_minutos") or 0)
             else:
                 m_comp = 0
                 pct = 0.0
 
             avances_col.append(pct)
             clave_mod = f"{m_comp}_modulos"
-            if clave_mod in modulos_dist:
-                modulos_dist[clave_mod] += 1
-            else:
-                modulos_dist[clave_mod] = 1
+            modulos_dist[clave_mod] = modulos_dist.get(clave_mod, 0) + 1
 
-            if m_comp == t_mod and t_mod > 0:
+            if pct >= 100 or (m_comp >= t_mod and t_mod > 0):
                 completados_col += 1
-            elif m_comp > 0:
+            elif pct > 0 or m_comp > 0:
                 en_progreso_col += 1
             else:
                 no_iniciados_col += 1
 
         prom_col = round(sum(avances_col) / len(avances_col), 1) if avances_col else 0.0
+        if org_id != 0 and org_info.get("porcentaje_avance_manual") is not None and not avances_col:
+            prom_col = round(float(org_info["porcentaje_avance_manual"]), 1)
 
         colecciones_analitica.append({
             **dict(c),
@@ -1146,7 +1281,6 @@ def obtener_analitica_colecciones_organizacion(org_id: int):
             "distribucion_modulos": modulos_dist
         })
 
-    # Desglose de cada estudiante con sus cursos
     estudiantes_detalle = []
     for a in aprendices:
         cursos_estudiante = []
@@ -1156,12 +1290,13 @@ def obtener_analitica_colecciones_organizacion(org_id: int):
 
         for c in colecciones:
             prog = progresos_map.get((a["id"], c["id"]))
-            t_mod = c["total_modulos"]
+            t_mod = int(c["total_modulos"] or 3)
             if prog:
-                m_comp = min(prog.get("modulos_completados", 0), t_mod)
-                pct = round((m_comp / max(1, t_mod)) * 100, 1) if t_mod > 0 else float(prog.get("porcentaje_avance", 0))
-                t_min = prog.get("tiempo_dedicado_minutos", 0)
-                est = prog.get("estado") or ("Completado" if m_comp >= t_mod else ("En Progreso" if m_comp > 0 else "No Iniciado"))
+                m_comp = min(int(prog.get("modulos_completados") or 0), t_mod)
+                pct_guardado = float(prog.get("porcentaje_avance") or 0.0)
+                pct = pct_guardado if pct_guardado > 0 else (round((m_comp / max(1, t_mod)) * 100, 1) if t_mod > 0 else 0.0)
+                t_min = int(prog.get("tiempo_dedicado_minutos") or 0)
+                est = prog.get("estado") or ("Completado" if pct >= 100 or m_comp >= t_mod else ("En Progreso" if pct > 0 or m_comp > 0 else "No Iniciado"))
             else:
                 m_comp = 0
                 pct = 0.0
@@ -1182,12 +1317,34 @@ def obtener_analitica_colecciones_organizacion(org_id: int):
                 "estado": est
             })
 
-        prom_est = round(suma_pct / len(colecciones), 1) if colecciones else 0.0
+        # Si el aprendiz tiene progresos pero la org no tenía colecciones en asignacion_material, consultar sus cursos directos
+        if not colecciones:
+            progs_directos = db.execute_query("""
+                SELECT p.curso_id, COALESCE(m.titulo, 'Módulo Institucional') as titulo,
+                       COALESCE(m.total_modulos, 3) as total_modulos,
+                       COALESCE(p.modulos_completados, 0) as modulos_completados,
+                       COALESCE(p.porcentaje_avance, 0) as porcentaje_avance,
+                       COALESCE(p.tiempo_dedicado_minutos, 0) as tiempo_dedicado_minutos,
+                       COALESCE(p.estado, 'En Progreso') as estado
+                FROM progreso_cursos p
+                LEFT JOIN material_capacitacion m ON m.id = p.curso_id
+                WHERE p.usuario_id = ?
+            """, (a["id"],), fetchall=True) or []
+            for pd in progs_directos:
+                cursos_estudiante.append(dict(pd))
+                suma_pct += float(pd.get("porcentaje_avance") or 0.0)
+                total_mod_comp += int(pd.get("modulos_completados") or 0)
+                tiempo_est += int(pd.get("tiempo_dedicado_minutos") or 0)
+
+        divisor = len(cursos_estudiante) if cursos_estudiante else 1
+        prom_est = round(suma_pct / divisor, 1) if cursos_estudiante else 0.0
 
         estudiantes_detalle.append({
             "usuario_id": a["id"],
             "nombre": a["nombre"],
             "correo": a["correo"],
+            "organizacion_id": a.get("organizacion_id"),
+            "organizacion_nombre": a.get("organizacion_nombre") or org_info.get("nombre"),
             "mentor_id": a["mentor_id"],
             "mentor_nombre": a["mentor_nombre"] or "Sin Mentor Asignado",
             "promedio_avance": prom_est,
@@ -1196,29 +1353,249 @@ def obtener_analitica_colecciones_organizacion(org_id: int):
             "cursos": cursos_estudiante
         })
 
-    # KPIs globales de la organización
-    prom_general = round(sum(c["promedio_avance"] for c in colecciones_analitica) / len(colecciones_analitica), 1) if colecciones_analitica else 0.0
+    if org_id == 0:
+        prom_general = round(sum(item["porcentaje_avance"] for item in comparativa) / len(comparativa), 1) if comparativa else 0.0
+    else:
+        manual_org = org_info.get("porcentaje_avance_manual")
+        if manual_org is not None:
+            prom_general = round(float(manual_org), 1)
+        elif estudiantes_detalle:
+            prom_general = round(sum(e["promedio_avance"] for e in estudiantes_detalle) / len(estudiantes_detalle), 1)
+        elif colecciones_analitica:
+            prom_general = round(sum(c["promedio_avance"] for c in colecciones_analitica) / len(colecciones_analitica), 1)
+        else:
+            prom_general = 0.0
+
     modulos_completados_tot = sum(e["total_modulos_completados"] for e in estudiantes_detalle)
-    modulos_posibles_tot = total_estudiantes_org * sum(c["total_modulos"] for c in colecciones)
-    tasa_finalizacion = round((modulos_completados_tot / max(1, modulos_posibles_tot)) * 100, 1) if modulos_posibles_tot > 0 else 0.0
+    modulos_posibles_tot = max(total_estudiantes_org * sum(int(c["total_modulos"] or 3) for c in colecciones), modulos_completados_tot)
+    tasa_finalizacion = prom_general if (org_id != 0 and org_info.get("porcentaje_avance_manual") is not None) else (
+        round((modulos_completados_tot / max(1, modulos_posibles_tot)) * 100, 1) if modulos_posibles_tot > 0 else prom_general
+    )
 
     return {
         "status": "success",
-        "organizacion": dict(org),
+        "es_vista_global": org_id == 0,
+        "organizacion": org_info,
         "kpis": {
-            "total_colecciones": len(colecciones_analitica),
-            "total_aprendices": total_estudiantes_org,
+            "total_instituciones": len(comparativa),
+            "total_administradores": len(admins),
             "total_mentores": len(mentores),
+            "total_aprendices": total_estudiantes_org,
+            "total_colecciones": len(colecciones_analitica),
             "promedio_general_org": prom_general,
+            "porcentaje_avance_manual": org_info.get("porcentaje_avance_manual"),
             "modulos_completados_totales": modulos_completados_tot,
             "modulos_asignados_totales": modulos_posibles_tot,
             "tasa_finalizacion_org": tasa_finalizacion,
             "horas_estudio_totales": round(sum(e["tiempo_dedicado_minutos"] for e in estudiantes_detalle) / 60, 1)
         },
+        "instituciones_comparativa": comparativa,
         "colecciones": colecciones_analitica,
         "estudiantes": estudiantes_detalle,
-        "mentores": [dict(m) for m in mentores]
+        "mentores": [dict(m) for m in mentores],
+        "administradores": [dict(ad) for ad in admins]
     }
+
+
+@router.post("/api/superadmin/control-avance/institucion")
+def controlar_avance_institucion(datos: ControlAvanceInstitucionReq):
+    """Permite al Superadministrador definir o restablecer manualmente el porcentaje de avance de una institución y sincronizarlo en Azure SQL"""
+    org = db.execute_query("SELECT id, nombre FROM organizaciones WHERE id = ?", (datos.organizacion_id,), fetchone=True)
+    if not org:
+        raise HTTPException(status_code=404, detail="La institución seleccionada no existe.")
+
+    pct_val = round(max(0.0, min(100.0, float(datos.porcentaje_avance))), 1) if datos.porcentaje_avance is not None else None
+    db.execute_query(
+        "UPDATE organizaciones SET porcentaje_avance_manual = ? WHERE id = ?",
+        (pct_val, datos.organizacion_id),
+        commit=True
+    )
+
+    aprendices_actualizados = 0
+    if pct_val is not None and datos.sincronizar_aprendices:
+        aprendices = db.execute_query(
+            "SELECT id FROM usuarios WHERE organizacion_id = ? AND rol = 'Aprendiz'",
+            (datos.organizacion_id,),
+            fetchall=True
+        ) or []
+        cols = db.execute_query("""
+            SELECT DISTINCT m.id, COALESCE(m.total_modulos, 3) as total_modulos
+            FROM material_capacitacion m
+            JOIN asignacion_material a ON m.id = a.material_id
+            WHERE a.organizacion_id = ?
+        """, (datos.organizacion_id,), fetchall=True) or []
+        if not cols:
+            cols = db.execute_query("SELECT id, COALESCE(total_modulos, 3) as total_modulos FROM material_capacitacion WHERE rol_destino != 'Mentor' ORDER BY id ASC LIMIT 2", fetchall=True) or []
+            for c_item in cols:
+                ya_a = db.execute_query("SELECT id FROM asignacion_material WHERE material_id = ? AND organizacion_id = ?", (c_item["id"], datos.organizacion_id), fetchone=True)
+                if not ya_a:
+                    db.execute_query("INSERT INTO asignacion_material (material_id, organizacion_id, destinatario_tipo, fecha_asignacion) VALUES (?, ?, 'Institución', DATETIME('now', 'localtime'))", (c_item["id"], datos.organizacion_id), commit=True)
+
+        estado_calc = "Completado" if pct_val >= 100 else ("En Progreso" if pct_val > 0 else "No Iniciado")
+        t_mins = datos.tiempo_dedicado_minutos if datos.tiempo_dedicado_minutos is not None else int(round((pct_val / 100.0) * 120))
+        for ap in aprendices:
+            aprendices_actualizados += 1
+            for c_item in cols:
+                t_mod = int(c_item.get("total_modulos") or 3)
+                m_comp = int(round((pct_val / 100.0) * t_mod))
+                ex_p = db.execute_query("SELECT id FROM progreso_cursos WHERE usuario_id = ? AND curso_id = ?", (ap["id"], c_item["id"]), fetchone=True)
+                if ex_p:
+                    db.execute_query("""
+                        UPDATE progreso_cursos
+                        SET porcentaje_avance = ?, modulos_completados = ?, estado = ?, tiempo_dedicado_minutos = ?, fecha_actualizacion = DATETIME('now', 'localtime')
+                        WHERE id = ?
+                    """, (pct_val, m_comp, estado_calc, t_mins, ex_p["id"]), commit=True)
+                else:
+                    db.execute_query("""
+                        INSERT INTO progreso_cursos (usuario_id, curso_id, porcentaje_avance, modulos_completados, estado, tiempo_dedicado_minutos, fecha_actualizacion)
+                        VALUES (?, ?, ?, ?, ?, ?, DATETIME('now', 'localtime'))
+                    """, (ap["id"], c_item["id"], pct_val, m_comp, estado_calc, t_mins), commit=True)
+
+    try:
+        replicador_azure.marcar("organizaciones")
+        replicador_azure.marcar("progreso_cursos")
+        replicador_azure.marcar("asignacion_material")
+    except Exception:
+        pass
+
+    msg = (
+        f"Avance de '{org['nombre']}' fijado manualmente en {pct_val}% ({aprendices_actualizados} aprendices sincronizados en Azure SQL)."
+        if pct_val is not None
+        else f"Modo automático restaurado para '{org['nombre']}'."
+    )
+    registrar_movimiento("SuperAdmin", "Control_Avance", "Ajuste_Manual_Institucion", "EXITO", msg, organizacion_id=datos.organizacion_id, organizacion_nombre=org["nombre"], usuario_rol="Super Administrador")
+    return {"status": "success", "mensaje": msg, "porcentaje_avance": pct_val, "aprendices_actualizados": aprendices_actualizados}
+
+
+@router.post("/api/superadmin/control-avance/grupo")
+def controlar_avance_grupo(datos: ControlAvanceGrupoReq):
+    """Permite al Superadministrador ajustar manualmente el avance, módulos y estado de un grupo de trabajo (por mentor o toda la institución)"""
+    org = db.execute_query("SELECT id, nombre FROM organizaciones WHERE id = ?", (datos.organizacion_id,), fetchone=True)
+    if not org:
+        raise HTTPException(status_code=404, detail="La institución seleccionada no existe.")
+
+    if datos.mentor_id:
+        aprendices = db.execute_query(
+            "SELECT id, nombre FROM usuarios WHERE organizacion_id = ? AND mentor_id = ? AND rol = 'Aprendiz'",
+            (datos.organizacion_id, datos.mentor_id),
+            fetchall=True
+        ) or []
+    else:
+        aprendices = db.execute_query(
+            "SELECT id, nombre FROM usuarios WHERE organizacion_id = ? AND rol = 'Aprendiz'",
+            (datos.organizacion_id,),
+            fetchall=True
+        ) or []
+
+    if not aprendices:
+        raise HTTPException(status_code=400, detail="No hay aprendices registrados en el grupo seleccionado.")
+
+    if datos.curso_id:
+        cols = db.execute_query("SELECT id, COALESCE(total_modulos, 3) as total_modulos FROM material_capacitacion WHERE id = ?", (datos.curso_id,), fetchall=True) or []
+    else:
+        cols = db.execute_query("""
+            SELECT DISTINCT m.id, COALESCE(m.total_modulos, 3) as total_modulos
+            FROM material_capacitacion m
+            JOIN asignacion_material a ON m.id = a.material_id
+            WHERE a.organizacion_id = ?
+        """, (datos.organizacion_id,), fetchall=True) or []
+        if not cols:
+            cols = db.execute_query("SELECT id, COALESCE(total_modulos, 3) as total_modulos FROM material_capacitacion WHERE rol_destino != 'Mentor' ORDER BY id ASC LIMIT 2", fetchall=True) or []
+            for c_item in cols:
+                db.execute_query("INSERT INTO asignacion_material (material_id, organizacion_id, destinatario_tipo, fecha_asignacion) VALUES (?, ?, 'Institución', DATETIME('now', 'localtime'))", (c_item["id"], datos.organizacion_id), commit=True)
+
+    pct_val = round(max(0.0, min(100.0, float(datos.porcentaje_avance))), 1)
+    estado_final = datos.estado or ("Completado" if pct_val >= 100 else ("En Progreso" if pct_val > 0 else "No Iniciado"))
+    t_mins = datos.tiempo_dedicado_minutos if datos.tiempo_dedicado_minutos is not None else 60
+
+    for ap in aprendices:
+        for c_item in cols:
+            t_mod = int(c_item.get("total_modulos") or 3)
+            m_comp = datos.modulos_completados if datos.modulos_completados is not None else int(round((pct_val / 100.0) * t_mod))
+            m_comp = max(0, min(t_mod, int(m_comp)))
+            ex_p = db.execute_query("SELECT id FROM progreso_cursos WHERE usuario_id = ? AND curso_id = ?", (ap["id"], c_item["id"]), fetchone=True)
+            if ex_p:
+                db.execute_query("""
+                    UPDATE progreso_cursos
+                    SET porcentaje_avance = ?, modulos_completados = ?, estado = ?, tiempo_dedicado_minutos = ?, fecha_actualizacion = DATETIME('now', 'localtime')
+                    WHERE id = ?
+                """, (pct_val, m_comp, estado_final, t_mins, ex_p["id"]), commit=True)
+            else:
+                db.execute_query("""
+                    INSERT INTO progreso_cursos (usuario_id, curso_id, porcentaje_avance, modulos_completados, estado, tiempo_dedicado_minutos, fecha_actualizacion)
+                    VALUES (?, ?, ?, ?, ?, ?, DATETIME('now', 'localtime'))
+                """, (ap["id"], c_item["id"], pct_val, m_comp, estado_final, t_mins), commit=True)
+
+    try:
+        replicador_azure.marcar("progreso_cursos")
+    except Exception:
+        pass
+
+    msg = f"Grupo actualizado en '{org['nombre']}': {len(aprendices)} aprendices fijados en {pct_val}% ({estado_final}) en Azure SQL."
+    registrar_movimiento("SuperAdmin", "Control_Avance", "Ajuste_Manual_Grupo", "EXITO", msg, organizacion_id=datos.organizacion_id, organizacion_nombre=org["nombre"], usuario_rol="Super Administrador")
+    return {"status": "success", "mensaje": msg, "aprendices_actualizados": len(aprendices), "porcentaje_avance": pct_val}
+
+
+@router.post("/api/superadmin/control-avance/integrante")
+def controlar_avance_integrante(datos: ControlAvanceIntegranteReq):
+    """Permite al Superadministrador modificar manualmente el avance, módulos completados y estado de un aprendiz o mentor específico en Azure SQL"""
+    usr = db.execute_query("SELECT id, nombre, correo, rol, organizacion_id FROM usuarios WHERE id = ?", (datos.usuario_id,), fetchone=True)
+    if not usr:
+        raise HTTPException(status_code=404, detail="El integrante seleccionado no existe.")
+
+    org_nom = "Plataforma Global"
+    if usr.get("organizacion_id"):
+        o_r = db.execute_query("SELECT nombre FROM organizaciones WHERE id = ?", (usr["organizacion_id"],), fetchone=True)
+        if o_r:
+            org_nom = o_r["nombre"]
+
+    if datos.curso_id:
+        cols = db.execute_query("SELECT id, COALESCE(total_modulos, 3) as total_modulos FROM material_capacitacion WHERE id = ?", (datos.curso_id,), fetchall=True) or []
+    else:
+        if usr.get("rol") == "Mentor":
+            cols = db.execute_query("SELECT id, COALESCE(total_modulos, 3) as total_modulos FROM material_capacitacion WHERE rol_destino = 'Mentor'", fetchall=True) or []
+        else:
+            cols = db.execute_query("""
+                SELECT DISTINCT m.id, COALESCE(m.total_modulos, 3) as total_modulos
+                FROM material_capacitacion m
+                JOIN asignacion_material a ON m.id = a.material_id
+                WHERE a.organizacion_id = ?
+            """, (usr.get("organizacion_id"),), fetchall=True) or []
+            if not cols:
+                cols = db.execute_query("SELECT id, COALESCE(total_modulos, 3) as total_modulos FROM material_capacitacion WHERE rol_destino != 'Mentor' ORDER BY id ASC LIMIT 2", fetchall=True) or []
+                if usr.get("organizacion_id"):
+                    for c_item in cols:
+                        db.execute_query("INSERT INTO asignacion_material (material_id, organizacion_id, destinatario_tipo, fecha_asignacion) VALUES (?, ?, 'Institución', DATETIME('now', 'localtime'))", (c_item["id"], usr["organizacion_id"]), commit=True)
+
+    pct_val = round(max(0.0, min(100.0, float(datos.porcentaje_avance))), 1)
+    estado_final = datos.estado or ("Completado" if pct_val >= 100 else ("En Progreso" if pct_val > 0 else "No Iniciado"))
+    t_mins = datos.tiempo_dedicado_minutos if datos.tiempo_dedicado_minutos is not None else 45
+
+    for c_item in cols:
+        t_mod = int(c_item.get("total_modulos") or 3)
+        m_comp = datos.modulos_completados if datos.modulos_completados is not None else int(round((pct_val / 100.0) * t_mod))
+        m_comp = max(0, min(t_mod, int(m_comp)))
+        ex_p = db.execute_query("SELECT id FROM progreso_cursos WHERE usuario_id = ? AND curso_id = ?", (usr["id"], c_item["id"]), fetchone=True)
+        if ex_p:
+            db.execute_query("""
+                UPDATE progreso_cursos
+                SET porcentaje_avance = ?, modulos_completados = ?, estado = ?, tiempo_dedicado_minutos = ?, fecha_actualizacion = DATETIME('now', 'localtime')
+                WHERE id = ?
+            """, (pct_val, m_comp, estado_final, t_mins, ex_p["id"]), commit=True)
+        else:
+            db.execute_query("""
+                INSERT INTO progreso_cursos (usuario_id, curso_id, porcentaje_avance, modulos_completados, estado, tiempo_dedicado_minutos, fecha_actualizacion)
+                VALUES (?, ?, ?, ?, ?, ?, DATETIME('now', 'localtime'))
+            """, (usr["id"], c_item["id"], pct_val, m_comp, estado_final, t_mins), commit=True)
+
+    try:
+        replicador_azure.marcar("progreso_cursos")
+    except Exception:
+        pass
+
+    msg = f"Avance de '{usr['nombre']}' ({usr['rol']}) actualizado manualmente a {pct_val}% ({estado_final}) en Azure SQL."
+    registrar_movimiento("SuperAdmin", "Control_Avance", "Ajuste_Manual_Integrante", "EXITO", msg, organizacion_id=usr.get("organizacion_id"), organizacion_nombre=org_nom, usuario_rol="Super Administrador")
+    return {"status": "success", "mensaje": msg, "usuario_id": usr["id"], "porcentaje_avance": pct_val, "estado": estado_final}
 
 
 @router.get("/api/powerbi/exportar-metricas-colecciones.csv")

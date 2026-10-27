@@ -2,7 +2,7 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, Form, Query, Request
 from fastapi.responses import FileResponse, StreamingResponse, Response, JSONResponse
 from app.core import *
-from app.core import _fusionar_usuarios_recibidos
+from app.core import _fusionar_usuarios_recibidos, _sanitizar_org_nombre
 
 router = APIRouter(tags=["Seguridad, WAF, Auditor?a y Respaldos del Sistema"])
 
@@ -422,92 +422,154 @@ def descargar_copia_seguridad(nombre_archivo: str):
     )
 
 
+def _migrar_csv_a_auditoria_bd_si_vacio():
+    """Importa eventos históricos del CSV hacia la tabla persistente auditoria_sistema una única vez si está vacía, limpiando [object Object]"""
+    try:
+        cnt_row = db.execute_query("SELECT COUNT(*) as c FROM auditoria_sistema", fetchone=True)
+        if cnt_row and int(cnt_row.get("c") or 0) > 0:
+            # Limpiar cualquier '[object Object]' residual
+            db.execute_query(
+                "UPDATE auditoria_sistema SET organizacion_nombre = 'Plataforma Global' WHERE organizacion_nombre LIKE '%[object%' OR organizacion_nombre IS NULL OR TRIM(organizacion_nombre) = ''",
+                commit=True
+            )
+            return
+        if not os.path.isfile(CSV_AUDITORIA):
+            return
+        user_org_map = {}
+        user_role_map = {}
+        usrs = db.execute_query(
+            "SELECT LOWER(u.correo) as c, o.nombre as org_nom, u.organizacion_id as org_id, u.rol as rol FROM usuarios u LEFT JOIN organizaciones o ON u.organizacion_id = o.id",
+            fetchall=True
+        ) or []
+        for u in usrs:
+            if u.get("c"):
+                user_org_map[u["c"]] = (u.get("org_id"), _sanitizar_org_nombre(u.get("org_nom")))
+                user_role_map[u["c"]] = u.get("rol") or "Aprendiz"
+        with open(CSV_AUDITORIA, mode="r", encoding="utf-8", errors="ignore") as f:
+            lector = csv.DictReader(f)
+            for fila in lector:
+                fh = (fila.get("Fecha_Hora") or "").strip() or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                fd = fh[:10]
+                u_email = (fila.get("Correo_Usuario") or "Sistema").strip()
+                u_low = u_email.lower()
+                org_id_v, org_nom_v = user_org_map.get(u_low, (None, "Plataforma Global"))
+                rol_v = user_role_map.get(u_low) or ("Super Administrador" if "super" in u_low or "alexander.nino" in u_low else "Sistema")
+                db.execute_query(
+                    """INSERT INTO auditoria_sistema
+                       (fecha_hora, fecha_dia, correo_usuario, usuario_rol, organizacion_id, organizacion_nombre, modulo, operacion, estado, detalles)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        fh,
+                        fd,
+                        u_email,
+                        rol_v,
+                        org_id_v,
+                        _sanitizar_org_nombre(org_nom_v),
+                        fila.get("Modulo") or "General",
+                        fila.get("Operacion") or "Acción",
+                        fila.get("Estado") or "EXITO",
+                        fila.get("Detalles_Error") or "Ninguno"
+                    ),
+                    commit=True
+                )
+        try:
+            replicador_azure.marcar("auditoria_sistema")
+        except Exception:
+            pass
+    except Exception as e_m:
+        print(f">> [AUDITORIA MIGRACION] Aviso: {e_m}")
+
+
 @router.get("/api/auditoria/listar")
-def obtener_auditoria(fecha: Optional[str] = None, organizacion_nombre: Optional[str] = None, organizacion_id: Optional[int] = None, correo: Optional[str] = None):
-    """Consulta la bitácora de auditoría militar CSV de El Celador, con soporte de filtrado por día, organización, rol y correo individual"""
-    registros = []
-    exitos = 0
-    fallos = 0
+def obtener_auditoria(
+    fecha: Optional[str] = None,
+    organizacion_nombre: Optional[str] = None,
+    organizacion_id: Optional[int] = None,
+    correo: Optional[str] = None
+):
+    """Consulta el Registro de Actividad persistente en Azure SQL / SQLite (tabla auditoria_sistema), sin [object Object]"""
+    _migrar_csv_a_auditoria_bd_si_vacio()
+
+    # Mapa actualizado de usuarios y organizaciones
+    user_org_map = {}
+    user_role_map = {}
+    try:
+        usrs = db.execute_query(
+            "SELECT LOWER(u.correo) as c, o.nombre as org_nom, u.rol as rol FROM usuarios u LEFT JOIN organizaciones o ON u.organizacion_id = o.id",
+            fetchall=True
+        ) or []
+        for u in usrs:
+            if u.get("c"):
+                user_org_map[u["c"]] = _sanitizar_org_nombre(u.get("org_nom"))
+                user_role_map[u["c"]] = u.get("rol") or "Aprendiz"
+    except Exception:
+        pass
 
     target_org_nombre = None
     if organizacion_id:
         o_row = db.execute_query("SELECT nombre FROM organizaciones WHERE id = ?", (organizacion_id,), fetchone=True)
         if o_row:
-            target_org_nombre = o_row["nombre"]
+            target_org_nombre = _sanitizar_org_nombre(o_row["nombre"])
 
-    # Mapa de correos a instituciones y roles para evidenciar en El Celador
-    user_org_map = {}
-    user_role_map = {}
-    try:
-        usrs = db.execute_query("SELECT LOWER(u.correo) as c, o.nombre as org_nom, u.rol as rol FROM usuarios u LEFT JOIN organizaciones o ON u.organizacion_id = o.id", fetchall=True) or []
-        for u in usrs:
-            if u.get("c"):
-                user_org_map[u["c"]] = u.get("org_nom") or "Plataforma Global"
-                user_role_map[u["c"]] = u.get("rol") or "Aprendiz"
-    except Exception:
-        pass
+    filas = db.execute_query(
+        """SELECT id, fecha_hora, fecha_dia, correo_usuario, usuario_rol, organizacion_id,
+                  organizacion_nombre, modulo, operacion, estado, detalles
+           FROM auditoria_sistema
+           ORDER BY id DESC
+           LIMIT 1000""",
+        fetchall=True
+    ) or []
 
-    if os.path.isfile(CSV_AUDITORIA):
-        try:
-            with open(CSV_AUDITORIA, mode='r', encoding='utf-8') as f:
-                lector = csv.DictReader(f)
-                for idx, fila in enumerate(lector, start=1):
-                    fila_dict = dict(fila)
-                    fila_dict["id"] = idx
+    registros = []
+    exitos = 0
+    fallos = 0
 
-                    u_email = (fila_dict.get("Correo_Usuario") or "").lower().strip()
-                    org_asoc = user_org_map.get(u_email)
-                    if not org_asoc:
-                        det = fila_dict.get("Detalles_Error") or ""
-                        if "UNIMINUTO" in det: org_asoc = "UNIMINUTO"
-                        elif "Org:" in det or "Institución" in det: org_asoc = "Gestión Institucional"
-                        else: org_asoc = "Plataforma Global"
-                    fila_dict["organizacion_nombre"] = org_asoc
+    for f in filas:
+        u_email = (f.get("correo_usuario") or "").strip().lower()
+        org_asoc = _sanitizar_org_nombre(f.get("organizacion_nombre"))
+        if org_asoc == "Plataforma Global" and u_email in user_org_map:
+            org_asoc = user_org_map[u_email]
+        user_rol = f.get("usuario_rol") or user_role_map.get(u_email) or "Sistema"
 
-                    # Asignar rol del usuario
-                    user_rol = user_role_map.get(u_email)
-                    if not user_rol:
-                        if "superadmin" in u_email or "admin@corp" in u_email:
-                            user_rol = "Super Administrador"
-                        elif "mentor" in u_email:
-                            user_rol = "Mentor"
-                        elif "admin" in u_email:
-                            user_rol = "Administrador"
-                        else:
-                            user_rol = "Aprendiz"
-                    fila_dict["usuario_rol"] = user_rol
+        if correo and correo.strip():
+            if u_email != correo.strip().lower():
+                continue
 
-                    # Filtro específico por correo si se suministra (ej: Aprendiz)
-                    if correo and correo.strip():
-                        if u_email != correo.strip().lower():
-                            continue
+        if target_org_nombre:
+            if f.get("organizacion_id") != organizacion_id and target_org_nombre.lower() not in org_asoc.lower():
+                continue
+            if user_rol == "Super Administrador":
+                continue
 
-                    # Filtro obligatorio si se especifica organizacion_id (para Administrador Institucional)
-                    if target_org_nombre:
-                        if target_org_nombre.lower() not in org_asoc.lower():
-                            continue
-                        # El administrador solo ve mentores y aprendices de su institución
-                        if user_rol == "Super Administrador":
-                            continue
+        if fecha and fecha.strip():
+            fh_str = f.get("fecha_hora") or ""
+            if not fh_str.startswith(fecha.strip()):
+                continue
 
-                    # Filtro opcional por día (YYYY-MM-DD)
-                    if fecha and fecha.strip():
-                        if not fila_dict.get("Fecha_Hora", "").startswith(fecha.strip()):
-                            continue
+        if organizacion_nombre and organizacion_nombre.strip():
+            filtro_org_clean = _sanitizar_org_nombre(organizacion_nombre)
+            if filtro_org_clean.upper() != "TODOS" and filtro_org_clean != "Plataforma Global":
+                if filtro_org_clean.lower() not in org_asoc.lower():
+                    continue
 
-                    # Filtro opcional por organización
-                    if organizacion_nombre and organizacion_nombre.strip() and organizacion_nombre.strip().upper() != "TODOS":
-                        if organizacion_nombre.strip().lower() not in org_asoc.lower():
-                            continue
+        est = f.get("estado") or "EXITO"
+        if est == "EXITO":
+            exitos += 1
+        else:
+            fallos += 1
 
-                    registros.append(fila_dict)
-                    if fila.get("Estado") == "EXITO":
-                        exitos += 1
-                    else:
-                        fallos += 1
-            registros.reverse()
-        except Exception as e:
-            print(f"Error leyendo auditoria: {e}")
+        registros.append({
+            "id": f["id"],
+            "Fecha_Hora": f.get("fecha_hora") or "",
+            "Correo_Usuario": f.get("correo_usuario") or "Sistema",
+            "Modulo": f.get("modulo") or "General",
+            "Operacion": f.get("operacion") or "Acción",
+            "Estado": est,
+            "Detalles_Error": f.get("detalles") or "Ninguno",
+            "organizacion_id": f.get("organizacion_id"),
+            "organizacion_nombre": org_asoc,
+            "usuario_rol": user_rol
+        })
 
     return {
         "status": "success",
@@ -518,107 +580,139 @@ def obtener_auditoria(fecha: Optional[str] = None, organizacion_nombre: Optional
     }
 
 
+@router.get("/api/auditoria/exportar-backup")
+def exportar_backup_auditoria_excel(organizacion_id: Optional[int] = None):
+    """Genera y descarga una Copia de Seguridad (.xlsx) del historial persistente de Registro de Actividad en Azure SQL"""
+    _migrar_csv_a_auditoria_bd_si_vacio()
+    now = datetime.now()
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Historial_Actividad_Backup"
+
+    fill_navy = PatternFill(start_color="0A192F", end_color="0A192F", fill_type="solid")
+    font_header = Font(name="Segoe UI", size=10, bold=True, color="FFFFFF")
+    font_normal = Font(name="Segoe UI", size=9)
+    border_thin = Border(
+        left=Side(style='thin', color='CBD5E1'),
+        right=Side(style='thin', color='CBD5E1'),
+        top=Side(style='thin', color='CBD5E1'),
+        bottom=Side(style='thin', color='CBD5E1')
+    )
+
+    headers = ["ID", "Fecha y Hora", "Usuario / Correo", "Cargo / Rol", "Institución", "Módulo", "Operación / Acción", "Estado", "Detalles"]
+    ws.row_dimensions[1].height = 24
+    for col_idx, h in enumerate(headers, start=1):
+        c = ws.cell(row=1, column=col_idx, value=h)
+        c.fill = fill_navy
+        c.font = font_header
+        c.alignment = Alignment(horizontal="center", vertical="center")
+        c.border = border_thin
+
+    resp_aud = obtener_auditoria(organizacion_id=organizacion_id)
+    filas_aud = resp_aud.get("data", [])
+
+    for r_idx, item in enumerate(filas_aud, start=2):
+        vals = [
+            item.get("id"),
+            item.get("Fecha_Hora"),
+            item.get("Correo_Usuario"),
+            item.get("usuario_rol"),
+            _sanitizar_org_nombre(item.get("organizacion_nombre")),
+            item.get("Modulo"),
+            item.get("Operacion"),
+            item.get("Estado"),
+            item.get("Detalles_Error")
+        ]
+        for c_idx, v in enumerate(vals, start=1):
+            cell = ws.cell(row=r_idx, column=c_idx, value=v)
+            cell.font = font_normal
+            cell.border = border_thin
+
+    for col in ws.columns:
+        max_len = max(len(str(cell.value or "")) for cell in col)
+        ws.column_dimensions[get_column_letter(col[0].column)].width = min(max(max_len + 4, 14), 55)
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    tam_bytes = buffer.tell()
+    tam_kb = round(tam_bytes / 1024, 1)
+    buffer.seek(0)
+
+    nombre_archivo = f"backup_registro_actividad_{now.strftime('%Y_%m_%d_%H%M%S')}.xlsx"
+    meses_es = ["", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"]
+    mes_nombre = f"{meses_es[now.month]} {now.year}"
+    try:
+        db.execute_query(
+            "INSERT INTO respaldos_sistema (archivo, tipo, organizacion_id, fecha, mes, tamano, bytes) VALUES (?, 'auditoria_excel', ?, ?, ?, ?, ?)",
+            (nombre_archivo, organizacion_id, now.strftime("%Y-%m-%d %H:%M:%S"), mes_nombre, f"{tam_kb} KB", tam_bytes),
+            commit=True
+        )
+        replicador_azure.marcar("respaldos_sistema")
+    except Exception:
+        pass
+
+    registrar_movimiento("SuperAdmin", "Auditoria", "Exportar_Backup_Actividad", "EXITO", f"Backup descargado: {nombre_archivo} ({len(filas_aud)} eventos)")
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{nombre_archivo}"'}
+    )
+
+
 @router.delete("/api/auditoria/{log_id}")
 def eliminar_registro_auditoria(log_id: int):
-    """Elimina un evento específico de la bitácora de auditoría CSV de El Celador"""
-    if not os.path.isfile(CSV_AUDITORIA):
-        raise HTTPException(status_code=404, detail="Archivo de auditoría no encontrado.")
-
-    filas_conservar = []
-    eliminado = False
-    with open(CSV_AUDITORIA, mode='r', encoding='utf-8') as f:
-        lector = csv.reader(f)
-        header = next(lector, None)
-        if not header:
-            return {"status": "success", "mensaje": "Auditoría vacía."}
-
-        for idx, fila in enumerate(lector, start=1):
-            if idx == log_id:
-                eliminado = True
-            else:
-                filas_conservar.append(fila)
-
-    with open(CSV_AUDITORIA, mode='w', newline='', encoding='utf-8') as f:
-        escritor = csv.writer(f)
-        escritor.writerow(header)
-        escritor.writerows(filas_conservar)
-
-    if not eliminado:
-        raise HTTPException(status_code=404, detail="Registro de auditoría no encontrado.")
-
-    return {"status": "success", "mensaje": f"Evento de auditoría #{log_id} eliminado exitosamente de El Celador."}
+    """Elimina un evento específico del Registro de Actividad en BD y Azure SQL"""
+    db.execute_query("DELETE FROM auditoria_sistema WHERE id = ?", (log_id,), commit=True)
+    try:
+        replicador_azure.marcar("auditoria_sistema")
+    except Exception:
+        pass
+    return {"status": "success", "mensaje": f"Evento de auditoría #{log_id} eliminado exitosamente."}
 
 
 @router.post("/api/auditoria/eliminar-lote")
 @router.delete("/api/auditoria/eliminar-lote")
 def eliminar_lote_auditoria(datos: EliminarLoteAuditReq):
-    """Elimina múltiples eventos seleccionados de la bitácora de auditoría CSV de El Celador estilo Google History"""
-    if not datos.ids or not os.path.isfile(CSV_AUDITORIA):
+    """Elimina múltiples eventos seleccionados de la tabla auditoria_sistema"""
+    if not datos.ids:
         return {"status": "success", "mensaje": "No se enviaron eventos para eliminar.", "eliminados": 0}
-
-    ids_set = set(datos.ids)
-    filas_conservar = []
-    conteo_eliminados = 0
-
-    with open(CSV_AUDITORIA, mode='r', encoding='utf-8') as f:
-        lector = csv.reader(f)
-        header = next(lector, None)
-        if not header:
-            return {"status": "success", "mensaje": "Auditoría vacía.", "eliminados": 0}
-
-        for idx, fila in enumerate(lector, start=1):
-            if idx in ids_set:
-                conteo_eliminados += 1
-            else:
-                filas_conservar.append(fila)
-
-    with open(CSV_AUDITORIA, mode='w', newline='', encoding='utf-8') as f:
-        escritor = csv.writer(f)
-        escritor.writerow(header)
-        escritor.writerows(filas_conservar)
-
+    placeholders = ",".join("?" for _ in datos.ids)
+    db.execute_query(f"DELETE FROM auditoria_sistema WHERE id IN ({placeholders})", tuple(datos.ids), commit=True)
+    try:
+        replicador_azure.marcar("auditoria_sistema")
+    except Exception:
+        pass
     return {
         "status": "success",
-        "mensaje": f"Se eliminaron {conteo_eliminados} eventos seleccionados de la bitácora de auditoría.",
-        "eliminados": conteo_eliminados
+        "mensaje": f"Se eliminaron {len(datos.ids)} eventos seleccionados de la bitácora de auditoría.",
+        "eliminados": len(datos.ids)
     }
 
 
 @router.delete("/api/auditoria/por-dia/{fecha}")
 def eliminar_auditoria_por_dia(fecha: str):
     """Elimina todos los eventos de auditoría correspondientes a una fecha específica (YYYY-MM-DD)"""
-    if not os.path.isfile(CSV_AUDITORIA):
-        raise HTTPException(status_code=404, detail="Archivo de auditoría no encontrado.")
-
-    filas_conservar = []
-    conteo_eliminados = 0
-    with open(CSV_AUDITORIA, mode='r', encoding='utf-8') as f:
-        lector = csv.reader(f)
-        header = next(lector, None)
-        if not header:
-            return {"status": "success", "mensaje": "Auditoría vacía."}
-
-        for fila in lector:
-            if fila and len(fila) > 0 and fila[0].startswith(fecha):
-                conteo_eliminados += 1
-            else:
-                filas_conservar.append(fila)
-
-    with open(CSV_AUDITORIA, mode='w', newline='', encoding='utf-8') as f:
-        escritor = csv.writer(f)
-        escritor.writerow(header)
-        escritor.writerows(filas_conservar)
-
-    return {"status": "success", "mensaje": f"Se eliminaron {conteo_eliminados} eventos de auditoría de El Celador del día {fecha}."}
+    db.execute_query("DELETE FROM auditoria_sistema WHERE fecha_dia = ? OR fecha_hora LIKE ?", (fecha, f"{fecha}%"), commit=True)
+    try:
+        replicador_azure.marcar("auditoria_sistema")
+    except Exception:
+        pass
+    return {"status": "success", "mensaje": f"Eventos de auditoría del día {fecha} eliminados de Azure SQL."}
 
 
 @router.delete("/api/auditoria/limpiar-todo")
 def limpiar_toda_auditoria():
-    """Vacía por completo la bitácora de auditoría CSV de El Celador"""
-    with open(CSV_AUDITORIA, mode='w', newline='', encoding='utf-8') as f:
-        escritor = csv.writer(f)
-        escritor.writerow(['Fecha_Hora', 'Correo_Usuario', 'Modulo', 'Operacion', 'Estado', 'Detalles_Error'])
-    return {"status": "success", "mensaje": "Bitácora militar de El Celador vaciada exitosamente."}
+    """Vacía por completo la bitácora de auditoría en BD y CSV"""
+    db.execute_query("DELETE FROM auditoria_sistema", commit=True)
+    try:
+        if os.path.isfile(CSV_AUDITORIA):
+            with open(CSV_AUDITORIA, mode='w', newline='', encoding='utf-8') as f:
+                escritor = csv.writer(f)
+                escritor.writerow(['Fecha_Hora', 'Correo_Usuario', 'Modulo', 'Operacion', 'Estado', 'Detalles_Error'])
+        replicador_azure.marcar("auditoria_sistema")
+    except Exception:
+        pass
+    return {"status": "success", "mensaje": "Bitácora de actividad vaciada exitosamente en Azure SQL."}
 
 
 @router.get("/api/seguridad/estado")

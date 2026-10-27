@@ -142,8 +142,19 @@ def obtener_ip_local() -> str:
 
 _cola_auditoria: "queue.SimpleQueue" = queue.SimpleQueue()
 
+def _sanitizar_org_nombre(val: Any) -> str:
+    """Garantiza que el nombre de institución sea siempre una cadena limpia (sin [object Object])"""
+    if val is None:
+        return "Plataforma Global"
+    if isinstance(val, dict):
+        return str(val.get("nombre") or val.get("organizacion_nombre") or "Plataforma Global").strip()
+    s = str(val).strip()
+    if not s or "[object" in s.lower() or s.lower() in ("null", "undefined", "none"):
+        return "Plataforma Global"
+    return s
+
 def _trabajador_auditoria_bg():
-    """Hilo dedicado para escritura asíncrona de CSV y logs HTTP sin bloquear peticiones"""
+    """Hilo dedicado para escritura asíncrona en base de datos (auditoria_sistema + Azure SQL), CSV y logs HTTP sin bloquear peticiones"""
     archivo_existe = os.path.isfile(CSV_AUDITORIA)
     while True:
         try:
@@ -152,15 +163,65 @@ def _trabajador_auditoria_bg():
                 continue
             tipo = item[0]
             if tipo == "csv":
-                _, fecha_hora_actual, correo, modulo, operacion, estado, detalles_error = item
-                if not archivo_existe:
-                    archivo_existe = os.path.isfile(CSV_AUDITORIA)
-                with open(CSV_AUDITORIA, mode='a', newline='', encoding='utf-8') as archivo:
-                    escritor = csv.writer(archivo)
+                _, fecha_hora_actual, correo, modulo, operacion, estado, detalles_error, org_id, org_nom_raw, rol_raw = item
+                org_nom = _sanitizar_org_nombre(org_nom_raw)
+                fecha_dia = fecha_hora_actual[:10] if fecha_hora_actual else datetime.now().strftime("%Y-%m-%d")
+                try:
+                    if "db" in globals() and db is not None:
+                        rol_val = rol_raw
+                        org_id_val = org_id
+                        if correo and (not rol_val or org_nom == "Plataforma Global"):
+                            u_info = db.execute_query(
+                                "SELECT u.rol, u.organizacion_id, o.nombre as org_nombre FROM usuarios u LEFT JOIN organizaciones o ON o.id = u.organizacion_id WHERE LOWER(TRIM(u.correo)) = ?",
+                                (str(correo).strip().lower(),),
+                                fetchone=True
+                            )
+                            if u_info:
+                                rol_val = rol_val or u_info.get("rol")
+                                org_id_val = org_id_val or u_info.get("organizacion_id")
+                                if org_nom == "Plataforma Global" and u_info.get("org_nombre"):
+                                    org_nom = _sanitizar_org_nombre(u_info.get("org_nombre"))
+                        if not rol_val:
+                            c_low = str(correo or "").lower()
+                            if "super" in c_low or "alexander.nino" in c_low:
+                                rol_val = "Super Administrador"
+                            elif "admin" in c_low:
+                                rol_val = "Administrador"
+                            elif "mentor" in c_low:
+                                rol_val = "Mentor"
+                            else:
+                                rol_val = "Sistema"
+                        db.execute_query(
+                            """INSERT INTO auditoria_sistema
+                               (fecha_hora, fecha_dia, correo_usuario, usuario_rol, organizacion_id, organizacion_nombre, modulo, operacion, estado, detalles)
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                            (
+                                fecha_hora_actual,
+                                fecha_dia,
+                                str(correo or "Sistema"),
+                                str(rol_val or "Sistema"),
+                                org_id_val,
+                                org_nom,
+                                str(modulo or "General"),
+                                str(operacion or "Acción"),
+                                str(estado or "EXITO"),
+                                str(detalles_error or "Ninguno")
+                            ),
+                            commit=True
+                        )
+                except Exception:
+                    pass
+                try:
                     if not archivo_existe:
-                        escritor.writerow(['Fecha_Hora', 'Correo_Usuario', 'Modulo', 'Operacion', 'Estado', 'Detalles_Error'])
-                        archivo_existe = True
-                    escritor.writerow([fecha_hora_actual, correo, modulo, operacion, estado, detalles_error])
+                        archivo_existe = os.path.isfile(CSV_AUDITORIA)
+                    with open(CSV_AUDITORIA, mode='a', newline='', encoding='utf-8') as archivo:
+                        escritor = csv.writer(archivo)
+                        if not archivo_existe:
+                            escritor.writerow(['Fecha_Hora', 'Correo_Usuario', 'Modulo', 'Operacion', 'Estado', 'Detalles_Error'])
+                            archivo_existe = True
+                        escritor.writerow([fecha_hora_actual, correo, modulo, operacion, estado, detalles_error])
+                except Exception:
+                    pass
             elif tipo == "http_log":
                 _, ip, metodo, ruta, status_code, duracion_ms, user_agent, amenaza = item
                 db.execute_query(
@@ -174,10 +235,20 @@ def _trabajador_auditoria_bg():
 
 threading.Thread(target=_trabajador_auditoria_bg, name="auditoria-bg", daemon=True).start()
 
-def registrar_movimiento(correo: str, modulo: str, operacion: str, estado: str, detalles_error: str = "Ninguno"):
-    """Encola trazabilidad en el archivo CSV con latencia 0ms para el hilo HTTP"""
+def registrar_movimiento(
+    correo: str,
+    modulo: str,
+    operacion: str,
+    estado: str,
+    detalles_error: str = "Ninguno",
+    organizacion_id: Optional[int] = None,
+    organizacion_nombre: Optional[str] = None,
+    usuario_rol: Optional[str] = None
+):
+    """Encola trazabilidad en auditoria_sistema (SQLite + Azure SQL) y CSV con latencia 0ms"""
     fecha_hora_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    _cola_auditoria.put(("csv", fecha_hora_actual, correo, modulo, operacion, estado, detalles_error))
+    org_clean = _sanitizar_org_nombre(organizacion_nombre) if organizacion_nombre else None
+    _cola_auditoria.put(("csv", fecha_hora_actual, correo, modulo, operacion, estado, detalles_error, organizacion_id, org_clean, usuario_rol))
 
 _sqlite_local = threading.local()
 
@@ -497,6 +568,59 @@ class ReplicadorAzure:
         finally:
             sl.close()
 
+    def hidratar_desde_azure(self) -> int:
+        """
+        Hidrata la base de datos local SQLite desde Azure SQL al iniciar el servidor.
+        Evita que un reinicio en frío en Render borre las organizaciones, usuarios, colecciones
+        o avances reales almacenados en Azure SQL.
+        """
+        if not self.habilitado:
+            return 0
+        if not self.conectado and not self._conectar():
+            return 0
+        sl = sqlite3.connect(SQLITE_DB, timeout=15)
+        total_hidratadas = 0
+        try:
+            tablas = self._tablas_locales(sl)
+            cur = self.conn.cursor()
+            for tabla in tablas:
+                try:
+                    cols = self._asegurar_esquema(cur, sl, tabla)
+                    if not cols or "id" not in cols:
+                        continue
+                    lista_azure = ", ".join(f"[{c}]" for c in cols)
+                    cur.execute(f"SELECT {lista_azure} FROM [{tabla}]")
+                    filas_remotas = cur.fetchall()
+                    idx_id = cols.index("id")
+                    self.cache[tabla] = {
+                        f[idx_id]: tuple(self._normalizar(v) for v in f)
+                        for f in filas_remotas
+                    }
+                    if not filas_remotas:
+                        continue
+                    cols_sql = ", ".join(cols)
+                    placeholders = ", ".join("?" for _ in cols)
+                    filas_norm = [tuple(self._normalizar(v) for v in f) for f in filas_remotas]
+                    sl.execute(f"DELETE FROM {tabla}")
+                    sl.executemany(
+                        f"INSERT OR REPLACE INTO {tabla} ({cols_sql}) VALUES ({placeholders})",
+                        filas_norm
+                    )
+                    total_hidratadas += len(filas_norm)
+                except Exception as e_t:
+                    print(f">> [AZURE-HIDRATAR] Aviso en tabla {tabla}: {str(e_t)[:140]}")
+            sl.commit()
+            if total_hidratadas > 0:
+                print(f">> [AZURE-HIDRATAR] {total_hidratadas} registro(s) restaurados desde Azure SQL hacia el motor local.")
+        except Exception as e_h:
+            print(f">> [AZURE-HIDRATAR] Aviso general: {str(e_h)[:160]}")
+        finally:
+            try:
+                sl.close()
+            except Exception:
+                pass
+        return total_hidratadas
+
     def _bucle(self):
         self.marcar(None)
         while True:
@@ -509,8 +633,6 @@ class ReplicadorAzure:
                 self.ultimo_error = str(e)[:300]
 
 replicador_azure = ReplicadorAzure()
-
-replicador_azure.iniciar()
 
 class DatabaseManager:
     def __init__(self):
@@ -661,6 +783,12 @@ class DatabaseManager:
             pass
         try:
             cursor.execute("ALTER TABLE organizaciones ADD COLUMN logo_url TEXT DEFAULT NULL")
+        except Exception:
+            pass
+
+        # Migración para control manual de porcentaje de avance en organizaciones
+        try:
+            cursor.execute("ALTER TABLE organizaciones ADD COLUMN porcentaje_avance_manual REAL DEFAULT NULL")
         except Exception:
             pass
 
@@ -838,129 +966,59 @@ class DatabaseManager:
             );
         """)
         
-        # Inyectar y autorreparar organización institucional oficial (ID 13: Corporación Universitaria Minuto de Dios)
+        # Tabla persistente de Auditoría del Sistema (sincronizada con Azure SQL y con soporte de Backup)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS auditoria_sistema (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                fecha_hora TEXT DEFAULT (DATETIME('now', 'localtime')),
+                fecha_dia TEXT DEFAULT (DATE('now', 'localtime')),
+                correo_usuario TEXT NOT NULL,
+                usuario_rol TEXT DEFAULT 'Sistema',
+                organizacion_id INTEGER NULL,
+                organizacion_nombre TEXT DEFAULT 'Plataforma Global',
+                modulo TEXT NOT NULL,
+                operacion TEXT NOT NULL,
+                estado TEXT DEFAULT 'EXITO',
+                detalles TEXT DEFAULT 'Ninguno'
+            );
+        """)
+
+        # Limpiar cualquier rastro de '[object Object]' en tablas existentes
+        try:
+            cursor.execute("UPDATE auditoria_sistema SET organizacion_nombre = 'Plataforma Global' WHERE organizacion_nombre LIKE '%[object%' OR organizacion_nombre IS NULL OR TRIM(organizacion_nombre) = ''")
+            cursor.execute("UPDATE historial_nuevos_integrantes SET organizacion_nombre = 'Plataforma Global' WHERE organizacion_nombre LIKE '%[object%'")
+        except Exception:
+            pass
+
+        # Garantizar ÚNICAMENTE la cuenta blindada del Superadministrador (sin organizaciones ni usuarios de relleno que se reinicien solos)
         try:
             cursor.execute("""
-                INSERT OR IGNORE INTO organizaciones (id, nombre, tipo_organizacion, dominio_permitido, licencias_asignadas, max_administradores, max_mentores, color_primario, color_secundario, color_acento)
-                VALUES (13, 'Corporación Universitaria Minuto de Dios', 'Educativa', 'uniminuto.edu.co', 500, 2, 20, '#0a192f', '#0f273f', '#06b6d4')
+                INSERT OR IGNORE INTO usuarios (id, organizacion_id, mentor_id, nombre, correo, rol, password_hash)
+                VALUES (1, NULL, NULL, 'Diego Alexander Niño Niño', 'alexander.nino.583@gmail.com', 'Super Administrador', '$2b$12$Nh5npfN6/cCS8MBclXRVNueVPr.MzcVGn4hq58M4ZfDNzndP3MzOu')
             """)
-            # Si existía un duplicado vacío con ID 1 de migraciones previas, migrar referencias a ID 13 y limpiar duplicado vacío
-            cursor.execute("UPDATE usuarios SET organizacion_id = 13 WHERE organizacion_id IS NULL OR organizacion_id = 1")
-            cursor.execute("DELETE FROM organizaciones WHERE id = 1 AND (SELECT COUNT(*) FROM usuarios WHERE organizacion_id = 1) = 0")
+            cursor.execute("""
+                UPDATE usuarios
+                SET rol = 'Super Administrador', organizacion_id = NULL, mentor_id = NULL
+                WHERE LOWER(TRIM(correo)) = 'alexander.nino.583@gmail.com'
+            """)
             conn.commit()
-        except Exception as e_org:
-            print(f">> [SEED ORGS] Error: {e_org}")
+        except Exception as e_super:
+            print(f">> [SUPERADMIN INIT] Aviso: {e_super}")
 
-        usuarios_reales_seed = [
-            (1, 13, None, 'Diego Alexander Niño Niño', 'alexander.nino.583@gmail.com', 'Super Administrador', '$2b$12$Nh5npfN6/cCS8MBclXRVNueVPr.MzcVGn4hq58M4ZfDNzndP3MzOu'),
-            (1437, 13, 1455, 'David Santiago Alfonso Muñoz', 'david.alfonso-m@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1438, 13, 1455, 'Sebastian Arevalo Matiz', 'sebastian.arevalo-m@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1439, 13, 1455, 'Luis Eduardo Castillo Hernandez', 'luis.castillo-h@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1440, 13, 1455, 'Jose Santiago Lemus Duran', 'jose.lemus-d@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1442, 13, 1455, 'Cristian Danilo Mendez Ortiz', 'cristian.mendez-o@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1443, 13, 1455, 'Juan David Narciso Posada', 'juan.narciso-p@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1444, 13, 1455, 'Diego Alexander Niño Niño', 'diego.nino-n@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1445, 13, 1455, 'Liseth Sudiany Perez Moreno', 'liseth.perez-m@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1446, 13, 1455, 'Andres David Prada Opayome', 'andres.prada-o@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1447, 13, 1455, 'Diana Katerin Ramirez Nieto', 'diana.ramirez-n@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1448, 13, 1455, 'Cristian Camilo Rozo Castro', 'cristian.rozo-c@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1449, 13, 1455, 'Juan Camilo Rozo Penagos', 'juan.rozo-p@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1450, 13, 1455, 'Jose Manuel Toro Garzon', 'jose.toro-g@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1451, 13, 1455, 'Christian David Torres Rivero', 'christian.torres-r@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1452, 13, 1455, 'Juan Camilo Urrego Romero', 'juan.urrego-r@uniminuto.edu.co', 'Aprendiz', '$2b$12$PWS97lBYHhK6hQ0ZsGIcy.ofr8kgkQ3zuVYB1ct0hk0yS4op.Cicu'),
-            (1453, 13, None, 'alejito', 'alejandro.mejia-a@uniminuto.edu.co', 'Administrador', '$2b$12$z9QOq8wkA/wy8rvrCkbR4eVgvgu6wg1cnSn7FEV4Ru2D5ry2195Yq'),
-            (1454, 13, None, 'camilo', 'diego.alexander.nino.583@hotmail.com', 'Administrador', '$2b$12$DHqMgJKlq4NBlrQP7Lm9gu1aifoXt4e3fhOV33IxzQZJd0SjgSG9a'),
-            (1455, 13, None, 'alvaro Niño', 'ninod9716@gmail.com', 'Mentor', '$2b$12$81MVkQbBYUpwFB3wJtpQ3u78FuFqpohbGc5rKN7BwORbP/GIj7B5m')
-        ]
-
+        # Asegurar enlaces oficiales 100% válidos (sin 404) en el catálogo si existen colecciones
         try:
-            for u in usuarios_reales_seed:
-                try:
-                    cursor.execute("""
-                        INSERT OR IGNORE INTO usuarios (id, organizacion_id, mentor_id, nombre, correo, rol, password_hash)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """, u)
-                except Exception:
-                    pass
-            # Vincular automáticamente los aprendices de la sede 13 al Mentor alvaro Niño (1455) si estaban sin mentor
-            cursor.execute("UPDATE usuarios SET organizacion_id = 13 WHERE organizacion_id IS NULL OR organizacion_id = 1")
-            cursor.execute("UPDATE usuarios SET mentor_id = 1455 WHERE rol = 'Aprendiz' AND organizacion_id = 13 AND mentor_id IS NULL")
-            conn.commit()
-        except Exception as e_seed_u:
-            print(f">> [SEED USUARIOS] Error: {e_seed_u}")
-
-        try:
-            cursor.execute("SELECT COUNT(*) FROM material_capacitacion")
-            if cursor.fetchone()[0] == 0:
-                cursor.execute("""
-                    INSERT INTO material_capacitacion (id, titulo, tipo_material, enlace_url, rol_destino, total_modulos)
-                    VALUES 
-                    (1, 'Certificación Microsoft Azure Fundamentals (AZ-900)', 'Colección Microsoft', 'https://learn.microsoft.com/es-es/training/paths/microsoft-azure-fundamentals-describe-cloud-concepts/', 'Aprendiz', 3),
-                    (2, 'Modelado Relacional y SQL Server en la Nube', 'Módulo Especializado', 'https://learn.microsoft.com/es-es/training/modules/describe-relational-azure-data-services/', 'Aprendiz', 3),
-                    (3, 'Centro de Métricas Ejecutivas Power BI', 'Tablero Power BI', 'https://app.powerbi.com/', 'Aprendiz', 4),
-                    (4, 'Didáctica Universitaria y Estrategias de Tutoría Virtual', 'Capacitación Docente', 'https://learn.microsoft.com/es-es/training/educator-center/', 'Mentor', 4),
-                    (5, 'Gestión de Aulas Híbridas y Evaluación Formativa EdTech', 'Módulo Especializado', 'https://learn.microsoft.com/es-es/training/modules/hybrid-learning-framework/', 'Mentor', 3)
-                """)
-                cursor.execute("""
-                    INSERT INTO asignacion_material (material_id, organizacion_id)
-                    VALUES 
-                    (1, 13),
-                    (2, 13),
-                    (3, 13),
-                    (4, 13),
-                    (5, 13),
-                    (4, NULL),
-                    (5, NULL)
-                """)
-                conn.commit()
-            else:
-                cursor.execute("UPDATE asignacion_material SET organizacion_id = 13 WHERE organizacion_id = 1")
-                conn.commit()
-        except Exception as e_mat:
-            print(f">> [SEED MATERIALES] Error: {e_mat}")
-
-        # Asegurar cursos y materiales de formación pedagógica para mentores
-        try:
-            materiales_mentor_base = [
-                ("Didáctica Universitaria y Estrategias de Tutoría Virtual", "Capacitación Docente", "https://learn.microsoft.com/es-es/training/educator-center/", "Mentor", 4),
-                ("Pedagogía Digital y Gamificación en Aula EdTech", "Capacitación Docente", "https://learn.microsoft.com/es-es/training/modules/hybrid-learning-framework/", "Mentor", 3),
-                ("Evaluación Formativa y Retroalimentación con IA", "Módulo Especializado", "https://learn.microsoft.com/es-es/training/paths/ai-for-educators/", "Mentor", 3),
-                ("Liderazgo Pedagógico y Acompañamiento a Aprendices", "Taller Docente", "https://learn.microsoft.com/es-es/training/educator-center/", "Mentor", 2)
+            reemplazos_urls = [
+                ("https://learn.microsoft.com/es-es/training/modules/hybrid-learning-framework/", "https://learn.microsoft.com/es-es/training/educator-center/"),
+                ("https://learn.microsoft.com/es-es/training/paths/ai-for-educators/", "https://learn.microsoft.com/es-es/training/paths/get-started-with-artificial-intelligence-on-azure/"),
+                ("https://learn.microsoft.com/es-es/training/paths/responsible-ai-principles/", "https://learn.microsoft.com/es-es/training/paths/get-started-with-artificial-intelligence-on-azure/"),
+                ("https://learn.microsoft.com/es-es/training/paths/data-analytics-microsoft/", "https://learn.microsoft.com/es-es/training/paths/prepare-data-for-analysis-power-bi/")
             ]
-            for mat_tit, mat_tipo, mat_url, mat_rol, mat_mods in materiales_mentor_base:
-                cursor.execute("SELECT id FROM material_capacitacion WHERE titulo = ?", (mat_tit,))
-                if not cursor.fetchone():
-                    cursor.execute("""
-                        INSERT INTO material_capacitacion (titulo, tipo_material, enlace_url, rol_destino, total_modulos)
-                        VALUES (?, ?, ?, ?, ?)
-                    """, (mat_tit, mat_tipo, mat_url, mat_rol, mat_mods))
+            for url_rota, url_valida in reemplazos_urls:
+                cursor.execute("UPDATE material_capacitacion SET enlace_url = ? WHERE enlace_url = ?", (url_valida, url_rota))
+            cursor.execute("UPDATE material_capacitacion SET total_modulos = 3 WHERE total_modulos IS NULL OR total_modulos = 0")
             conn.commit()
-        except Exception as e_mat_men:
-            print(f">> [SEED BASE MENTORES] Error: {e_mat_men}")
-
-        # Asignar progreso de capacitación docente a mentores existentes de forma 100% segura
-        try:
-            cursor.execute("SELECT id FROM usuarios WHERE rol = 'Mentor'")
-            mentores_todos = [row[0] for row in cursor.fetchall()]
-            cursor.execute("SELECT id, total_modulos FROM material_capacitacion WHERE rol_destino = 'Mentor'")
-            mats_mentor_ids = cursor.fetchall()
-            
-            for m_id in mentores_todos:
-                for idx_m, (mat_id, total_m) in enumerate(mats_mentor_ids):
-                    cursor.execute("SELECT id FROM progreso_cursos WHERE usuario_id = ? AND curso_id = ?", (m_id, mat_id))
-                    if not cursor.fetchone():
-                        t_mod = int(total_m) if total_m is not None else 3
-                        if idx_m == 0: pct, mins, mods, est = 100.0, 120, t_mod, 'Completado'
-                        elif idx_m == 1: pct, mins, mods, est = 75.0, 90, max(1, t_mod - 1), 'En Progreso'
-                        elif idx_m == 2: pct, mins, mods, est = 50.0, 60, max(1, t_mod // 2), 'En Progreso'
-                        else: pct, mins, mods, est = 0.0, 0, 0, 'No Iniciado'
-                        cursor.execute("""
-                            INSERT INTO progreso_cursos (usuario_id, curso_id, porcentaje_avance, tiempo_dedicado_minutos, modulos_completados, estado)
-                            VALUES (?, ?, ?, ?, ?, ?)
-                        """, (m_id, mat_id, pct, mins, mods, est))
-            conn.commit()
-        except Exception as e_ment:
-            print(f">> [SEED PROGRESO MENTOR] Aviso controlado: {e_ment}")
+        except Exception as e_urls:
+            print(f">> [URLS CATALOGO] Aviso: {e_urls}")
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS historial_nuevos_integrantes (
@@ -976,92 +1034,6 @@ class DatabaseManager:
                 fecha_dia TEXT DEFAULT (DATE('now', 'localtime'))
             );
         """)
-
-        # Si el historial está vacío, sincronizar con usuarios existentes para visualización inmediata por días
-        cursor.execute("SELECT COUNT(*) FROM historial_nuevos_integrantes")
-        if cursor.fetchone()[0] == 0:
-            cursor.execute("""
-                SELECT u.id, u.nombre, u.correo, u.rol, u.organizacion_id, o.nombre as org_nombre
-                FROM usuarios u
-                LEFT JOIN organizaciones o ON o.id = u.organizacion_id
-                ORDER BY u.id ASC
-            """)
-            existentes = cursor.fetchall()
-            for ex in existentes:
-                cursor.execute("""
-                    INSERT INTO historial_nuevos_integrantes 
-                    (usuario_id, nombre, correo, rol, organizacion_id, organizacion_nombre, origen_registro, fecha_registro, fecha_dia)
-                    VALUES (?, ?, ?, ?, ?, ?, 'Registro en Plataforma', DATETIME('now', 'localtime'), DATE('now', 'localtime'))
-                """, (ex[0], ex[1], ex[2], ex[3], ex[4], ex[5] or "Corporación Universitaria Minuto de Dios"))
-        else:
-            cursor.execute("UPDATE historial_nuevos_integrantes SET organizacion_id = 13, organizacion_nombre = 'Corporación Universitaria Minuto de Dios' WHERE organizacion_id = 13 OR organizacion_nombre IS NULL OR organizacion_nombre = 'Institución General'")
-
-        # Asegurar colecciones de formación oficial con módulos
-        cursor.execute("SELECT id FROM material_capacitacion WHERE titulo LIKE '%IA responsable%'")
-        if not cursor.fetchone():
-            cursor.execute("""
-                INSERT INTO material_capacitacion (titulo, tipo_material, enlace_url, rol_destino, total_modulos)
-                VALUES ('IA responsable para aprendices', 'Colección Microsoft', 'https://learn.microsoft.com/es-es/training/paths/responsible-ai-principles/', 'Aprendiz', 3)
-            """)
-
-        cursor.execute("SELECT id FROM material_capacitacion WHERE titulo LIKE '%Análisis de datos%'")
-        if not cursor.fetchone():
-            cursor.execute("""
-                INSERT INTO material_capacitacion (titulo, tipo_material, enlace_url, rol_destino, total_modulos)
-                VALUES ('Análisis de datos con Power BI y SQL', 'Colección Microsoft', 'https://learn.microsoft.com/es-es/training/paths/data-analytics-microsoft/', 'Aprendiz', 4)
-            """)
-
-        cursor.execute("UPDATE material_capacitacion SET total_modulos = 3 WHERE total_modulos IS NULL OR total_modulos = 0")
-        cursor.execute("UPDATE material_capacitacion SET total_modulos = 4 WHERE (titulo LIKE '%Análisis%' OR titulo LIKE '%Power BI%') AND total_modulos < 4")
-
-        # Asignar colecciones a organizaciones existentes si asignacion_material está vacía
-        cursor.execute("SELECT COUNT(*) FROM asignacion_material WHERE organizacion_id = 13")
-        if cursor.fetchone()[0] == 0:
-            cursor.execute("SELECT id FROM organizaciones")
-            todas_orgs = [r[0] for r in cursor.fetchall()]
-            cursor.execute("SELECT id FROM material_capacitacion WHERE rol_destino != 'Mentor'")
-            mats_base = [r[0] for r in cursor.fetchall()]
-            for o_id in todas_orgs:
-                for m_id in mats_base:
-                    cursor.execute("INSERT INTO asignacion_material (material_id, organizacion_id, fecha_asignacion) VALUES (?, ?, DATETIME('now', 'localtime'))", (m_id, o_id))
-
-        # Sembrar progreso demostrativo en módulos para aprendices (ej: 2 de 3 módulos completados = 66.7%)
-        cursor.execute("SELECT COUNT(*) FROM progreso_cursos p JOIN usuarios u ON p.usuario_id = u.id WHERE u.rol = 'Aprendiz' AND p.modulos_completados > 0")
-        if cursor.fetchone()[0] == 0:
-            cursor.execute("SELECT u.id, u.organizacion_id FROM usuarios u WHERE u.rol = 'Aprendiz' LIMIT 25")
-            alumnos = cursor.fetchall()
-            cursor.execute("SELECT id, total_modulos FROM material_capacitacion WHERE rol_destino != 'Mentor'")
-            mats_info = cursor.fetchall()
-            for idx, al in enumerate(alumnos):
-                al_id = al[0]
-                for m_idx, mat_inf in enumerate(mats_info):
-                    m_id = mat_inf[0]
-                    t_mod = mat_inf[1] or 3
-                    if (idx + m_idx) % 4 == 0:
-                        m_comp = min(2, t_mod)
-                    elif (idx + m_idx) % 4 == 1:
-                        m_comp = t_mod
-                    elif (idx + m_idx) % 4 == 2:
-                        m_comp = 1
-                    else:
-                        m_comp = 0
-                    
-                    pct = round((m_comp / max(1, t_mod)) * 100, 1)
-                    estado = 'Completado' if m_comp >= t_mod and t_mod > 0 else ('En Progreso' if m_comp > 0 else 'No Iniciado')
-                    t_mins = m_comp * 40
-                    
-                    cursor.execute("SELECT id FROM progreso_cursos WHERE usuario_id = ? AND curso_id = ?", (al_id, m_id))
-                    ya_p = cursor.fetchone()
-                    if ya_p:
-                        cursor.execute("""
-                            UPDATE progreso_cursos SET modulos_completados = ?, porcentaje_avance = ?, tiempo_dedicado_minutos = ?, estado = ?, fecha_actualizacion = DATETIME('now', 'localtime')
-                            WHERE id = ?
-                        """, (m_comp, pct, t_mins, estado, ya_p[0]))
-                    else:
-                        cursor.execute("""
-                            INSERT INTO progreso_cursos (usuario_id, curso_id, modulos_completados, porcentaje_avance, tiempo_dedicado_minutos, estado, fecha_actualizacion)
-                            VALUES (?, ?, ?, ?, ?, ?, DATETIME('now', 'localtime'))
-                        """, (al_id, m_id, m_comp, pct, t_mins, estado))
 
         # Sembrar Quizzes de demostración para Mentores si está vacío
         cursor.execute("SELECT COUNT(*) FROM quizzes_evaluaciones")
@@ -1278,6 +1250,21 @@ class DatabaseManager:
             return "Activo en Motor Principal"
 
 db = DatabaseManager()
+try:
+    replicador_azure.hidratar_desde_azure()
+    # Garantizar siempre al Superadministrador sin organización fija tras hidratar
+    db.execute_query(
+        """INSERT OR IGNORE INTO usuarios (id, organizacion_id, mentor_id, nombre, correo, rol, password_hash)
+           VALUES (1, NULL, NULL, 'Diego Alexander Niño Niño', 'alexander.nino.583@gmail.com', 'Super Administrador', '$2b$12$Nh5npfN6/cCS8MBclXRVNueVPr.MzcVGn4hq58M4ZfDNzndP3MzOu')""",
+        commit=True
+    )
+    db.execute_query(
+        "UPDATE usuarios SET rol = 'Super Administrador', organizacion_id = NULL, mentor_id = NULL WHERE LOWER(TRIM(correo)) = 'alexander.nino.583@gmail.com'",
+        commit=True
+    )
+except Exception as _e_hid:
+    print(f">> [INIT] Aviso hidratando desde Azure SQL: {_e_hid}")
+replicador_azure.iniciar()
 
 def registrar_en_historial_integrantes(
     nombre: str, 
@@ -1639,14 +1626,14 @@ TUNNEL_RELAY_URL = ""
 RELAY_SECRET = "edtech_relay_2026_vkwx"
 
 def esta_correo_registrado_en_programa(correo: str) -> Optional[Dict[str, Any]]:
-    """Verifica en tiempo real (<0.1ms) si el correo pertenece a un usuario registrado, obteniendo el nombre real de su institución y auto-sincronizando si es un nuevo integrante"""
+    """Verifica en tiempo real si el correo pertenece a un usuario registrado en la base de datos"""
     if not correo or "@" not in str(correo):
         return None
     try:
         correo_l = str(correo).strip().lower()
         u = db.execute_query(
             """SELECT u.id, u.nombre, u.correo, u.rol, u.organizacion_id, u.mentor_id,
-                      COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
+                      COALESCE(o.nombre, 'Plataforma Global EdTech') as institucion_nombre
                FROM usuarios u
                LEFT JOIN organizaciones o ON o.id = u.organizacion_id
                WHERE LOWER(TRIM(u.correo)) = ?""",
@@ -1655,84 +1642,10 @@ def esta_correo_registrado_en_programa(correo: str) -> Optional[Dict[str, Any]]:
         )
         if u:
             return dict(u)
-
-        # Búsqueda complementaria en historial de nuevos integrantes
-        u_h = db.execute_query(
-            """SELECT h.usuario_id as id, h.nombre, h.correo, h.rol, h.organizacion_id,
-                      COALESCE(o.nombre, h.organizacion_nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
-               FROM historial_nuevos_integrantes h
-               LEFT JOIN organizaciones o ON o.id = h.organizacion_id
-               WHERE LOWER(TRIM(h.correo)) = ?
-               ORDER BY h.id DESC LIMIT 1""",
-            (correo_l,),
-            fetchone=True
-        )
-        if u_h:
-            # Auto-insertar/sincronizar en la tabla usuarios para que nunca devuelva None
-            hash_defecto = bcrypt.hashpw("123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            db.execute_query(
-                "INSERT OR IGNORE INTO usuarios (nombre, correo, rol, organizacion_id, password_hash) VALUES (?, ?, ?, ?, ?)",
-                (u_h["nombre"], correo_l, u_h["rol"], u_h.get("organizacion_id") or 13, hash_defecto),
-                commit=True
-            )
-            # Re-consultar desde usuarios ya con el JOIN de organizaciones
-            u_sync = db.execute_query(
-                """SELECT u.id, u.nombre, u.correo, u.rol, u.organizacion_id, u.mentor_id,
-                          COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
-                   FROM usuarios u
-                   LEFT JOIN organizaciones o ON o.id = u.organizacion_id
-                   WHERE LOWER(TRIM(u.correo)) = ?""",
-                (correo_l,),
-                fetchone=True
-            )
-            return dict(u_sync) if u_sync else dict(u_h)
-
-        # Auto-incorporar cualquier nuevo integrante para garantizar envío de 2FA universal y acceso
-        nom_auto = correo_l.split('@')[0].replace('.', ' ').title()
-        hash_defecto = bcrypt.hashpw("123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        db.execute_query(
-            "INSERT OR IGNORE INTO usuarios (nombre, correo, rol, organizacion_id, password_hash) VALUES (?, ?, 'Aprendiz', 13, ?)",
-            (nom_auto, correo_l, hash_defecto),
-            commit=True
-        )
-        registrar_en_historial_integrantes(
-            nombre=nom_auto,
-            correo=correo_l,
-            rol="Aprendiz",
-            organizacion_id=13,
-            origen="Acceso 2FA Inmediato"
-        )
-        u_nuevo = db.execute_query(
-            """SELECT u.id, u.nombre, u.correo, u.rol, u.organizacion_id, u.mentor_id,
-                      COALESCE(o.nombre, 'Corporación Universitaria Minuto de Dios') as institucion_nombre
-               FROM usuarios u
-               LEFT JOIN organizaciones o ON o.id = u.organizacion_id
-               WHERE LOWER(TRIM(u.correo)) = ?""",
-            (correo_l,),
-            fetchone=True
-        )
-        if u_nuevo:
-            return dict(u_nuevo)
-
-        return {
-            "id": None,
-            "nombre": nom_auto,
-            "correo": correo_l,
-            "rol": "Aprendiz",
-            "organizacion_id": 13,
-            "institucion_nombre": "Corporación Universitaria Minuto de Dios"
-        }
+        return None
     except Exception as e:
         print(f">> [DB-ERROR] Error en esta_correo_registrado_en_programa para {correo}: {e}")
-        nom_fallback = (correo or "").split('@')[0].replace('.', ' ').title()
-        return {
-            "id": None,
-            "nombre": nom_fallback,
-            "correo": str(correo).strip().lower(),
-            "rol": "Aprendiz",
-            "organizacion_id": 13,
-            "institucion_nombre": "Corporación Universitaria Minuto de Dios"
-        }
+        return None
 
 def _obtener_urls_puente_https() -> List[str]:
     """Obtiene las URLs activas del túnel HTTPS (puerto 443) para reenviar correos desde nubes con puertos SMTP bloqueados"""
@@ -2488,6 +2401,29 @@ class CompletarTestRequest(BaseModel):
     total_preguntas: int
     tiempo_dedicado_minutos: Optional[int] = 20
 
+class ControlAvanceInstitucionReq(BaseModel):
+    organizacion_id: int
+    porcentaje_avance: Optional[float] = None
+    sincronizar_aprendices: Optional[bool] = True
+    tiempo_dedicado_minutos: Optional[int] = None
+
+class ControlAvanceGrupoReq(BaseModel):
+    organizacion_id: int
+    mentor_id: Optional[int] = None
+    curso_id: Optional[int] = None
+    porcentaje_avance: float
+    modulos_completados: Optional[int] = None
+    estado: Optional[str] = None
+    tiempo_dedicado_minutos: Optional[int] = 60
+
+class ControlAvanceIntegranteReq(BaseModel):
+    usuario_id: int
+    curso_id: Optional[int] = None
+    porcentaje_avance: float
+    modulos_completados: Optional[int] = None
+    estado: Optional[str] = None
+    tiempo_dedicado_minutos: Optional[int] = 45
+
 def iniciar_tunel_cloudflare(puerto):
     """Inicia el binario oficial de Cloudflare Tunnel para habilitar acceso seguro HTTPS mundial"""
     global TUNNEL_PUBLIC_URL, PROCESO_TUNEL
@@ -2686,34 +2622,38 @@ class SmtpRelayReq(BaseModel):
     secret: str
 
 def _fusionar_usuarios_recibidos(lista_usuarios: Optional[List[Dict[str, Any]]]):
-    """Integra automáticamente cualquier usuario nuevo creado en otro nodo (Manual o Excel) sin sobrescribir ni duplicar"""
+    """Sincroniza únicamente usuarios pertenecientes a organizaciones activas sin recrear instituciones ni revivir eliminados"""
     if not lista_usuarios:
         return
     try:
-        db.execute_query("""
-            INSERT OR IGNORE INTO organizaciones (id, nombre, tipo_organizacion, dominio_permitido, licencias_asignadas, max_administradores, max_mentores, color_primario, color_secundario, color_acento)
-            VALUES (13, 'Corporación Universitaria Minuto de Dios', 'Educativa', 'uniminuto.edu.co', 500, 2, 20, '#0a192f', '#0f273f', '#06b6d4')
-        """, commit=True)
+        orgs_activas = {
+            r["id"] for r in (db.execute_query("SELECT id FROM organizaciones", fetchall=True) or [])
+        }
+        eliminados = {
+            (r["correo"] or "").strip().lower()
+            for r in (db.execute_query("SELECT correo FROM usuarios_eliminados_papelera", fetchall=True) or [])
+        }
         for u in lista_usuarios:
             correo_u = (u.get("correo") or "").strip().lower()
-            if not correo_u or "@" not in correo_u:
+            if not correo_u or "@" not in correo_u or correo_u in eliminados:
+                continue
+            org_u = u.get("organizacion_id")
+            if correo_u == "alexander.nino.583@gmail.com":
+                org_u = None
+            elif org_u not in orgs_activas:
                 continue
             ex = db.execute_query(
-                "SELECT id, rol, nombre, organizacion_id, mentor_id, password_hash FROM usuarios WHERE LOWER(TRIM(correo)) = ?",
+                "SELECT id FROM usuarios WHERE LOWER(TRIM(correo)) = ?",
                 (correo_u,),
                 fetchone=True
             )
-            org_u = u.get("organizacion_id") or 13
-            if org_u == 1:
-                org_u = 13
-            mentor_u = u.get("mentor_id")
             if not ex:
                 db.execute_query(
                     """INSERT OR IGNORE INTO usuarios (organizacion_id, mentor_id, nombre, correo, rol, password_hash)
                        VALUES (?, ?, ?, ?, ?, ?)""",
                     (
                         org_u,
-                        mentor_u,
+                        u.get("mentor_id"),
                         (u.get("nombre") or "Integrante").strip(),
                         correo_u,
                         u.get("rol") or "Aprendiz",
@@ -2721,16 +2661,6 @@ def _fusionar_usuarios_recibidos(lista_usuarios: Optional[List[Dict[str, Any]]])
                     ),
                     commit=True
                 )
-            else:
-                ex_id = ex.get("id")
-                ex_org = ex.get("organizacion_id")
-                ex_mentor = ex.get("mentor_id")
-                if (not ex_org or ex_org == 1) or (ex_mentor is None and mentor_u is not None):
-                    db.execute_query(
-                        "UPDATE usuarios SET organizacion_id = ?, mentor_id = COALESCE(mentor_id, ?) WHERE id = ?",
-                        (org_u, mentor_u, ex_id),
-                        commit=True
-                    )
     except Exception:
         pass
 

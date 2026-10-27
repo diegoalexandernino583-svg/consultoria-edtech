@@ -50,6 +50,31 @@ app.add_middleware(
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
 
+@app.exception_handler(core.HTTPException)
+async def custom_http_exception_handler(request: Request, exc: core.HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "status": "error",
+            "detail": str(exc.detail),
+            "mensaje": str(exc.detail),
+        },
+    )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    print(f">> [ERROR GLOBAL API] {request.method} {request.url.path}: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "status": "error",
+            "detail": f"Error interno del servidor: {str(exc)}",
+            "mensaje": f"Error interno del servidor: {str(exc)}",
+        },
+    )
+
+
 @app.middleware("http")
 async def security_and_waf_middleware(request: Request, call_next):
     if request.method == "OPTIONS":
