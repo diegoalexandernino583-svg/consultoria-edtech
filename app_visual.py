@@ -16,6 +16,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 
 import app.core as core
+import database
+import models
 from app.core import (
     BASE_DIR,
     db,

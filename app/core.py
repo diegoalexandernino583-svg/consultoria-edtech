@@ -772,9 +772,9 @@ class DatabaseManager:
                 nombre TEXT NOT NULL,
                 tipo_organizacion TEXT NOT NULL, 
                 dominio_permitido TEXT NOT NULL, 
-                licencias_asignadas BIGINT DEFAULT 1000000000, 
-                max_administradores BIGINT DEFAULT 1000000000,
-                max_mentores BIGINT DEFAULT 1000000000,
+                licencias_asignadas BIGINT DEFAULT 100000000000, 
+                max_administradores BIGINT DEFAULT 100000000000,
+                max_mentores BIGINT DEFAULT 100000000000,
                 fecha_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
                 estado_activo INTEGER DEFAULT 1
             );
@@ -2822,9 +2822,9 @@ class CrearOrgRequest(BaseModel):
     nombre: str
     tipo_organizacion: str
     dominio_permitido: Optional[str] = "LIBRE"
-    licencias_asignadas: Optional[int] = 1000000000
-    max_administradores: Optional[int] = 1000000000
-    max_mentores: Optional[int] = 1000000000
+    licencias_asignadas: Optional[int] = 100000000000
+    max_administradores: Optional[int] = 100000000000
+    max_mentores: Optional[int] = 100000000000
     logo_url: Optional[str] = None
     confirmacion_convenio_logos: Optional[bool] = True
     estado_convenio: Optional[str] = "CONVENIO / ALIANZA VIGENTE"
@@ -2849,9 +2849,9 @@ class ActualizarOrgRequest(BaseModel):
     nombre: str
     tipo_organizacion: str
     dominio_permitido: Optional[str] = "LIBRE"
-    licencias_asignadas: Optional[int] = 1000000000
-    max_administradores: Optional[int] = 1000000000
-    max_mentores: Optional[int] = 1000000000
+    licencias_asignadas: Optional[int] = 100000000000
+    max_administradores: Optional[int] = 100000000000
+    max_mentores: Optional[int] = 100000000000
     logo_url: Optional[str] = None
 
 class SubirLogoOrgRequest(BaseModel):

@@ -1,17 +1,21 @@
 FROM python:3.11-slim
 
-# Instalar dependencias del sistema y ODBC Driver 18 para SQL Server
+ENV PYTHONUNBUFFERED=1 \
+    DEBIAN_FRONTEND=noninteractive
+
+# Instalar dependencias del sistema, certificados y soporte ODBC
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    ca-certificates \
     gnupg \
     unixodbc \
     unixodbc-dev \
     gcc \
     g++ \
-    && curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg \
-    && curl -fsSL https://packages.microsoft.com/config/debian/12/prod.list > /etc/apt/sources.list.d/mssql-release.list \
-    && apt-get update \
-    && ACCEPT_EULA=Y apt-get install -y msodbcsql18 \
+    && mkdir -p /usr/share/keyrings \
+    && (curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg || true) \
+    && (curl -fsSL https://packages.microsoft.com/config/debian/12/prod.list > /etc/apt/sources.list.d/mssql-release.list || true) \
+    && (apt-get update && ACCEPT_EULA=Y apt-get install -y msodbcsql18 || true) \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

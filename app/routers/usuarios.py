@@ -780,58 +780,68 @@ async def cargar_usuarios_excel(
 
     if nombre_archivo.endswith(".xlsx") or nombre_archivo.endswith(".xls"):
         try:
-            wb = openpyxl.load_workbook(io.BytesIO(contenido), data_only=True)
-            if not wb.worksheets:
-                raise HTTPException(status_code=400, detail="El archivo Excel no contiene hojas de cálculo.")
+            wb = openpyxl.load_workbook(io.BytesIO(contenido), read_only=True, data_only=True)
+            try:
+                sheet_names = wb.sheetnames
+                if not sheet_names:
+                    raise HTTPException(status_code=400, detail="El archivo Excel no contiene hojas de cálculo.")
 
-            for sheet in wb.worksheets:
-                todas_filas = list(sheet.iter_rows(values_only=True))
-                if not todas_filas:
-                    continue
+                for s_name in sheet_names:
+                    sheet = wb[s_name]
+                    hoja_titulo = str(s_name).lower().strip()
+                    rol_default = None
+                    if any(k in hoja_titulo for k in ["admin", "directiv", "coordinad", "rector"]):
+                        rol_default = "Administrador"
+                    elif any(k in hoja_titulo for k in ["mentor", "docent", "profes", "tutor", "instructor", "lider"]):
+                        rol_default = "Mentor"
+                    elif any(k in hoja_titulo for k in ["aprendiz", "estudiant", "alumn", "participante", "empleado"]):
+                        rol_default = "Aprendiz"
 
-                hoja_titulo = sheet.title.lower().strip()
-                rol_default = None
-                if any(k in hoja_titulo for k in ["admin", "directiv", "coordinad", "rector"]):
-                    rol_default = "Administrador"
-                elif any(k in hoja_titulo for k in ["mentor", "docent", "profes", "tutor", "instructor", "lider"]):
-                    rol_default = "Mentor"
-                elif any(k in hoja_titulo for k in ["aprendiz", "estudiant", "alumn", "participante", "empleado"]):
-                    rol_default = "Aprendiz"
+                    header_map = {}
+                    primera_fila = True
+                    idx_nom = 0
+                    idx_corr = 1
+                    idx_rol = None
+                    idx_men = None
 
-                inicio_datos = 0
-                header_map = {}
-                if todas_filas and any(todas_filas[0]):
-                    primera_fila = [str(c).lower().strip() if c is not None else "" for c in todas_filas[0]]
-                    for idx, c in enumerate(primera_fila):
-                        if "nombre" in c: header_map["nombre"] = idx
-                        elif "correo" in c and "mentor" not in c and "tutor" not in c: header_map["correo"] = idx
-                        elif "rol" in c or "cargo" in c or "puesto" in c: header_map["rol"] = idx
-                        elif "mentor" in c or "tutor" in c or "profesor" in c: header_map["mentor"] = idx
-                    if "nombre" in header_map or "correo" in header_map:
-                        inicio_datos = 1
+                    for fila in sheet.iter_rows(values_only=True):
+                        if not fila or not any(fila):
+                            continue
+                        if primera_fila:
+                            primera_fila = False
+                            fila_str = [str(c).lower().strip() if c is not None else "" for c in fila]
+                            if any("nombre" in c or "correo" in c or "email" in c or "rol" in c for c in fila_str):
+                                for idx, c in enumerate(fila_str):
+                                    if "nombre" in c: header_map["nombre"] = idx
+                                    elif ("correo" in c or "email" in c) and "mentor" not in c and "tutor" not in c: header_map["correo"] = idx
+                                    elif "rol" in c or "cargo" in c or "puesto" in c: header_map["rol"] = idx
+                                    elif "mentor" in c or "tutor" in c or "profesor" in c: header_map["mentor"] = idx
+                                idx_nom = header_map.get("nombre", 0)
+                                idx_corr = header_map.get("correo", 1)
+                                idx_rol = header_map.get("rol", 2 if "rol" in header_map else None)
+                                idx_men = header_map.get("mentor", 3 if "mentor" in header_map else None)
+                                continue
 
-                idx_nom = header_map.get("nombre", 0)
-                idx_corr = header_map.get("correo", 1)
-                idx_rol = header_map.get("rol", 2 if "rol" in header_map else None)
-                idx_men = header_map.get("mentor", 3 if "mentor" in header_map else None)
+                        if len(fila) > max(idx_nom, idx_corr) and fila[idx_nom] and fila[idx_corr]:
+                            nom = str(fila[idx_nom]).strip()
+                            corr = str(fila[idx_corr]).strip()
+                            if not nom or not corr:
+                                continue
 
-                for fila in todas_filas[inicio_datos:]:
-                    if fila and len(fila) > max(idx_nom, idx_corr) and fila[idx_nom] and fila[idx_corr]:
-                        nom = str(fila[idx_nom]).strip()
-                        corr = str(fila[idx_corr]).strip()
-                        
-                        if idx_rol is not None and len(fila) > idx_rol and fila[idx_rol] and str(fila[idx_rol]).strip():
-                            rol = str(fila[idx_rol]).strip()
-                        elif rol_default:
-                            rol = rol_default
-                        else:
-                            rol = "Aprendiz"
+                            if idx_rol is not None and len(fila) > idx_rol and fila[idx_rol] and str(fila[idx_rol]).strip():
+                                rol = str(fila[idx_rol]).strip()
+                            elif rol_default:
+                                rol = rol_default
+                            else:
+                                rol = "Aprendiz"
 
-                        men_corr = None
-                        if idx_men is not None and len(fila) > idx_men and fila[idx_men]:
-                            men_corr = str(fila[idx_men]).strip()
+                            men_corr = None
+                            if idx_men is not None and len(fila) > idx_men and fila[idx_men]:
+                                men_corr = str(fila[idx_men]).strip()
 
-                        filas_procesar.append((nom, corr, rol, men_corr))
+                            filas_procesar.append((nom, corr, rol, men_corr))
+            finally:
+                wb.close()
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Error al leer el archivo Excel: {str(e)}")
     else:

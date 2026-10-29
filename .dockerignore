@@ -1,0 +1,15 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.git
+.gitignore
+.env
+*.exe
+cloudflared.exe
+consultoria_local.db-shm
+consultoria_local.db-wal
+.vscode
+.idea
+*.zip
+auditoria_transacciones.csv

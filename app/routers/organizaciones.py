@@ -301,7 +301,7 @@ def crear_organizacion(datos: CrearOrgRequest, request: Request):
     org_id = db.execute_query("""
         INSERT INTO organizaciones (nombre, tipo_organizacion, dominio_permitido, licencias_asignadas, max_administradores, max_mentores, logo_url)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (nombre_limpio, datos.tipo_organizacion, dom_final, datos.licencias_asignadas or 1000000000, datos.max_administradores or 1000000000, datos.max_mentores or 1000000000, datos.logo_url), return_id=True)
+    """, (nombre_limpio, datos.tipo_organizacion, dom_final, datos.licencias_asignadas or 100000000000, datos.max_administradores or 100000000000, datos.max_mentores or 100000000000, datos.logo_url), return_id=True)
 
     ip_cliente = obtener_ip_cliente(request) if request else "127.0.0.1"
     correo_resp = (datos.correo_responsable or "alexander.nino.583@gmail.com").strip().lower()
@@ -387,8 +387,8 @@ def actualizar_organizacion(org_id: int, datos: ActualizarOrgRequest, request: R
         SET nombre = ?, tipo_organizacion = ?, dominio_permitido = ?, licencias_asignadas = ?,
             max_administradores = ?, max_mentores = ? {actualizar_logo_sql}
         WHERE id = ?
-    """, (datos.nombre.strip(), datos.tipo_organizacion, dom_final, datos.licencias_asignadas,
-          datos.max_administradores or 2, datos.max_mentores or 15, *params_logo, org_id), commit=True)
+    """, (datos.nombre.strip(), datos.tipo_organizacion, dom_final, datos.licencias_asignadas or 100000000000,
+          datos.max_administradores or 100000000000, datos.max_mentores or 100000000000, *params_logo, org_id), commit=True)
 
     try:
         replicador_azure.sincronizar_inmediato(["organizaciones", "boveda_legal_snapshots"])
