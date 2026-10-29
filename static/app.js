@@ -1413,9 +1413,9 @@ function configurarVistasSegunRol(forzarNavegacionInicial = false) {
   );
 
   const linkBovedaHtml = tieneAccesoBovedaLegal ? `
-      <a id="nav-item-boveda-legal" onclick="navegarVista('boveda-legal')" class="sidebar-link border border-amber-400/30 bg-amber-500/10 hover:bg-amber-500/20">
-        <i data-lucide="scale" class="w-4 h-4 shrink-0 text-amber-400"></i>
-        <span class="font-extrabold text-amber-200">📁 Bodega Legal</span>
+      <a id="nav-item-boveda-legal" onclick="navegarVista('boveda-legal')" class="sidebar-link btn-sidebar-bodega-legal">
+        <i data-lucide="scale" class="w-4 h-4 shrink-0"></i>
+        <span>📁 Bodega Legal</span>
       </a>
   ` : '';
 
@@ -1463,9 +1463,9 @@ function configurarVistasSegunRol(forzarNavegacionInicial = false) {
       <div class="px-3 pt-1 pb-1">
         <span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-400">Subentorno Exclusivo</span>
       </div>
-      <a id="nav-item-boveda-legal" onclick="navegarVista('boveda-legal')" class="sidebar-link active border border-amber-400/40 bg-amber-500/15">
-        <i data-lucide="folder-lock" class="w-4 h-4 shrink-0 text-amber-400"></i>
-        <span class="font-extrabold text-amber-200">📁 Bodega Legal</span>
+      <a id="nav-item-boveda-legal" onclick="navegarVista('boveda-legal')" class="sidebar-link active btn-sidebar-bodega-legal">
+        <i data-lucide="folder-lock" class="w-4 h-4 shrink-0"></i>
+        <span>📁 Bodega Legal</span>
       </a>
       <div class="px-3 pt-3 pb-1">
         <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Ajustes & Cuenta</span>
@@ -2802,8 +2802,60 @@ function cambiarModoVistaDirectorio(modo) {
   }
 }
 
+function clasificarRolUsuario(rol) {
+  const r = String(rol || '').trim().toUpperCase();
+  if (
+    r === 'SUPER_ADMIN' ||
+    r === 'SUPER ADMINISTRADOR' ||
+    r === 'ADMIN' ||
+    r === 'ADMINISTRADOR' ||
+    r === 'ADMINISTRATIVO' ||
+    r === 'BODEGA_LEGAL' ||
+    r === 'BODEGA LEGAL' ||
+    r.includes('ADMIN') ||
+    r.includes('BODEGA') ||
+    r.includes('SUPER') ||
+    r.includes('DIRECTIV') ||
+    r.includes('RECTOR')
+  ) {
+    return 'ADMIN';
+  }
+  if (
+    r === 'MENTOR' ||
+    r === 'TUTOR' ||
+    r === 'DOCENTE' ||
+    r === 'PROFESOR' ||
+    r === 'INSTRUCTOR' ||
+    r === 'LIDER' ||
+    r.includes('MENTOR') ||
+    r.includes('TUTOR') ||
+    r.includes('DOCENT') ||
+    r.includes('PROFES')
+  ) {
+    return 'MENTOR';
+  }
+  return 'APRENDIZ';
+}
+
 async function cambiarCargoUsuarioTiempoReal(usuarioId, nuevoRol) {
   if (!usuarioId || !nuevoRol) return;
+
+  // 1. Mover tarjeta en tiempo real instantáneamente en el frontend (Optimistic UI)
+  let rolPrevio = null;
+  if (allHierarchyData) {
+    const listado = [
+      ...(allHierarchyData.administradores || []),
+      ...(allHierarchyData.mentores || []),
+      ...(allHierarchyData.aprendices || [])
+    ];
+    const u = listado.find(item => item && item.id == usuarioId);
+    if (u) {
+      rolPrevio = u.rol;
+      u.rol = nuevoRol;
+      renderizarTableroJerarquico(allHierarchyData);
+    }
+  }
+
   try {
     const res = await fetch(`${API_BASE}/api/usuarios/${usuarioId}/cambiar-cargo`, {
       method: 'POST',
@@ -2822,14 +2874,26 @@ async function cambiarCargoUsuarioTiempoReal(usuarioId, nuevoRol) {
       actualizarPerfilSidebar();
     }
 
-    cargarJerarquia3Columnas();
+    // Sincronizar en segundo plano
+    await cargarJerarquia3Columnas();
     cargarNodosInstitucionales();
     if (typeof cargarVistaAdminConvenio === 'function') cargarVistaAdminConvenio();
     if (typeof cargarMentoresRendimientoAdmin === 'function') cargarMentoresRendimientoAdmin();
   } catch (err) {
     mostrarToast(err.message, 'error');
+    if (rolPrevio && allHierarchyData) {
+      const listado = [
+        ...(allHierarchyData.administradores || []),
+        ...(allHierarchyData.mentores || []),
+        ...(allHierarchyData.aprendices || [])
+      ];
+      const u = listado.find(item => item && item.id == usuarioId);
+      if (u) {
+        u.rol = rolPrevio;
+        renderizarTableroJerarquico(allHierarchyData);
+      }
+    }
     cargarJerarquia3Columnas();
-    if (typeof cargarVistaAdminConvenio === 'function') cargarVistaAdminConvenio();
   }
 }
 
@@ -2854,14 +2918,38 @@ function cargarMasAdminsJerarquia() {
 }
 
 function renderizarTableroJerarquico(data) {
-  ultimoDataJerarquia = data;
-  const admins = data.administradores || [];
-  const mentores = data.mentores || [];
-  const aprendices = data.aprendices || [];
+  if (!data) return;
 
-  document.getElementById('badge-total-admins').innerText = admins.length;
-  document.getElementById('badge-total-mentores').innerText = mentores.length;
-  document.getElementById('badge-total-aprendices').innerText = aprendices.length;
+  // Normalización y partición estricta de roles:
+  // Prohibido mezclar administradores o mentores en aprendices.
+  const todosLosUsuarios = [
+    ...(data.administradores || []),
+    ...(data.mentores || []),
+    ...(data.aprendices || [])
+  ];
+  const mapaUnicos = new Map();
+  todosLosUsuarios.forEach(u => {
+    if (u && u.id && !mapaUnicos.has(u.id)) {
+      mapaUnicos.set(u.id, u);
+    }
+  });
+  const unicos = Array.from(mapaUnicos.values());
+
+  const admins = unicos.filter(u => clasificarRolUsuario(u.rol) === 'ADMIN');
+  const mentores = unicos.filter(u => clasificarRolUsuario(u.rol) === 'MENTOR');
+  const aprendices = unicos.filter(u => clasificarRolUsuario(u.rol) === 'APRENDIZ');
+
+  data.administradores = admins;
+  data.mentores = mentores;
+  data.aprendices = aprendices;
+  ultimoDataJerarquia = data;
+
+  const badgeAdmins = document.getElementById('badge-total-admins');
+  const badgeMentores = document.getElementById('badge-total-mentores');
+  const badgeAprendices = document.getElementById('badge-total-aprendices');
+  if (badgeAdmins) badgeAdmins.innerText = admins.length;
+  if (badgeMentores) badgeMentores.innerText = mentores.length;
+  if (badgeAprendices) badgeAprendices.innerText = aprendices.length;
 
   const puedeEditarCargos = currentUser && (currentUser.rol === 'Super Administrador' || currentUser.rol === 'Administrador');
 

@@ -644,11 +644,19 @@ def obtener_jerarquia_usuarios(organizacion_id: Optional[int] = None):
                 "correo": u["correo"]
             })
             
+    def _clasificar_rol_estricto(rol_raw: str) -> str:
+        r = str(rol_raw or "").strip().upper()
+        if r in ("SUPER_ADMIN", "SUPER ADMINISTRADOR", "ADMIN", "ADMINISTRADOR", "ADMINISTRATIVO", "BODEGA_LEGAL", "BODEGA LEGAL") or "ADMIN" in r or "BODEGA" in r or "SUPER" in r or "DIRECTIV" in r or "RECTOR" in r:
+            return "ADMIN"
+        if r in ("MENTOR", "TUTOR", "DOCENTE", "PROFESOR", "INSTRUCTOR", "LIDER") or "MENTOR" in r or "TUTOR" in r or "DOCENT" in r:
+            return "MENTOR"
+        return "APRENDIZ"
+
     for u in todos:
-        rol = u["rol"]
-        if rol in ["Super Administrador", "Administrador"]:
+        categoria_rol = _clasificar_rol_estricto(u.get("rol"))
+        if categoria_rol == "ADMIN":
             administradores.append(u)
-        elif rol == "Mentor":
+        elif categoria_rol == "MENTOR":
             u["aprendices_a_cargo"] = aprendices_por_mentor.get(u["id"], [])
             u["total_aprendices"] = len(u["aprendices_a_cargo"])
             mentores.append(u)

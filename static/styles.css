@@ -2331,3 +2331,217 @@ body.tema-oscuro .caja-legal-habeas strong {
 body.tema-oscuro .caja-legal-habeas span {
   color: #fde68a !important;
 }
+
+/* ==========================================================================
+   UNIFICACIÓN TOTAL DE TEMAS: MODO CLARO VS MODO OSCURO
+   ========================================================================== */
+
+/* 1. BOTÓN EXCLUSIVO BODEGA LEGAL EN MENÚ LATERAL */
+#nav-item-boveda-legal,
+.btn-sidebar-bodega-legal {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  padding: 0.5rem 0.75rem !important;
+  border-radius: 0.75rem !important;
+  transition: all 0.2s ease !important;
+}
+
+body.tema-claro #nav-item-boveda-legal,
+body.tema-predeterminado #nav-item-boveda-legal,
+body.tema-claro .btn-sidebar-bodega-legal {
+  background-color: #fef3c7 !important;
+  border: 1.5px solid #d97706 !important;
+  color: #92400e !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 3px rgba(217, 119, 6, 0.15) !important;
+}
+
+body.tema-claro #nav-item-boveda-legal span,
+body.tema-claro #nav-item-boveda-legal i,
+body.tema-claro .btn-sidebar-bodega-legal span,
+body.tema-claro .btn-sidebar-bodega-legal i {
+  color: #92400e !important;
+  font-weight: 700 !important;
+}
+
+body.tema-claro #nav-item-boveda-legal:hover,
+body.tema-claro .btn-sidebar-bodega-legal:hover {
+  background-color: #fde68a !important;
+  border-color: #b45309 !important;
+  color: #78350f !important;
+}
+
+body.tema-oscuro #nav-item-boveda-legal,
+body.tema-oscuro .btn-sidebar-bodega-legal {
+  background-color: rgba(245, 158, 11, 0.15) !important;
+  border: 1.5px solid rgba(245, 158, 11, 0.5) !important;
+  color: #fde68a !important;
+  font-weight: 700 !important;
+}
+
+body.tema-oscuro #nav-item-boveda-legal span,
+body.tema-oscuro #nav-item-boveda-legal i,
+body.tema-oscuro .btn-sidebar-bodega-legal span,
+body.tema-oscuro .btn-sidebar-bodega-legal i {
+  color: #fde68a !important;
+  font-weight: 700 !important;
+}
+
+body.tema-oscuro #nav-item-boveda-legal:hover,
+body.tema-oscuro .btn-sidebar-bodega-legal:hover {
+  background-color: rgba(245, 158, 11, 0.25) !important;
+  border-color: rgba(245, 158, 11, 0.8) !important;
+}
+
+/* 2. MODO CLARO TOTAL (BLANCO PURO / SLATE 50 · TEXTOS OSCUROS DE ALTO CONTRASTE) */
+body.tema-claro,
+body.tema-predeterminado {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+body.tema-claro header,
+body.tema-predeterminado header {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+body.tema-claro .sidebar-container,
+body.tema-predeterminado .sidebar-container {
+  background-color: #ffffff !important;
+  border-right: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+body.tema-claro .corp-card,
+body.tema-claro .nodo-card,
+body.tema-claro .card-jerarquia,
+body.tema-claro .chart-container-card,
+body.tema-claro .modal-box,
+body.tema-claro .corp-modal {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Prevenir fondos oscuros hardcodeados en contenedores en Modo Claro */
+body.tema-claro div[class*="bg-[#0a192f]"],
+body.tema-claro div[class*="bg-[#0f172a]"],
+body.tema-claro div[class*="bg-slate-900"],
+body.tema-claro div[class*="bg-slate-800"]:not(.badge-corp):not([role="progressbar"]),
+body.tema-claro section[class*="bg-[#0a192f]"],
+body.tema-claro section[class*="bg-[#0f172a]"] {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+}
+
+body.tema-claro #vista-configuraciones,
+body.tema-claro #tab-content-cfg-cuenta,
+body.tema-claro #vista-boveda-legal {
+  color: #0f172a !important;
+}
+
+body.tema-claro #vista-boveda-legal h1,
+body.tema-claro #vista-boveda-legal h2,
+body.tema-claro #vista-boveda-legal h3,
+body.tema-claro #vista-configuraciones h1,
+body.tema-claro #vista-configuraciones h2,
+body.tema-claro #vista-configuraciones h3 {
+  color: #0f172a !important;
+}
+
+/* Botón toggle de tema en header */
+body.tema-claro #btn-header-modo-toggle {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+body.tema-oscuro #btn-header-modo-toggle {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+/* 3. MODO OSCURO TOTAL (SLATE PROFUNDO / BORDES DEFINIDOS) */
+body.tema-oscuro {
+  background-color: #0b0f19 !important;
+  color: #f8fafc !important;
+}
+
+body.tema-oscuro header {
+  background-color: rgba(15, 23, 42, 0.95) !important;
+  border-bottom: 1px solid #1e293b !important;
+  color: #f8fafc !important;
+}
+
+body.tema-oscuro .sidebar-container {
+  background-color: #0f172a !important;
+  border-right: 1px solid #1e293b !important;
+  color: #f8fafc !important;
+}
+
+body.tema-oscuro .corp-card,
+body.tema-oscuro .nodo-card,
+body.tema-oscuro .jerarquia-col,
+body.tema-oscuro .card-jerarquia,
+body.tema-oscuro .chart-container-card,
+body.tema-oscuro .modal-box,
+body.tema-oscuro .corp-modal {
+  background-color: #121824 !important;
+  border: 1px solid #1e293b !important;
+  color: #f8fafc !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.tema-oscuro .card-jerarquia-admin {
+  border-left: 3px solid #0284c7 !important;
+}
+
+body.tema-oscuro .card-jerarquia-mentor {
+  border-left: 3px solid #06b6d4 !important;
+}
+
+body.tema-oscuro .card-jerarquia-aprendiz {
+  border-left: 3px solid #3b82f6 !important;
+}
+
+body.tema-oscuro div[class*="bg-white"],
+body.tema-oscuro div[class*="bg-slate-50"],
+body.tema-oscuro div[class*="bg-slate-100"]:not(.badge-corp):not([role="progressbar"]) {
+  background-color: #121824 !important;
+  color: #f8fafc !important;
+  border-color: #1e293b !important;
+}
+
+body.tema-oscuro input,
+body.tema-oscuro select,
+body.tema-oscuro textarea {
+  background-color: #0b0f19 !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+body.tema-oscuro input:focus,
+body.tema-oscuro select:focus,
+body.tema-oscuro textarea:focus {
+  border-color: #38bdf8 !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2) !important;
+}
+
+body.tema-oscuro h1,
+body.tema-oscuro h2,
+body.tema-oscuro h3,
+body.tema-oscuro h4 {
+  color: #f8fafc !important;
+}
+
+body.tema-oscuro p,
+body.tema-oscuro span.text-slate-600,
+body.tema-oscuro span.text-slate-500 {
+  color: #94a3b8 !important;
+}

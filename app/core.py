@@ -107,7 +107,7 @@ DRIVER = '{ODBC Driver 18 for SQL Server}'
 
 AZURE_CONN_STR = (
     f"Driver={DRIVER};Server=tcp:{SERVER},1433;Database={DATABASE};Uid={USERNAME};"
-    f"Pwd={PASSWORD};Encrypt=yes;TrustServerCertificate=yes;Connection Timeout=8;MARS_Connection=yes;"
+    f"Pwd={PASSWORD};Encrypt=yes;TrustServerCertificate=yes;LoginTimeout=4;"
 )
 
 CORREO_APP = os.getenv("EMAIL_APP") or os.getenv("CORREO_APP")
@@ -720,7 +720,6 @@ class ReplicadorAzure:
                             )
                             total_hidratadas += len(filas_norm)
                     else:
-                        sl.execute(f"DELETE FROM {tabla}")
                         if filas_norm:
                             sl.executemany(
                                 f"INSERT OR REPLACE INTO {tabla} ({cols_sql}) VALUES ({placeholders})",
@@ -1347,15 +1346,17 @@ class DatabaseManager:
         conn.close()
 
     def test_azure(self):
-        """Prueba conexión a Azure SQL o prioriza Modo Ultra-Rápido Local para máxima velocidad"""
-        modo_alta_vel = os.getenv("MODO_ALTA_VELOCIDAD", "true").lower() in ("1", "true", "yes")
-        if modo_alta_vel:
+        """Conecta a Azure SQL Database para garantizar persistencia permanente entre reinicios de Render"""
+        if os.getenv("MODO_LOCAL_SOLO", "false").lower() in ("1", "true", "yes"):
             self.use_azure = False
-            self.last_error = "Modo Ultra-Rápido Local activo (Cero latencia / 0 tráfico externo)"
-            print(">> [BD] Modo Ultra-Rápido Local SQLite ACTIVO (Respuestas instantáneas <1ms, 0 tráfico externo).")
+            self.last_error = "Modo Local forzado por configuración"
             return False
 
-        return self.test_azure_force()
+        if SERVER and DATABASE and USERNAME and PASSWORD:
+            return self.test_azure_force()
+
+        self.use_azure = False
+        return False
 
     def test_azure_force(self):
         """Fuerza conexión a Azure SQL y asegura tablas requeridas"""

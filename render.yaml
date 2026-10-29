@@ -19,3 +19,7 @@ services:
         sync: false
       - key: EMAIL_PASS
         sync: false
+      - key: MODO_ALTA_VELOCIDAD
+        value: "false"
+      - key: AZURE_REPLICA
+        value: "true"
