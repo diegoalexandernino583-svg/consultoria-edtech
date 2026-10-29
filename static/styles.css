@@ -2545,3 +2545,98 @@ body.tema-oscuro span.text-slate-600,
 body.tema-oscuro span.text-slate-500 {
   color: #94a3b8 !important;
 }
+
+/* =====================================================================
+   BLUR GATE & 4 PESTAÑAS: BODEGA LEGAL & COMPLIANCE (LEY 1581)
+   ===================================================================== */
+
+.bodega-blur-gate-wrapper {
+  position: relative;
+  min-height: 480px;
+}
+
+.bodega-blur-gate-overlay {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  background: rgba(10, 25, 47, 0.82);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  border-radius: 1.25rem;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+body.tema-claro .bodega-blur-gate-overlay {
+  background: rgba(248, 250, 252, 0.85);
+}
+
+.bodega-blur-gate-card {
+  width: 100%;
+  max-width: 460px;
+  background: #0A192F;
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.6), 0 0 35px rgba(245, 158, 11, 0.2);
+  border-radius: 1.25rem;
+  padding: 2.25rem 2rem;
+  color: #FFFFFF;
+}
+
+body.tema-claro .bodega-blur-gate-card {
+  background: #FFFFFF;
+  border: 1px solid #FCD34D;
+  box-shadow: 0 25px 60px -15px rgba(10, 25, 47, 0.18), 0 0 30px rgba(245, 158, 11, 0.15);
+  color: #0A192F;
+}
+
+.tab-btn-bodega-4 {
+  padding: 0.65rem 1.15rem;
+  border-top-left-radius: 0.75rem;
+  border-top-right-radius: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  border-bottom: none;
+}
+
+.tab-btn-bodega-4.active {
+  background-color: #0A192F !important;
+  color: #FFFFFF !important;
+  border-color: #334155;
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.08);
+}
+
+body.tema-claro .tab-btn-bodega-4.active {
+  background-color: #0A192F !important;
+  color: #FFFFFF !important;
+  border-color: #0A192F;
+}
+
+.tab-btn-bodega-4:not(.active) {
+  background-color: #F1F5F9;
+  color: #475569;
+}
+
+.tab-btn-bodega-4:not(.active):hover {
+  background-color: #E2E8F0;
+  color: #0F172A;
+}
+
+body.tema-oscuro .tab-btn-bodega-4:not(.active) {
+  background-color: #1E293B;
+  color: #94A3B8;
+}
+
+body.tema-oscuro .tab-btn-bodega-4:not(.active):hover {
+  background-color: #334155;
+  color: #F8FAFC;
+}
+

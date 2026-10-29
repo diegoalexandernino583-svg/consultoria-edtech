@@ -811,10 +811,19 @@ async def cargar_usuarios_excel(
                     idx_corr = 1
                     idx_rol = None
                     idx_men = None
+                    bloque_mentor_actual = None
 
                     for fila in sheet.iter_rows(values_only=True):
                         if not fila or not any(fila):
                             continue
+
+                        # Detección de cabecera de bloque jerárquico tipo: "Mentor: ..." o "Docente: ..."
+                        fila_texto_unido = " ".join([str(c) for c in fila if c is not None]).strip()
+                        if any(k in fila_texto_unido.lower() for k in ["tutor:", "mentor:", "docente:", "profesor:"]) and "@" in fila_texto_unido:
+                            emails_enc = re.findall(r'[\w\.-]+@[\w\.-]+\.\w+', fila_texto_unido)
+                            if emails_enc:
+                                bloque_mentor_actual = emails_enc[0].lower().strip()
+
                         if primera_fila:
                             primera_fila = False
                             fila_str = [str(c).lower().strip() if c is not None else "" for c in fila]
@@ -843,9 +852,15 @@ async def cargar_usuarios_excel(
                             else:
                                 rol = "Aprendiz"
 
+                            # Actualizar mentor actual si esta fila es un Mentor/Docente/Tutor
+                            if any(k in rol.lower() for k in ["mentor", "docente", "tutor", "profesor"]):
+                                bloque_mentor_actual = corr.lower().strip()
+
                             men_corr = None
                             if idx_men is not None and len(fila) > idx_men and fila[idx_men]:
                                 men_corr = str(fila[idx_men]).strip()
+                            elif bloque_mentor_actual and not any(k in rol.lower() for k in ["mentor", "admin", "coordinador"]):
+                                men_corr = bloque_mentor_actual
 
                             filas_procesar.append((nom, corr, rol, men_corr))
             finally:
@@ -861,12 +876,17 @@ async def cargar_usuarios_excel(
             if todas_filas and ("nombre" in todas_filas[0][0].lower() or "correo" in todas_filas[0][0].lower()):
                 inicio_datos = 1
 
+            bloque_csv_mentor = None
             for fila in todas_filas[inicio_datos:]:
                 if fila and len(fila) >= 2 and fila[0] and fila[1]:
                     nom = fila[0].strip()
                     corr = fila[1].strip()
                     rol = fila[2].strip() if len(fila) > 2 and fila[2] else "Aprendiz"
                     men = fila[3].strip() if len(fila) > 3 and fila[3] else None
+                    if any(k in rol.lower() for k in ["mentor", "docente", "tutor", "profesor"]):
+                        bloque_csv_mentor = corr.lower().strip()
+                    elif not men and bloque_csv_mentor and not any(k in rol.lower() for k in ["admin", "coordinad"]):
+                        men = bloque_csv_mentor
                     filas_procesar.append((nom, corr, rol, men))
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Error al leer archivo CSV: {str(e)}")
@@ -923,12 +943,13 @@ async def cargar_usuarios_excel(
             rol_final = "Aprendiz"
             conteo_aprendices += 1
 
-        usuarios_para_insertar.append((nom, corr_limpio, hash_generico, rol_final, final_org_id, None))
+        men_ref = mentor_correo.lower().strip() if mentor_correo else None
+        usuarios_para_insertar.append((nom, corr_limpio, hash_generico, rol_final, final_org_id, men_ref))
         usuarios_insertados_info.append({
             "nombre": nom,
             "correo": corr_limpio,
             "rol": rol_final,
-            "mentor_correo": mentor_correo.lower().strip() if mentor_correo else None
+            "mentor_correo": men_ref
         })
 
     registrados = len(usuarios_para_insertar)
@@ -941,13 +962,56 @@ async def cargar_usuarios_excel(
         cursor = conn.cursor()
         
         CHUNK_SIZE = 1000
-        for i in range(0, registrados, CHUNK_SIZE):
-            chunk = usuarios_para_insertar[i:i + CHUNK_SIZE]
-            cursor.executemany(
-                "INSERT INTO usuarios (nombre, correo, password_hash, rol, organizacion_id, mentor_id) VALUES (?, ?, ?, ?, ?, ?)",
-                chunk
-            )
-        conn.commit()
+
+        # Paso 1: Insertar Administradores y Mentores primero
+        mentores_admins = [u for u in usuarios_para_insertar if u[3] in ("Administrador", "Mentor")]
+        aprendices_pendientes = [u for u in usuarios_para_insertar if u[3] == "Aprendiz"]
+
+        if mentores_admins:
+            for i in range(0, len(mentores_admins), CHUNK_SIZE):
+                chunk_ma = mentores_admins[i:i + CHUNK_SIZE]
+                cursor.executemany(
+                    "INSERT INTO usuarios (nombre, correo, password_hash, rol, organizacion_id, mentor_id) VALUES (?, ?, ?, ?, ?, ?)",
+                    [(u[0], u[1], u[2], u[3], u[4], None) for u in chunk_ma]
+                )
+            conn.commit()
+
+        # Paso 2: Consultar todos los mentores (existentes + recién insertados) de la institución
+        mentores_inst = db.execute_query(
+            "SELECT id, LOWER(TRIM(correo)) as correo, LOWER(TRIM(nombre)) as nombre FROM usuarios WHERE organizacion_id = ? AND rol = 'Mentor'",
+            (final_org_id,), fetchall=True
+        ) or []
+        mapa_mentores = {m["correo"]: m["id"] for m in mentores_inst if m.get("correo")}
+        for m in mentores_inst:
+            if m.get("nombre"):
+                mapa_mentores[m["nombre"]] = m["id"]
+        mentor_defecto_id = mentores_inst[0]["id"] if mentores_inst else None
+
+        # Paso 3: Asignar mentor_id exacto a cada aprendiz según bloque relacional o columna de tutor
+        aprendices_listos = []
+        for a in aprendices_pendientes:
+            nom_a, corr_a, pwd_a, rol_a, org_a, m_ref_a = a
+            resolved_m_id = None
+            if m_ref_a:
+                resolved_m_id = mapa_mentores.get(m_ref_a)
+                if not resolved_m_id:
+                    for k_men, id_men in mapa_mentores.items():
+                        if k_men in m_ref_a or m_ref_a in k_men:
+                            resolved_m_id = id_men
+                            break
+            if not resolved_m_id:
+                resolved_m_id = mentor_defecto_id
+
+            aprendices_listos.append((nom_a, corr_a, pwd_a, rol_a, org_a, resolved_m_id))
+
+        if aprendices_listos:
+            for i in range(0, len(aprendices_listos), CHUNK_SIZE):
+                chunk_ap = aprendices_listos[i:i + CHUNK_SIZE]
+                cursor.executemany(
+                    "INSERT INTO usuarios (nombre, correo, password_hash, rol, organizacion_id, mentor_id) VALUES (?, ?, ?, ?, ?, ?)",
+                    chunk_ap
+                )
+            conn.commit()
 
         # Historial de nuevos integrantes por bloques
         historial_datos = [
@@ -1430,6 +1494,49 @@ def obtener_detalle_grupos_organizacion(organizacion_id: int):
                 "aprendices_sin_mentor": len(sin_mentor)
             }
         }
+    }
+
+
+class ReasignarMentorDirectoReq(BaseModel):
+    mentor_id: Optional[int] = None
+
+
+@router.patch("/api/usuarios/{usuario_id}/reasignar-mentor")
+@router.put("/api/usuarios/{usuario_id}/reasignar-mentor")
+def reasignar_mentor_directo_usuario(usuario_id: int, datos: ReasignarMentorDirectoReq):
+    """Reasigna de forma inmediata en tiempo real el mentor de un usuario en Azure SQL y SQLite"""
+    usr = db.execute_query("SELECT id, nombre, correo, rol, organizacion_id, mentor_id FROM usuarios WHERE id = ?", (usuario_id,), fetchone=True)
+    if not usr:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+
+    nuevo_m_id = datos.mentor_id
+    nom_mentor = "Sin tutor asignado"
+    if nuevo_m_id:
+        mentor = db.execute_query("SELECT id, nombre, rol FROM usuarios WHERE id = ?", (nuevo_m_id,), fetchone=True)
+        if not mentor:
+            raise HTTPException(status_code=400, detail="El mentor especificado no existe.")
+        nom_mentor = mentor["nombre"]
+
+    db.execute_query("UPDATE usuarios SET mentor_id = ? WHERE id = ?", (nuevo_m_id, usuario_id), commit=True)
+    try:
+        replicador_azure.sincronizar_inmediato(["usuarios"])
+    except Exception:
+        pass
+
+    registrar_movimiento(
+        "SuperAdmin",
+        "Estructura",
+        "Reasignar_Mentor",
+        "EXITO",
+        f"Usuario {usr['nombre']} reasignado al mentor: {nom_mentor}"
+    )
+
+    return {
+        "status": "success",
+        "usuario_id": usuario_id,
+        "mentor_id": nuevo_m_id,
+        "mentor_nombre": nom_mentor,
+        "mensaje": f"Mentor de {usr['nombre']} reasignado a '{nom_mentor}' en Azure SQL."
     }
 
 

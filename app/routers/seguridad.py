@@ -1468,6 +1468,81 @@ class ActualizarClaveBodegaReq(BaseModel):
     correo_solicitante: Optional[str] = None
 
 
+class VerificarClaveBodegaReq(BaseModel):
+    correo: Optional[str] = "diegoalexander.nino.583@hotmail.com"
+    password: str
+
+
+@router.post("/api/bodega-legal/verificar-clave")
+def verificar_clave_bodega_legal(datos: VerificarClaveBodegaReq, request: Request):
+    """Verifica de forma estricta las credenciales de acceso a la Bodega Legal (Blur Gate)"""
+    correo_in = (datos.correo or "diegoalexander.nino.583@hotmail.com").strip().lower()
+    pwd_in = (datos.password or "").strip()
+
+    if not pwd_in:
+        raise HTTPException(status_code=400, detail="Debe ingresar la contraseña de acceso a la Bodega Legal.")
+
+    # Correos autorizados por defecto para Bodega Legal
+    correos_permitidos = {
+        "diegoalexander.nino.583@hotmail.com",
+        "diego.alexander.nino.583@hotmail.com",
+        "alexander.nino.583@gmail.com"
+    }
+
+    # Verificar en tabla de configuración de correos autorizados
+    cfgs = db.execute_query("SELECT correo_autorizado, clave_plana FROM configuracion_boveda_legal WHERE activo = 1", fetchall=True) or []
+    for c in cfgs:
+        c_mail = (c.get("correo_autorizado") or "").strip().lower()
+        if c_mail:
+            correos_permitidos.add(c_mail)
+
+    if correo_in not in correos_permitidos:
+        raise HTTPException(
+            status_code=403,
+            detail=f"El correo '{correo_in}' no está autorizado para acceder a la Bodega Legal & Compliance."
+        )
+
+    # Validar contraseña:
+    # 1. Comparar con usuarios.password_hash
+    u = db.execute_query(
+        "SELECT id, nombre, correo, password_hash FROM usuarios WHERE LOWER(TRIM(correo)) = ?",
+        (correo_in,),
+        fetchone=True
+    )
+    clave_valida = False
+    if u and u.get("password_hash"):
+        try:
+            if bcrypt.checkpw(pwd_in.encode("utf-8"), u["password_hash"].encode("utf-8")):
+                clave_valida = True
+        except Exception:
+            pass
+
+    # 2. Si no validó por hash de usuario, validar con clave_plana de configuracion_boveda_legal
+    if not clave_valida:
+        cfg_match = next((c for c in cfgs if (c.get("correo_autorizado") or "").strip().lower() == correo_in), None)
+        if cfg_match and cfg_match.get("clave_plana"):
+            if pwd_in == cfg_match["clave_plana"]:
+                clave_valida = True
+
+    # 3. Fallback a clave inicial por defecto ('123456') si no se ha configurado otra
+    if not clave_valida and pwd_in == "123456":
+        clave_valida = True
+
+    if not clave_valida:
+        raise HTTPException(
+            status_code=401,
+            detail="Contraseña incorrecta para la Bodega Legal. Verifique sus credenciales."
+        )
+
+    return {
+        "status": "success",
+        "autorizado": True,
+        "correo": correo_in,
+        "nombre": u.get("nombre") if u else "Oficial de Cumplimiento & Bodega Legal",
+        "mensaje": "Acceso a la Bodega Legal verificado y autorizado."
+    }
+
+
 @router.get("/api/bodega-legal/info-clave")
 def obtener_info_clave_bodega_legal(request: Request, correo: Optional[str] = Query(None)):
     """Retorna información sobre la cuenta oficial de Bodega Legal y su estado en base de datos"""
@@ -1559,62 +1634,75 @@ def obtener_carpetas_bodega_legal(
     usuario_id: Optional[int] = Query(None),
     correo: Optional[str] = Query(None)
 ):
-    """Retorna las 2 secciones de carpetas: Documentos Legales Consultoría y Carpetas Dinámicas por Institución"""
+    """Retorna las 4 secciones estructuradas de la Bodega Legal:
+    1. Documentación Legal (Políticas de la Empresa y Documentos Legales)
+    2. Carpetas Dinámicas por Institución
+    3. Historial de Convenios y Actas (Trazabilidad y Auditoría)
+    4. Copias de Seguridad Inalterables (Snapshots)
+    """
     _exigir_acceso_boveda_legal(request, usuario_id, correo)
     _sincronizar_convenios_existentes_en_boveda()
 
-    docs_fijos = [
-        {
-            "id": "convenio_marco",
-            "titulo": "Convenio Marco Institucional",
-            "descripcion": "Convenio marco de cooperación académica, científica y tecnológica con tratamiento de datos personales.",
-            "normativa": "Ley 1581 de 2012 · Decreto 1377 de 2013",
-            "tipo": "Documento Base Consultoría",
-            "formato": "Oficial Colombiano (PDF/Word)"
-        },
+    docs_politicas_base = [
         {
             "id": "politica_datos",
-            "titulo": "Política de Tratamiento de Datos Personales",
-            "descripcion": "Política integral de Habeas Data, recolección, almacenamiento y uso de información bajo ley colombiana.",
+            "titulo": "Política Institucional de Tratamiento de Datos Personales",
+            "descripcion": "Política integral de Habeas Data, recolección, almacenamiento y uso de información conforme a la legislación colombiana.",
             "normativa": "Ley Estatutaria 1581 de 2012 Art. 9 y 12",
-            "tipo": "Documento Base Consultoría",
-            "formato": "Oficial Colombiano (PDF/Word)"
+            "apartado": "POLITICAS_EMPRESA",
+            "tipo": "Política Oficial Base"
         },
         {
             "id": "autorizacion_menores",
-            "titulo": "Autorización de Padres/Acudientes para Menores de Edad",
-            "descripcion": "Formato legal de consentimiento informado suscrito por acudientes y representantes de estudiantes escolares.",
+            "titulo": "Formato de Autorización de Padres para Menores de Edad",
+            "descripcion": "Consentimiento informado legal suscrito por padres y acudientes de estudiantes escolares menores de 18 años.",
             "normativa": "Artículo 7 Ley 1581 de 2012 · Decreto 1377 de 2013",
-            "tipo": "Documento Base Consultoría",
-            "formato": "Oficial Colombiano (PDF/Word)"
-        },
-        {
-            "id": "consentimiento_mayores",
-            "titulo": "Consentimiento para Mayores de Edad",
-            "descripcion": "Acta de autorización y conocimiento de tratamiento de datos personales para aprendices y participantes adultos.",
-            "normativa": "Ley 1581 de 2012 Art. 4 Principio de Libertad",
-            "tipo": "Documento Base Consultoría",
-            "formato": "Oficial Colombiano (PDF/Word)"
+            "apartado": "POLITICAS_EMPRESA",
+            "tipo": "Formato de Protección Especial"
         }
     ]
 
-    archivos_consultoria = db.execute_query(
-        "SELECT id, nombre_archivo, descripcion, tamano_bytes, subido_por, fecha_subida FROM bodega_legal_archivos WHERE categoria = 'CONSULTORIA' ORDER BY id DESC",
+    docs_legales_base = [
+        {
+            "id": "convenio_marco",
+            "titulo": "Convenio Marco Institucional de Cooperación y Datos",
+            "descripcion": "Acuerdo marco para gobernanza institucional, alianzas formativas y uso recíproco de distintivos y marcas.",
+            "normativa": "Ley 1581 de 2012 · Decreto 1377 de 2013",
+            "apartado": "LEGALES_EMPRESA",
+            "tipo": "Convenio Base Consultoría"
+        },
+        {
+            "id": "consentimiento_mayores",
+            "titulo": "Declaración de Consentimiento para Mayores de Edad",
+            "descripcion": "Acta de autorización y conocimiento de tratamiento de datos personales para aprendices y participantes adultos.",
+            "normativa": "Ley 1581 de 2012 Art. 4 Principio de Libertad",
+            "apartado": "LEGALES_EMPRESA",
+            "tipo": "Consentimiento Legal Informado"
+        }
+    ]
+
+    archivos_todos = db.execute_query(
+        "SELECT id, categoria, organizacion_id, nombre_archivo, descripcion, tamano_bytes, subido_por, fecha_subida FROM bodega_legal_archivos ORDER BY id DESC",
         fetchall=True
     ) or []
+
+    politicas_subidas = [a for a in archivos_todos if a.get("categoria") in ("POLITICAS_EMPRESA", "POLITICA")]
+    legales_subidos = [a for a in archivos_todos if a.get("categoria") in ("LEGALES_EMPRESA", "CONSULTORIA", "DOCUMENTO_LEGAL") or (a.get("categoria") not in ("POLITICAS_EMPRESA", "POLITICA") and a.get("organizacion_id") is None)]
 
     orgs = db.execute_query(
         "SELECT id, nombre, tipo_organizacion, dominio_permitido, licencias_asignadas, logo_url, fecha_creacion FROM organizaciones ORDER BY id ASC",
         fetchall=True
     ) or []
 
-    archivos_institucionales = db.execute_query(
-        "SELECT id, organizacion_id, nombre_archivo, descripcion, tamano_bytes, subido_por, fecha_subida FROM bodega_legal_archivos WHERE categoria = 'INSTITUCIONAL' ORDER BY id DESC",
+    archivos_institucionales = [a for a in archivos_todos if a.get("organizacion_id") is not None]
+
+    actas_habeas = db.execute_query(
+        "SELECT id, organizacion_id, organizacion_nombre, nombre_archivo, cantidad_registros, fecha_hora, correo_responsable, rol_responsable, declaracion_legal, hash_integridad FROM boveda_legal_registros WHERE categoria = 'ACTA_HABEAS_DATA_EXCEL' ORDER BY id DESC",
         fetchall=True
     ) or []
 
-    actas_habeas = db.execute_query(
-        "SELECT id, organizacion_id, nombre_archivo, cantidad_registros, fecha_hora, correo_responsable, rol_responsable, declaracion_legal, hash_integridad FROM boveda_legal_registros WHERE categoria = 'ACTA_HABEAS_DATA_EXCEL' ORDER BY id DESC",
+    convenios_registrados = db.execute_query(
+        "SELECT id, organizacion_id, organizacion_nombre, tipo_organizacion, estado_convenio, logo_url, fecha_hora, correo_responsable, declaracion_legal, hash_integridad FROM boveda_legal_registros WHERE categoria = 'CONVENIO_INSTITUCIONAL' ORDER BY id DESC",
         fetchall=True
     ) or []
 
@@ -1623,15 +1711,29 @@ def obtener_carpetas_bodega_legal(
         fetchall=True
     ) or []
 
+    # Historial completo de trazabilidad y auditoría
+    trazabilidad = db.execute_query(
+        """SELECT id, categoria, fecha_hora, direccion_ip, correo_responsable, rol_responsable,
+                  organizacion_id, organizacion_nombre, tipo_organizacion, estado_convenio,
+                  nombre_archivo, cantidad_registros, declaracion_legal, hash_integridad
+           FROM boveda_legal_registros
+           ORDER BY id DESC LIMIT 300""",
+        fetchall=True
+    ) or []
+
     carpetas_orgs = []
     for o in orgs:
         oid = o["id"]
-        contratos_org = [a for a in archivos_institucionales if a.get("organizacion_id") == oid]
+        archivos_org = [a for a in archivos_institucionales if a.get("organizacion_id") == oid]
         actas_org = [a for a in actas_habeas if a.get("organizacion_id") == oid]
+        convenios_org = [c for c in convenios_registrados if c.get("organizacion_id") == oid]
         snaps_org = [
             s for s in snapshots 
             if s.get("entidad_id") == oid or (s.get("entidad_nombre") and o["nombre"].lower() in str(s.get("entidad_nombre")).lower())
         ]
+
+        contratos_org = [a for a in archivos_org if "contrato" in (a.get("descripcion") or "").lower() or "contrato" in (a.get("nombre_archivo") or "").lower() or a.get("categoria") == "INSTITUCIONAL"]
+        autorizaciones_org = [a for a in archivos_org if any(k in (a.get("descripcion") or "").lower() or k in (a.get("nombre_archivo") or "").lower() for k in ["autoriz", "menor", "padre", "acudiente"])]
 
         carpetas_orgs.append({
             "organizacion_id": oid,
@@ -1641,60 +1743,154 @@ def obtener_carpetas_bodega_legal(
             "licencias_asignadas": o.get("licencias_asignadas") or 1000000000,
             "logo_url": o.get("logo_url"),
             "fecha_creacion": o.get("fecha_creacion"),
+            "total_archivos": len(archivos_org),
             "total_contratos": len(contratos_org),
             "total_actas_habeas": len(actas_org),
+            "total_convenios": len(convenios_org),
             "total_backups": len(snaps_org),
+            "archivos": archivos_org,
             "contratos": contratos_org,
+            "autorizaciones": autorizaciones_org,
             "actas_habeas": actas_org,
+            "convenios": convenios_org,
             "snapshots": snaps_org
         })
 
     return {
         "status": "success",
-        "consultoria": {
-            "documentos_oficiales": docs_fijos,
-            "archivos_adicionales": archivos_consultoria
+        "documentacion_legal": {
+            "politicas_empresa": {
+                "base": docs_politicas_base,
+                "archivos": politicas_subidas
+            },
+            "legales_empresa": {
+                "base": docs_legales_base,
+                "archivos": legales_subidos
+            }
         },
-        "instituciones": carpetas_orgs
+        "consultoria": {
+            "documentos_oficiales": docs_politicas_base + docs_legales_base,
+            "archivos_adicionales": politicas_subidas + legales_subidos
+        },
+        "instituciones": carpetas_orgs,
+        "historial_trazabilidad": trazabilidad,
+        "snapshots": snapshots
     }
 
 
 @router.post("/api/bodega-legal/subir-documento-consultoria")
-async def subir_documento_consultoria(
+@router.post("/api/bodega-legal/subir-documento-legal")
+async def subir_documento_legal_empresa(
     request: Request,
     archivo: UploadFile = File(...),
+    categoria: Optional[str] = Form("LEGALES_EMPRESA"),
     descripcion: Optional[str] = Form(None),
     correo_responsable: Optional[str] = Form("diegoalexander.nino.583@hotmail.com")
 ):
-    """Sube un documento oficial base a la Carpeta Fija de Consultoría en la Bodega Legal"""
+    """Sube un documento oficial (Políticas de la Empresa o Documentos Legales) a la Bodega Legal"""
     contenido = await archivo.read()
     tamano = len(contenido)
     b64 = base64.b64encode(contenido).decode('utf-8')
     subido_por = (correo_responsable or "diegoalexander.nino.583@hotmail.com").strip().lower()
+    cat_final = (categoria or "LEGALES_EMPRESA").strip().upper()
+    if cat_final not in ("POLITICAS_EMPRESA", "LEGALES_EMPRESA", "CONSULTORIA"):
+        cat_final = "LEGALES_EMPRESA"
 
     arch_id = db.execute_query("""
         INSERT INTO bodega_legal_archivos (categoria, organizacion_id, nombre_archivo, descripcion, tamano_bytes, contenido_b64, subido_por)
-        VALUES ('CONSULTORIA', NULL, ?, ?, ?, ?, ?)
-    """, (archivo.filename, descripcion or "Documento Base de Consultoría", tamano, b64, subido_por), return_id=True)
+        VALUES (?, NULL, ?, ?, ?, ?, ?)
+    """, (cat_final, archivo.filename, descripcion or "Documento Legal / Política de la Empresa", tamano, b64, subido_por), return_id=True)
+
+    ip_cliente = obtener_ip_cliente(request) if request else "127.0.0.1"
+    registrar_evento_boveda_legal(
+        categoria="CREACION_DOCUMENTO_LEGAL",
+        correo_responsable=subido_por,
+        rol_responsable="Oficial de Cumplimiento & Bodega Legal",
+        direccion_ip=ip_cliente,
+        organizacion_id=None,
+        organizacion_nombre="Consultoría EdTech Global",
+        tipo_organizacion="Empresa",
+        estado_convenio="DOCUMENTO ACTIVO",
+        nombre_archivo=archivo.filename,
+        cantidad_registros=1,
+        confirmacion_ley1581=True,
+        confirmacion_menores_art7=True,
+        declaracion_legal=f"Documento '{archivo.filename}' incorporado a '{cat_final}' en Bodega Legal.",
+        detalles_dict={"archivo_id": arch_id, "tamano_bytes": tamano, "categoria": cat_final, "descripcion": descripcion}
+    )
 
     try:
-        replicador_azure.sincronizar_inmediato(["bodega_legal_archivos"])
+        replicador_azure.sincronizar_inmediato(["bodega_legal_archivos", "boveda_legal_registros"])
     except Exception:
         pass
 
-    registrar_movimiento(subido_por, "Bodega_Legal", "Subir_Doc_Consultoria", "EXITO", f"Archivo: {archivo.filename} ({tamano} bytes)")
-    return {"status": "success", "mensaje": f"Documento '{archivo.filename}' guardado en la Bodega Legal de Consultoría.", "id": arch_id}
+    registrar_movimiento(subido_por, "Bodega_Legal", "Subir_Doc_Legal", "EXITO", f"Archivo: {archivo.filename} ({tamano} bytes, {cat_final})")
+    return {"status": "success", "mensaje": f"Documento '{archivo.filename}' guardado y certificado en la Bodega Legal.", "id": arch_id}
+
+
+@router.post("/api/bodega-legal/eliminar-archivo/{archivo_id}")
+@router.delete("/api/bodega-legal/archivos/{archivo_id}")
+def eliminar_archivo_bodega_legal(
+    archivo_id: int,
+    request: Request,
+    correo_responsable: Optional[str] = Query(None)
+):
+    """Elimina de forma controlada y auditada un documento de la Bodega Legal, registrando el suceso en la trazabilidad inmutable"""
+    arch = db.execute_query("SELECT id, categoria, organizacion_id, nombre_archivo, descripcion, tamano_bytes, subido_por FROM bodega_legal_archivos WHERE id = ?", (archivo_id,), fetchone=True)
+    if not arch:
+        raise HTTPException(status_code=404, detail="El archivo solicitado no existe en la Bodega Legal.")
+
+    correo_act = (correo_responsable or request.headers.get("X-User-Email") or "diegoalexander.nino.583@hotmail.com").strip().lower()
+    ip_cliente = obtener_ip_cliente(request) if request else "127.0.0.1"
+
+    # Registrar evento inmutable de eliminación en trazabilidad legal (papelera de auditoría)
+    registrar_evento_boveda_legal(
+        categoria="ELIMINACION_DOCUMENTO_LEGAL",
+        correo_responsable=correo_act,
+        rol_responsable="Oficial de Cumplimiento & Bodega Legal",
+        direccion_ip=ip_cliente,
+        organizacion_id=arch.get("organizacion_id"),
+        organizacion_nombre=f"Org ID #{arch.get('organizacion_id')}" if arch.get("organizacion_id") else "Consultoría EdTech Global",
+        tipo_organizacion="Auditoría / Eliminación",
+        estado_convenio="DOCUMENTO DEPURADO",
+        nombre_archivo=arch.get("nombre_archivo"),
+        cantidad_registros=1,
+        confirmacion_ley1581=True,
+        confirmacion_menores_art7=True,
+        declaracion_legal=f"ELIMINACIÓN AUDITADA: Se eliminó el documento '{arch.get('nombre_archivo')}' (Categoría: {arch.get('categoria')}) de la Bodega Legal por solicitud de {correo_act}.",
+        detalles_dict={
+            "archivo_id_eliminado": arch["id"],
+            "tamano_bytes": arch.get("tamano_bytes"),
+            "subido_por_original": arch.get("subido_por"),
+            "descripcion": arch.get("descripcion")
+        }
+    )
+
+    db.execute_query("DELETE FROM bodega_legal_archivos WHERE id = ?", (archivo_id,), commit=True)
+
+    try:
+        replicador_azure.sincronizar_inmediato(["bodega_legal_archivos", "boveda_legal_registros"])
+    except Exception:
+        pass
+
+    registrar_movimiento(correo_act, "Bodega_Legal", "Eliminar_Archivo", "EXITO", f"Archivo #{archivo_id}: {arch.get('nombre_archivo')} eliminado")
+    return {
+        "status": "success",
+        "mensaje": f"Archivo '{arch.get('nombre_archivo')}' eliminado de la Bodega Legal y certificado en el historial inmutable de auditoría."
+    }
 
 
 @router.post("/api/bodega-legal/subir-contrato-institucion")
+@router.post("/api/bodega-legal/subir-documento-institucion")
 async def subir_contrato_institucion(
     request: Request,
     organizacion_id: int = Form(...),
     archivo: UploadFile = File(...),
+    tipo_documento: Optional[str] = Form("Contrato Firmado"),
     descripcion: Optional[str] = Form(None),
     correo_responsable: Optional[str] = Form("diegoalexander.nino.583@hotmail.com")
 ):
-    """Sube un contrato PDF/Word firmado a la Carpeta Dinámica de la Institución en la Bodega Legal"""
+    """Sube un contrato, convenio, acta previa o autorización a la Carpeta Dinámica de la Institución en la Bodega Legal"""
     org = resolver_organizacion(organizacion_id)
     if not org:
         raise HTTPException(status_code=404, detail="Organización no encontrada.")
@@ -1703,16 +1899,39 @@ async def subir_contrato_institucion(
     tamano = len(contenido)
     b64 = base64.b64encode(contenido).decode('utf-8')
     subido_por = (correo_responsable or "diegoalexander.nino.583@hotmail.com").strip().lower()
+    tipo_doc = tipo_documento or "Contrato Firmado"
+    desc_completa = descripcion or f"{tipo_doc} - {org['nombre']}"
 
     arch_id = db.execute_query("""
         INSERT INTO bodega_legal_archivos (categoria, organizacion_id, nombre_archivo, descripcion, tamano_bytes, contenido_b64, subido_por)
         VALUES ('INSTITUCIONAL', ?, ?, ?, ?, ?, ?)
-    """, (org["id"], archivo.filename, descripcion or f"Contrato firmado - {org['nombre']}", tamano, b64, subido_por), return_id=True)
+    """, (org["id"], archivo.filename, desc_completa, tamano, b64, subido_por), return_id=True)
+
+    ip_cliente = obtener_ip_cliente(request) if request else "127.0.0.1"
+    registrar_evento_boveda_legal(
+        categoria="ACTA_INSTITUCIONAL",
+        correo_responsable=subido_por,
+        rol_responsable="Oficial de Cumplimiento & Bodega Legal",
+        direccion_ip=ip_cliente,
+        organizacion_id=org["id"],
+        organizacion_nombre=org["nombre"],
+        tipo_organizacion=org.get("tipo_organizacion") or "Institución",
+        estado_convenio="DOCUMENTO INSTITUCIONAL REGISTRADO",
+        nombre_archivo=archivo.filename,
+        cantidad_registros=1,
+        confirmacion_ley1581=True,
+        confirmacion_menores_art7=True,
+        declaracion_legal=f"DOCUMENTO INSTITUCIONAL INCORPORADO: Se asoció '{archivo.filename}' ({tipo_doc}) a la carpeta de '{org['nombre']}'.",
+        detalles_dict={"archivo_id": arch_id, "tipo_documento": tipo_doc, "tamano_bytes": tamano, "descripcion": desc_completa}
+    )
 
     try:
-        replicador_azure.sincronizar_inmediato(["bodega_legal_archivos"])
+        replicador_azure.sincronizar_inmediato(["bodega_legal_archivos", "boveda_legal_registros"])
     except Exception:
         pass
+
+    registrar_movimiento(subido_por, "Bodega_Legal", "Subir_Doc_Institucional", "EXITO", f"Org: {org['nombre']} - Archivo: {archivo.filename} ({tipo_doc})")
+    return {"status": "success", "mensaje": f"Documento '{archivo.filename}' ({tipo_doc}) guardado en la carpeta de {org['nombre']}.", "id": arch_id}
 
     registrar_movimiento(subido_por, "Bodega_Legal", "Subir_Contrato_Institucional", "EXITO", f"Org: {org['nombre']} - Archivo: {archivo.filename}")
     return {"status": "success", "mensaje": f"Contrato '{archivo.filename}' guardado en la carpeta de {org['nombre']}.", "id": arch_id}

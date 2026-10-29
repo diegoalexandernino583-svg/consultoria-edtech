@@ -1694,6 +1694,13 @@ function navegarVista(vistaId) {
     }
   });
 
+  // Auto-bloqueo de seguridad: si el usuario navega a cualquier otra sección, se bloquea la Bodega Legal
+  if (vistaId !== 'boveda-legal') {
+    if (typeof bloquearBodegaLegal === 'function') {
+      bloquearBodegaLegal();
+    }
+  }
+
   // Cargar datos correspondientes de la vista
   if (vistaId === 'nodos') {
     cargarNodosInstitucionales();
@@ -1728,7 +1735,11 @@ function navegarVista(vistaId) {
       cambiarTabCelador('integrantes');
     }
   } else if (vistaId === 'boveda-legal') {
-    cargarVistaBovedaLegal();
+    if (estadoBodegaDesbloqueada) {
+      cargarVistaBovedaLegal();
+    } else {
+      bloquearBodegaLegal();
+    }
   } else if (vistaId === 'configuraciones') {
     inicializarVistaConfiguraciones(subTabApertura);
   }
@@ -2897,6 +2908,39 @@ async function cambiarCargoUsuarioTiempoReal(usuarioId, nuevoRol) {
   }
 }
 
+async function reasignarMentorDirecto(aprendizId, nuevoMentorId) {
+  try {
+    const mentorIdNum = nuevoMentorId ? parseInt(nuevoMentorId) : null;
+    const res = await fetch(`${API_BASE}/api/usuarios/${aprendizId}/reasignar-mentor`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mentor_id: mentorIdNum })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Error al reasignar mentor');
+
+    mostrarToast(`✓ ${data.mensaje || 'Tutor reasignado con éxito en Azure SQL.'}`, 'exito');
+
+    if (allHierarchyData && allHierarchyData.aprendices) {
+      const ap = allHierarchyData.aprendices.find(u => u.id == aprendizId);
+      if (ap) {
+        ap.mentor_id = mentorIdNum;
+        ap.mentor_nombre = data.mentor_nombre;
+      }
+    }
+    if (ultimoDataJerarquia && ultimoDataJerarquia.aprendices) {
+      const ap = ultimoDataJerarquia.aprendices.find(u => u.id == aprendizId);
+      if (ap) {
+        ap.mentor_id = mentorIdNum;
+        ap.mentor_nombre = data.mentor_nombre;
+      }
+    }
+  } catch (err) {
+    mostrarToast(err.message, 'error');
+    cargarJerarquia3Columnas();
+  }
+}
+
 let limiteVisualAdmins = 50;
 let limiteVisualMentores = 50;
 let limiteVisualAprendices = 50;
@@ -3086,6 +3130,9 @@ function renderizarTableroJerarquico(data) {
   } else {
     contAprendices.innerHTML = aprendicesVisibles.map(a => {
       const avance = Math.round(a.promedio_avance || 0);
+      const mentoresOrg = mentores.filter(m => !a.organizacion_id || !m.organizacion_id || m.organizacion_id == a.organizacion_id);
+      const listaMentoresOpciones = mentoresOrg.length > 0 ? mentoresOrg : mentores;
+
       return `
         <div class="card-jerarquia card-jerarquia-aprendiz">
           <div class="flex items-start justify-between">
@@ -3112,17 +3159,26 @@ function renderizarTableroJerarquico(data) {
 
           <div class="mt-2.5 pt-2 border-t border-slate-100">
             ${puedeEditarCargos ? `
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-[10px] font-bold text-slate-500">Cargo en Tiempo Real:</span>
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-[10px] font-bold text-slate-500">Cargo:</span>
                 <select onchange="cambiarCargoUsuarioTiempoReal(${a.id}, this.value)" class="px-2 py-0.5 rounded-lg border border-cyan-300 bg-cyan-50/70 text-[#0a192f] text-[10px] font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-500" title="Cambiar cargo en tiempo real">
                   <option value="Administrador" ${a.rol === 'Administrador' ? 'selected' : ''}>🛡️ Administrador</option>
                   <option value="Mentor" ${a.rol === 'Mentor' ? 'selected' : ''}>🎓 Mentor</option>
                   <option value="Aprendiz" ${a.rol === 'Aprendiz' ? 'selected' : ''}>📘 Aprendiz</option>
                 </select>
               </div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-[10px] font-bold text-slate-500">Tutor Asignado:</span>
+                <select onchange="reasignarMentorDirecto(${a.id}, this.value)" class="px-2 py-0.5 rounded-lg border border-cyan-300 bg-white text-[#0a192f] text-[10px] font-bold cursor-pointer focus:outline-none focus:ring-2 focus:ring-cyan-500 max-w-[155px] truncate" title="Reasignar tutor en tiempo real">
+                  <option value="">-- Sin tutor asignado --</option>
+                  ${listaMentoresOpciones.map(m => `
+                    <option value="${m.id}" ${m.id == a.mentor_id ? 'selected' : ''}>🎓 ${escapeHtml(m.nombre)}</option>
+                  `).join('')}
+                </select>
+              </div>
             ` : ''}
             <div class="flex items-center justify-between text-[10px] text-slate-500 mb-1">
-              <span>Mentor: <strong class="text-cyan-700 font-semibold">${a.mentor_nombre || 'Sin tutor asignado'}</strong></span>
+              <span>${puedeEditarCargos ? 'Avance en Colecciones' : `Mentor: <strong class="text-cyan-700 font-semibold">${escapeHtml(a.mentor_nombre || 'Sin tutor asignado')}</strong>`}</span>
               <span class="font-bold text-[#0a192f]">${avance}%</span>
             </div>
             <div class="progress-track-cyan">
@@ -11718,85 +11774,276 @@ function descargarExpedienteCompletoBovedaLegal() {
   window.location.href = `${API_BASE}/api/boveda-legal/exportar-expediente-completo?correo_solicitante=${encodeURIComponent(correo)}`;
 }
 
-function descargarPoliticaOficialTexto(clave) {
-  const doc = (bovedaLegalCache.politicas || {})[clave];
-  if (!doc) return;
-  const blob = new Blob([`${doc.titulo}\nNormativa: ${doc.normativa}\nVersión: ${doc.version}\n\n${doc.contenido}`], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${clave}_ley_1581_colombia.txt`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
 // =====================================================================
-// BODEGA LEGAL: GESTIÓN DE CARPETAS Y CONTRASEÑA EN AZURE SQL
+// BODEGA LEGAL & COMPLIANCE: SEGURIDAD (BLUR GATE) & 4 PESTAÑAS EN ESPAÑOL
 // =====================================================================
 
+let estadoBodegaDesbloqueada = false;
 let bodegaLegalCarpetasCache = null;
 
-async function cargarCarpetasBodegaLegal() {
-  const correo = obtenerCorreoSolicitanteBoveda();
-  if (!correo) return;
+function alternarVisibilidadClaveBlur() {
+  const input = document.getElementById('input-blur-clave-bodega');
+  const icono = document.getElementById('icono-ojo-blur');
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (icono) icono.setAttribute('data-lucide', 'eye-off');
+  } else {
+    input.type = 'password';
+    if (icono) icono.setAttribute('data-lucide', 'eye');
+  }
+  refrescarIconos();
+}
+
+function alternarVisibilidadNuevaClaveModal() {
+  const input = document.getElementById('input-modal-nueva-clave-bodega');
+  const icono = document.getElementById('icono-ojo-modal-clave');
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (icono) icono.setAttribute('data-lucide', 'eye-off');
+  } else {
+    input.type = 'password';
+    if (icono) icono.setAttribute('data-lucide', 'eye');
+  }
+  refrescarIconos();
+}
+
+function bloquearBodegaLegal() {
+  estadoBodegaDesbloqueada = false;
+  const blurGate = document.getElementById('bodega-legal-blur-gate');
+  if (blurGate) {
+    blurGate.classList.remove('hidden');
+    blurGate.style.display = 'flex';
+  }
+  const inputClave = document.getElementById('input-blur-clave-bodega');
+  if (inputClave) inputClave.value = '';
+}
+
+async function verificarAccesoBodegaLegal(event) {
+  if (event) event.preventDefault();
+  const correo = (document.getElementById('input-blur-correo-bodega')?.value || 'diegoalexander.nino.583@hotmail.com').trim().toLowerCase();
+  const password = document.getElementById('input-blur-clave-bodega')?.value || '';
+
+  if (!password) {
+    return mostrarToast('Por favor ingrese la contraseña de acceso.', 'advertencia');
+  }
+
   try {
-    const res = await fetch(`${API_BASE}/api/bodega-legal/carpetas?correo_solicitante=${encodeURIComponent(correo)}`);
-    if (!res.ok) return;
+    mostrarToast('Verificando acceso a la Bodega Legal en Azure SQL...', 'info');
+    const res = await fetch(`${API_BASE}/api/bodega-legal/verificar-clave`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ correo, password })
+    });
     const json = await res.json();
-    bodegaLegalCarpetasCache = json;
+    if (!res.ok) throw new Error(json.detail || 'Credenciales inválidas');
 
-    // Renderizar archivos adicionales de consultoría
-    const contArchivosCons = document.getElementById('tabla-boveda-archivos-consultoria');
-    if (contArchivosCons) {
-      const archs = json.consultoria?.archivos_adicionales || [];
-      if (archs.length === 0) {
-        contArchivosCons.innerHTML = `<tr><td colspan="6" class="py-4 text-center text-slate-400">Sin archivos adicionales subidos en Consultoría.</td></tr>`;
-      } else {
-        contArchivosCons.innerHTML = archs.map(a => `
-          <tr class="hover:bg-slate-50 transition-colors">
-            <td class="py-2.5 px-3 font-medium text-slate-800 flex items-center gap-2">
-              <i data-lucide="file-text" class="w-4 h-4 text-cyan-600"></i>
-              <span>${escapeHtml(a.nombre_archivo)}</span>
-            </td>
-            <td class="py-2.5 px-3 text-slate-600">${escapeHtml(a.descripcion || 'Sin descripción')}</td>
-            <td class="py-2.5 px-3 text-slate-500 font-mono">${formatearTamanoBytes(a.tamano_bytes || 0)}</td>
-            <td class="py-2.5 px-3 text-slate-500">${escapeHtml(a.subido_por)}</td>
-            <td class="py-2.5 px-3 text-slate-500 font-mono">${escapeHtml(a.fecha_subida || '')}</td>
-            <td class="py-2.5 px-3 text-right">
-              <button onclick="descargarArchivoBodegaLegal(${a.id})" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0a192f] text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer">
-                <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                <span>Descargar</span>
-              </button>
-            </td>
-          </tr>
-        `).join('');
-      }
+    estadoBodegaDesbloqueada = true;
+    const blurGate = document.getElementById('bodega-legal-blur-gate');
+    if (blurGate) {
+      blurGate.classList.add('hidden');
+      blurGate.style.display = 'none';
     }
+    mostrarToast(`✓ ${json.mensaje || 'Acceso concedido a la Bodega Legal.'}`, 'exito');
+    await cargarVistaBovedaLegal();
+  } catch (err) {
+    mostrarToast(err.message, 'error');
+  }
+}
 
-    // Poblar selector de instituciones en carpetas
-    const selectInst = document.getElementById('select-institucion-carpeta-bodega');
-    if (selectInst) {
-      const insts = json.instituciones || [];
-      const valActual = selectInst.value;
-      selectInst.innerHTML = `<option value="">Seleccionar Carpeta Institucional (${insts.length} disponibles)...</option>` +
-        insts.map(inst => `
-          <option value="${inst.organizacion_id}" ${String(inst.organizacion_id) === String(valActual) ? 'selected' : ''}>
-            📁 ${escapeHtml(inst.nombre)} (${inst.total_contratos} contratos, ${inst.total_actas_habeas} actas)
-          </option>
-        `).join('');
+function abrirModalCambiarClaveBodega() {
+  const modal = document.getElementById('modal-cambiar-clave-bodega');
+  if (modal) {
+    modal.classList.remove('hidden');
+    const inp1 = document.getElementById('input-modal-nueva-clave-bodega');
+    const inp2 = document.getElementById('input-modal-confirmar-clave-bodega');
+    if (inp1) inp1.value = '';
+    if (inp2) inp2.value = '';
+    refrescarIconos();
+  }
+}
 
-      if (!valActual && insts.length > 0) {
-        selectInst.value = insts[0].organizacion_id;
-        seleccionarCarpetaInstitucionalBodega(insts[0].organizacion_id);
-      } else if (valActual) {
-        seleccionarCarpetaInstitucionalBodega(valActual);
-      }
+async function ejecutarCambioClaveBodega(event) {
+  if (event) event.preventDefault();
+  const p1 = document.getElementById('input-modal-nueva-clave-bodega')?.value || '';
+  const p2 = document.getElementById('input-modal-confirmar-clave-bodega')?.value || '';
+
+  if (p1.length < 4) {
+    return mostrarToast('La contraseña debe tener al menos 4 caracteres.', 'advertencia');
+  }
+  if (p1 !== p2) {
+    return mostrarToast('Las contraseñas no coinciden. Verifíquelas.', 'advertencia');
+  }
+
+  try {
+    mostrarToast('Actualizando contraseña de Bodega Legal en Azure SQL Database...', 'info');
+    const res = await fetch(`${API_BASE}/api/bodega-legal/actualizar-clave`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password_nueva: p1 })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.detail || 'Error al actualizar contraseña');
+
+    mostrarToast(`✓ ${json.mensaje || 'Contraseña de Bodega Legal actualizada en Azure SQL.'}`, 'exito');
+    cerrarModal('modal-cambiar-clave-bodega');
+  } catch (err) {
+    mostrarToast(err.message, 'error');
+  }
+}
+
+function cambiarTabBodegaLegal(tabId) {
+  const tabs = ['doc-legal', 'carpetas-inst', 'historial-actas', 'copias-seguridad'];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`btn-tab-boveda-${t}`);
+    const sec = document.getElementById(`tab-boveda-${t}`);
+    if (btn) {
+      if (t === tabId) btn.classList.add('active');
+      else btn.classList.remove('active');
     }
+    if (sec) {
+      if (t === tabId) sec.classList.remove('hidden');
+      else sec.classList.add('hidden');
+    }
+  });
+  refrescarIconos();
+}
+
+async function cargarVistaBovedaLegal() {
+  const correo = obtenerCorreoSolicitanteBoveda() || 'diegoalexander.nino.583@hotmail.com';
+  try {
+    const [resEstado, resCarpetas] = await Promise.all([
+      fetch(`${API_BASE}/api/boveda-legal/estado?correo_solicitante=${encodeURIComponent(correo)}`),
+      fetch(`${API_BASE}/api/bodega-legal/carpetas?correo_solicitante=${encodeURIComponent(correo)}`)
+    ]);
+
+    const jsonEstado = await resEstado.json();
+    const jsonCarpetas = await resCarpetas.json();
+
+    if (!resEstado.ok) throw new Error(jsonEstado.detail || 'Error cargando estado legal');
+
+    bovedaLegalCache.configuraciones = jsonEstado.configuraciones_correo || [];
+    bovedaLegalCache.convenios = jsonEstado.convenios_institucionales || [];
+    bovedaLegalCache.actas = jsonEstado.actas_habeas_data || [];
+    bovedaLegalCache.snapshots = jsonEstado.snapshots_inmutables || [];
+    bovedaLegalCache.politicas = jsonEstado.politicas_oficiales || {};
+    bodegaLegalCarpetasCache = jsonCarpetas;
+
+    // Actualizar contadores KPIs
+    const elConv = document.getElementById('kpi-boveda-convenios');
+    const elAct = document.getElementById('kpi-boveda-actas');
+    const elTit = document.getElementById('kpi-boveda-titulares');
+    const elSnap = document.getElementById('kpi-boveda-snapshots');
+
+    const totalActas = bovedaLegalCache.actas.length;
+    const totalTitulares = bovedaLegalCache.actas.reduce((acc, a) => acc + (parseInt(a.cantidad_registros) || 0), 0);
+
+    if (elConv) elConv.innerText = bovedaLegalCache.convenios.length;
+    if (elAct) elAct.innerText = totalActas;
+    if (elTit) elTit.innerText = totalTitulares.toLocaleString('es-CO');
+    if (elSnap) elSnap.innerText = bovedaLegalCache.snapshots.length;
+
+    // 1. Renderizar Pestaña 1: Políticas de Empresa y Documentos Legales Subidos
+    renderizarTablasDocumentacionLegal(jsonCarpetas.documentacion_legal);
+
+    // 2. Renderizar Pestaña 2: Selector y Carpetas por Institución
+    poblarSelectorCarpetasInstitucionales(jsonCarpetas.instituciones || []);
+
+    // 3. Renderizar Pestaña 3: Historial de Convenios y Actas (Trazabilidad)
+    renderizarHistorialTrazabilidad(jsonCarpetas.historial_trazabilidad || []);
+
+    // 4. Renderizar Pestaña 4: Copias de Seguridad Inalterables (Snapshots)
+    renderizarTablaBovedaSnapshots(bovedaLegalCache.snapshots);
+
     refrescarIconos();
   } catch (err) {
-    console.warn('Error cargando carpetas de Bodega Legal:', err);
+    mostrarToast(err.message, 'error');
+  }
+}
+
+function renderizarTablasDocumentacionLegal(docLegal) {
+  const tbodyPoliticas = document.getElementById('tabla-boveda-politicas-subidas');
+  const tbodyLegales = document.getElementById('tabla-boveda-legales-subidos');
+
+  const politicasArchivos = docLegal?.politicas_empresa?.archivos || [];
+  const legalesArchivos = docLegal?.legales_empresa?.archivos || [];
+
+  if (tbodyPoliticas) {
+    if (politicasArchivos.length === 0) {
+      tbodyPoliticas.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">Sin políticas adicionales subidas. Utilice el botón superior para incorporar nuevas políticas oficiales.</td></tr>`;
+    } else {
+      tbodyPoliticas.innerHTML = politicasArchivos.map(p => `
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="py-2.5 px-3 font-semibold text-slate-800 flex items-center gap-2">
+            <i data-lucide="shield-check" class="w-4 h-4 text-amber-600"></i>
+            <span>${escapeHtml(p.nombre_archivo)}</span>
+          </td>
+          <td class="py-2.5 px-3 text-slate-600">${escapeHtml(p.descripcion || 'Política Institucional')}</td>
+          <td class="py-2.5 px-3 text-slate-500 font-mono">${formatearTamanoBytes(p.tamano_bytes)}</td>
+          <td class="py-2.5 px-3 text-slate-500 font-mono text-[11px]">${escapeHtml(p.fecha_subida || '')}</td>
+          <td class="py-2.5 px-3 text-right whitespace-nowrap">
+            <div class="inline-flex items-center gap-1.5">
+              <button type="button" onclick="descargarArchivoBodegaLegal(${p.id})" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0a192f] text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer" title="Descargar política">
+                <i data-lucide="download" class="w-3.5 h-3.5 text-cyan-600"></i>
+                <span>Descargar</span>
+              </button>
+              <button type="button" onclick="eliminarArchivoBodegaLegal(${p.id}, '${escapeHtml(p.nombre_archivo)}')" class="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 transition-all cursor-pointer" title="Eliminar de forma auditada">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+  }
+
+  if (tbodyLegales) {
+    if (legalesArchivos.length === 0) {
+      tbodyLegales.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">Sin documentos legales adicionales subidos. Utilice el botón superior para incorporar nuevos convenios marco o estatutos.</td></tr>`;
+    } else {
+      tbodyLegales.innerHTML = legalesArchivos.map(l => `
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="py-2.5 px-3 font-semibold text-slate-800 flex items-center gap-2">
+            <i data-lucide="file-text" class="w-4 h-4 text-cyan-600"></i>
+            <span>${escapeHtml(l.nombre_archivo)}</span>
+          </td>
+          <td class="py-2.5 px-3 text-slate-600">${escapeHtml(l.descripcion || 'Documento Legal de Empresa')}</td>
+          <td class="py-2.5 px-3 text-slate-500 font-mono">${formatearTamanoBytes(l.tamano_bytes)}</td>
+          <td class="py-2.5 px-3 text-slate-500 font-mono text-[11px]">${escapeHtml(l.fecha_subida || '')}</td>
+          <td class="py-2.5 px-3 text-right whitespace-nowrap">
+            <div class="inline-flex items-center gap-1.5">
+              <button type="button" onclick="descargarArchivoBodegaLegal(${l.id})" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0a192f] text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer" title="Descargar documento legal">
+                <i data-lucide="download" class="w-3.5 h-3.5 text-blue-600"></i>
+                <span>Descargar</span>
+              </button>
+              <button type="button" onclick="eliminarArchivoBodegaLegal(${l.id}, '${escapeHtml(l.nombre_archivo)}')" class="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 transition-all cursor-pointer" title="Eliminar de forma auditada">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+  }
+}
+
+function poblarSelectorCarpetasInstitucionales(instituciones) {
+  const selectInst = document.getElementById('select-institucion-carpeta-bodega');
+  if (!selectInst) return;
+  const valActual = selectInst.value;
+  selectInst.innerHTML = `<option value="">Seleccionar Carpeta Institucional (${instituciones.length} entidades)...</option>` +
+    instituciones.map(inst => `
+      <option value="${inst.organizacion_id}" ${String(inst.organizacion_id) === String(valActual) ? 'selected' : ''}>
+        🏢 ${escapeHtml(inst.nombre)} (${inst.total_archivos || 0} docs, ${inst.total_actas_habeas || 0} actas)
+      </option>
+    `).join('');
+
+  if (!valActual && instituciones.length > 0) {
+    selectInst.value = instituciones[0].organizacion_id;
+    seleccionarCarpetaInstitucionalBodega(instituciones[0].organizacion_id);
+  } else if (valActual) {
+    seleccionarCarpetaInstitucionalBodega(valActual);
   }
 }
 
@@ -11814,6 +12061,12 @@ function seleccionarCarpetaInstitucionalBodega(orgId) {
     return;
   }
 
+  const archivosOrg = org.archivos || [];
+  const contratos = org.contratos || [];
+  const convenios = org.convenios || [];
+  const actasHabeas = org.actas_habeas || [];
+  const autorizaciones = org.autorizaciones || [];
+
   contenedor.innerHTML = `
     <!-- ENCABEZADO CARPETA INSTITUCIONAL -->
     <div class="p-5 rounded-2xl bg-gradient-to-r from-slate-900 to-[#0a192f] text-white flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-md">
@@ -11828,102 +12081,135 @@ function seleccionarCarpetaInstitucionalBodega(orgId) {
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <button type="button" onclick="document.getElementById('form-subir-contrato-wrapper-${org.organizacion_id}').classList.toggle('hidden')" class="px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer">
-          <i data-lucide="file-up" class="w-4 h-4"></i>
-          <span>+ Subir Contrato Firmado</span>
+        <button type="button" onclick="document.getElementById('form-subir-doc-institucion-wrapper-${org.organizacion_id}').classList.toggle('hidden')" class="px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer">
+          <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+          <span>+ Subir Documento a esta Carpeta</span>
         </button>
       </div>
     </div>
 
-    <!-- FORMULARIO DESPLEGABLE SUBIDA CONTRATO -->
-    <div id="form-subir-contrato-wrapper-${org.organizacion_id}" class="hidden p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-      <h4 class="text-xs font-bold text-slate-700">Subir Contrato / Convenio Escaneado Firmado para ${escapeHtml(org.nombre)} (PDF / Word)</h4>
-      <form onsubmit="subirContratoInstitucionForm(event, ${org.organizacion_id})" class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+    <!-- FORMULARIO DESPLEGABLE SUBIDA DOCUMENTO A LA CARPETA INSTITUCIONAL -->
+    <div id="form-subir-doc-institucion-wrapper-${org.organizacion_id}" class="hidden p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+      <h4 class="text-xs font-bold text-slate-700">Subir Contrato, Convenio, Acta o Autorización para ${escapeHtml(org.nombre)} (PDF / Word)</h4>
+      <form onsubmit="subirDocumentoInstitucionDirecto(event, ${org.organizacion_id})" class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
         <div>
-          <label class="block text-[11px] font-bold text-slate-600 mb-1">Archivo de Contrato Firmado</label>
-          <input type="file" id="file-contrato-${org.organizacion_id}" required accept=".pdf,.doc,.docx" class="corp-input w-full px-2 py-1.5 text-xs">
+          <label class="block text-[11px] font-bold text-slate-600 mb-1">Tipo de Documento</label>
+          <select id="select-tipo-doc-inst-${org.organizacion_id}" class="corp-input w-full px-2 py-1.5 text-xs font-bold">
+            <option value="Contrato Firmado">📄 Contrato Firmado</option>
+            <option value="Convenio Institucional">📜 Convenio Institucional</option>
+            <option value="Acta Previa de Consentimiento">📋 Acta Previa de Consentimiento</option>
+            <option value="Autorización de Padres / Titulares">🛡️ Autorización de Padres / Titulares</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-600 mb-1">Archivo (PDF / Word)</label>
+          <input type="file" id="file-doc-inst-${org.organizacion_id}" required accept=".pdf,.doc,.docx" class="corp-input w-full px-2 py-1.5 text-xs">
         </div>
         <div>
           <label class="block text-[11px] font-bold text-slate-600 mb-1">Descripción / Notas</label>
-          <input type="text" id="desc-contrato-${org.organizacion_id}" placeholder="Ej: Contrato Marco 2026 firmado por Rectoría" class="corp-input w-full px-3 py-2 text-xs">
+          <input type="text" id="desc-doc-inst-${org.organizacion_id}" placeholder="Ej: Contrato Anual 2026 suscrito por Rectoría" class="corp-input w-full px-3 py-2 text-xs">
         </div>
         <div>
           <button type="submit" class="w-full py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-2xs cursor-pointer flex items-center justify-center gap-1.5">
             <i data-lucide="check-circle" class="w-4 h-4"></i>
-            <span>Persistir en Carpeta</span>
+            <span>Guardar en Carpeta</span>
           </button>
         </div>
       </form>
     </div>
 
-    <!-- 3 SECCIONES DE LA CARPETA INSTITUCIONAL -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+    <!-- 4 SUB-SECCIONES DE LA CARPETA INSTITUCIONAL -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
       <!-- 1. CONTRATOS FIRMADOS -->
       <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
         <div class="flex items-center justify-between pb-2 border-b border-slate-100">
           <h4 class="text-xs font-bold text-[#0a192f] flex items-center gap-1.5">
             <i data-lucide="file-check" class="w-4 h-4 text-cyan-600"></i>
-            <span>Contratos Firmados (${org.contratos.length})</span>
+            <span>Contratos (${contratos.length})</span>
           </h4>
         </div>
         <div class="space-y-2 max-h-60 overflow-y-auto">
-          ${org.contratos.length === 0 ? `<p class="text-xs text-slate-400 py-3 text-center">No hay contratos subidos aún.</p>` : org.contratos.map(c => `
+          ${contratos.length === 0 ? `<p class="text-xs text-slate-400 py-3 text-center">Sin contratos subidos.</p>` : contratos.map(c => `
             <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs flex items-center justify-between gap-2">
               <div class="min-w-0">
                 <p class="font-bold text-slate-800 truncate">${escapeHtml(c.nombre_archivo)}</p>
-                <p class="text-[10px] text-slate-500 font-mono">${formatearTamanoBytes(c.tamano_bytes)} · ${escapeHtml(c.fecha_subida || '')}</p>
+                <p class="text-[10px] text-slate-500 font-mono">${formatearTamanoBytes(c.tamano_bytes)}</p>
               </div>
-              <button onclick="descargarArchivoBodegaLegal(${c.id})" class="p-1.5 rounded-lg bg-white border border-slate-200 hover:bg-cyan-50 text-cyan-700 cursor-pointer shrink-0" title="Descargar contrato">
-                <i data-lucide="download" class="w-3.5 h-3.5"></i>
-              </button>
+              <div class="flex items-center gap-1 shrink-0">
+                <button onclick="descargarArchivoBodegaLegal(${c.id})" class="p-1 rounded-lg bg-white border border-slate-200 hover:bg-cyan-50 text-cyan-700 cursor-pointer" title="Descargar">
+                  <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="eliminarArchivoBodegaLegal(${c.id}, '${escapeHtml(c.nombre_archivo)}')" class="p-1 rounded-lg bg-white border border-slate-200 hover:bg-rose-50 text-rose-700 cursor-pointer" title="Eliminar">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
             </div>
           `).join('')}
         </div>
       </div>
 
-      <!-- 2. ACTAS DE HABEAS DATA -->
+      <!-- 2. CONVENIOS REGISTRADOS -->
+      <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+          <h4 class="text-xs font-bold text-[#0a192f] flex items-center gap-1.5">
+            <i data-lucide="building-2" class="w-4 h-4 text-blue-600"></i>
+            <span>Convenios (${convenios.length})</span>
+          </h4>
+        </div>
+        <div class="space-y-2 max-h-60 overflow-y-auto">
+          ${convenios.length === 0 ? `<p class="text-xs text-slate-400 py-3 text-center">Convenio activo estándar.</p>` : convenios.map(cv => `
+            <div class="p-2.5 rounded-xl bg-blue-50/60 border border-blue-200 text-xs space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-blue-900 truncate">${escapeHtml(cv.estado_convenio || 'CONVENIO VIGENTE')}</span>
+              </div>
+              <p class="text-[10px] font-mono text-slate-500 truncate">SHA: ${cv.hash_integridad?.slice(0, 14)}...</p>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- 3. ACTAS DE HABEAS DATA -->
       <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
         <div class="flex items-center justify-between pb-2 border-b border-slate-100">
           <h4 class="text-xs font-bold text-[#0a192f] flex items-center gap-1.5">
             <i data-lucide="scale" class="w-4 h-4 text-emerald-600"></i>
-            <span>Actas Habeas Data (${org.actas_habeas.length})</span>
+            <span>Actas Previas (${actasHabeas.length})</span>
           </h4>
         </div>
         <div class="space-y-2 max-h-60 overflow-y-auto">
-          ${org.actas_habeas.length === 0 ? `<p class="text-xs text-slate-400 py-3 text-center">Sin cargas de Excel registradas.</p>` : org.actas_habeas.map(a => `
+          ${actasHabeas.length === 0 ? `<p class="text-xs text-slate-400 py-3 text-center">Sin cargas de Excel.</p>` : actasHabeas.map(a => `
             <div class="p-2.5 rounded-xl bg-emerald-50/60 border border-emerald-200 text-xs space-y-1">
               <div class="flex items-center justify-between">
-                <span class="font-bold text-emerald-900 truncate">Acta #${a.id}</span>
+                <span class="font-bold text-emerald-900">Acta #${a.id}</span>
                 <span class="text-[10px] font-mono text-emerald-700">${a.cantidad_registros} titulares</span>
               </div>
-              <p class="text-[11px] text-slate-600 truncate">${escapeHtml(a.nombre_archivo || 'Carga Excel')}</p>
-              <p class="text-[9px] font-mono text-slate-400 truncate">SHA: ${a.hash_integridad?.slice(0, 16)}...</p>
+              <p class="text-[10px] font-mono text-slate-400 truncate">SHA: ${a.hash_integridad?.slice(0, 14)}...</p>
             </div>
           `).join('')}
         </div>
       </div>
 
-      <!-- 3. COPIAS DE SEGURIDAD / BACKUPS -->
+      <!-- 4. AUTORIZACIONES -->
       <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
         <div class="flex items-center justify-between pb-2 border-b border-slate-100">
           <h4 class="text-xs font-bold text-[#0a192f] flex items-center gap-1.5">
-            <i data-lucide="hard-drive-download" class="w-4 h-4 text-amber-600"></i>
-            <span>Backups / Snapshots (${org.snapshots.length})</span>
+            <i data-lucide="user-check" class="w-4 h-4 text-purple-600"></i>
+            <span>Autorizaciones (${autorizaciones.length})</span>
           </h4>
         </div>
         <div class="space-y-2 max-h-60 overflow-y-auto">
-          ${org.snapshots.length === 0 ? `<p class="text-xs text-slate-400 py-3 text-center">Sin respaldos automáticos registrados.</p>` : org.snapshots.map(s => `
-            <div class="p-2.5 rounded-xl bg-amber-50/60 border border-amber-200 text-xs flex items-center justify-between gap-2">
+          ${autorizaciones.length === 0 ? `<p class="text-xs text-slate-400 py-3 text-center">Sin autorizaciones específicas subidas.</p>` : autorizaciones.map(aut => `
+            <div class="p-2.5 rounded-xl bg-purple-50/60 border border-purple-200 text-xs flex items-center justify-between gap-2">
               <div class="min-w-0">
-                <p class="font-bold text-amber-900 truncate">${escapeHtml(s.operacion_origen)}</p>
-                <p class="text-[10px] text-slate-500 font-mono">${escapeHtml(s.fecha_hora || '')}</p>
+                <p class="font-bold text-purple-900 truncate">${escapeHtml(aut.nombre_archivo)}</p>
+                <p class="text-[10px] text-slate-500 font-mono">${formatearTamanoBytes(aut.tamano_bytes)}</p>
               </div>
               <div class="flex items-center gap-1 shrink-0">
-                <button onclick="descargarSnapshotBoveda(${s.id}, 'excel')" class="p-1 rounded-lg bg-white border border-slate-200 hover:bg-emerald-50 text-emerald-700 cursor-pointer" title="Descargar Excel">
-                  <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+                <button onclick="descargarArchivoBodegaLegal(${aut.id})" class="p-1 rounded-lg bg-white border border-slate-200 hover:bg-purple-50 text-purple-700 cursor-pointer" title="Descargar">
+                  <i data-lucide="download" class="w-3.5 h-3.5"></i>
                 </button>
-                <button onclick="descargarSnapshotBoveda(${s.id}, 'json')" class="p-1 rounded-lg bg-white border border-slate-200 hover:bg-amber-50 text-amber-700 cursor-pointer" title="Descargar JSON">
-                  <i data-lucide="code" class="w-3.5 h-3.5"></i>
+                <button onclick="eliminarArchivoBodegaLegal(${aut.id}, '${escapeHtml(aut.nombre_archivo)}')" class="p-1 rounded-lg bg-white border border-slate-200 hover:bg-rose-50 text-rose-700 cursor-pointer" title="Eliminar">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                 </button>
               </div>
             </div>
@@ -11935,103 +12221,227 @@ function seleccionarCarpetaInstitucionalBodega(orgId) {
   refrescarIconos();
 }
 
-function alternarVisibilidadClaveBodega() {
-  const input = document.getElementById('input-clave-oficial-bodega');
-  const icono = document.getElementById('icono-ojo-clave-bodega');
-  if (!input) return;
-  if (input.type === 'password') {
-    input.type = 'text';
-    if (icono) icono.setAttribute('data-lucide', 'eye-off');
+function renderizarHistorialTrazabilidad(historial) {
+  const tbody = document.getElementById('tabla-boveda-historial-trazabilidad');
+  if (!tbody) return;
+  if (!historial || historial.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="py-8 text-center text-slate-400">Sin eventos de auditoría registrados aún.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = historial.map(h => {
+    let badgeColor = 'bg-slate-100 text-slate-800 border-slate-200';
+    if (h.categoria === 'CONVENIO_INSTITUCIONAL') badgeColor = 'bg-blue-50 text-blue-800 border-blue-200';
+    else if (h.categoria === 'ACTA_HABEAS_DATA_EXCEL') badgeColor = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+    else if (h.categoria === 'CREACION_DOCUMENTO_LEGAL') badgeColor = 'bg-amber-50 text-amber-800 border-amber-200';
+    else if (h.categoria === 'ELIMINACION_DOCUMENTO_LEGAL') badgeColor = 'bg-rose-50 text-rose-800 border-rose-200';
+
+    return `
+      <tr class="hover:bg-slate-50 transition-colors">
+        <td class="py-3 px-3 font-mono font-bold text-slate-500">#${h.id}</td>
+        <td class="py-3 px-3 font-mono text-[11px] text-slate-700 whitespace-nowrap">${escapeHtml(h.fecha_hora || '')}</td>
+        <td class="py-3 px-3">
+          <span class="px-2 py-0.5 rounded-full ${badgeColor} border text-[10px] font-bold">
+            ${escapeHtml(h.categoria)}
+          </span>
+        </td>
+        <td class="py-3 px-3">
+          <strong class="font-bold text-[#0a192f] block text-xs">${escapeHtml(h.organizacion_nombre || 'Consultoría EdTech')}</strong>
+        </td>
+        <td class="py-3 px-3 text-[11px]">
+          <span class="font-mono text-cyan-800 font-semibold block">${escapeHtml(h.correo_responsable || '')}</span>
+          <span class="text-[10px] text-slate-400 font-mono">IP: ${escapeHtml(h.direccion_ip || '127.0.0.1')}</span>
+        </td>
+        <td class="py-3 px-3 text-[11px] text-slate-600 max-w-sm">
+          <span class="line-clamp-2" title="${escapeHtml(h.declaracion_legal || '')}">${escapeHtml(h.declaracion_legal || '')}</span>
+        </td>
+        <td class="py-3 px-3 font-mono text-[10px] text-slate-500 whitespace-nowrap">
+          <span class="px-2 py-0.5 rounded bg-slate-100 border border-slate-200" title="${escapeHtml(h.hash_integridad || '')}">
+            🔒 ${(h.hash_integridad || '').slice(0, 14)}...
+          </span>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderizarTablaBovedaSnapshots(snapshots) {
+  const tbody = document.getElementById('tabla-boveda-snapshots');
+  if (!tbody) return;
+  if (!snapshots || snapshots.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-400">No hay snapshots registrados aún. Puede generar uno con el botón superior.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = snapshots.map(s => `
+    <tr class="hover:bg-slate-50 transition-colors">
+      <td class="py-3 px-3 font-mono font-bold text-amber-800">#SNAP-${s.id}</td>
+      <td class="py-3 px-3 font-mono text-[11px] text-slate-700 whitespace-nowrap">${escapeHtml(s.fecha_hora || '')}</td>
+      <td class="py-3 px-3">
+        <span class="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-300 text-[10px] font-bold">
+          ${escapeHtml(s.operacion_origen || 'BACKUP')}
+        </span>
+      </td>
+      <td class="py-3 px-3">
+        <strong class="font-bold text-[#0a192f] block text-xs">${escapeHtml(s.entidad_afectada || 'Plataforma')}</strong>
+        <span class="text-[10px] text-slate-500">${escapeHtml(s.entidad_nombre || '')}</span>
+      </td>
+      <td class="py-3 px-3 font-mono text-[11px] text-slate-600">
+        ${escapeHtml(s.correo_responsable || '')}<br>
+        <span class="text-[10px] text-slate-400">IP: ${escapeHtml(s.direccion_ip || '')}</span>
+      </td>
+      <td class="py-3 px-3 font-bold text-slate-700 text-xs">${s.total_registros_respaldados || s.total_registros || 0} reg.</td>
+      <td class="py-3 px-3 font-mono text-[10px] text-slate-500 whitespace-nowrap">
+        🔒 ${(s.hash_integridad || s.hash_sha256 || '').slice(0, 12)}...
+      </td>
+      <td class="py-3 px-3 text-right whitespace-nowrap">
+        <div class="inline-flex items-center gap-1.5">
+          <button type="button" onclick="descargarSnapshotBoveda(${s.id}, 'excel')" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition-all cursor-pointer">
+            📊 .XLSX
+          </button>
+          <button type="button" onclick="descargarSnapshotBoveda(${s.id}, 'json')" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold transition-all cursor-pointer">
+            { } .JSON
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function subirDocumentoLegalDirecto(event, categoria) {
+  if (event) event.preventDefault();
+  let fileInput = null;
+  let descInput = null;
+
+  if (categoria === 'POLITICAS_EMPRESA') {
+    fileInput = document.getElementById('file-politica-nueva');
+    descInput = document.getElementById('desc-politica-nueva');
   } else {
-    input.type = 'password';
-    if (icono) icono.setAttribute('data-lucide', 'eye');
+    fileInput = document.getElementById('file-doc-legal-nuevo');
+    descInput = document.getElementById('desc-doc-legal-nuevo');
   }
-  refrescarIconos();
-}
 
-async function actualizarClaveOficialBodega(event) {
-  if (event) event.preventDefault();
-  const input = document.getElementById('input-clave-oficial-bodega');
-  const clave = input ? input.value.trim() : '';
-  if (!clave) {
-    mostrarToast('Por favor ingrese la nueva contraseña.', 'advertencia');
-    return;
-  }
-  try {
-    mostrarToast('Actualizando contraseña de Bodega Legal en Azure SQL...', 'info');
-    const res = await fetch(`${API_BASE}/api/bodega-legal/actualizar-clave`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password_nueva: clave })
-    });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.detail || 'Error al actualizar contraseña');
-    mostrarToast(json.mensaje || '✓ Contraseña de Bodega Legal actualizada en Azure SQL.', 'exito');
-    if (input) input.value = clave;
-  } catch (err) {
-    mostrarToast(err.message, 'error');
-  }
-}
-
-async function subirDocumentoConsultoriaForm(event) {
-  if (event) event.preventDefault();
-  const fileInput = document.getElementById('file-doc-consultoria');
-  const descInput = document.getElementById('desc-doc-consultoria');
   if (!fileInput || !fileInput.files.length) {
-    mostrarToast('Seleccione un archivo.', 'advertencia');
-    return;
+    return mostrarToast('Por favor seleccione un archivo para subir.', 'advertencia');
   }
+
   const fd = new FormData();
   fd.append('archivo', fileInput.files[0]);
+  fd.append('categoria', categoria);
   fd.append('descripcion', descInput?.value || '');
   fd.append('correo_responsable', currentUser?.correo || 'diegoalexander.nino.583@hotmail.com');
 
   try {
-    mostrarToast('Subiendo documento de consultoría a Bodega Legal...', 'info');
-    const res = await fetch(`${API_BASE}/api/bodega-legal/subir-documento-consultoria`, {
+    mostrarToast('Subiendo documento y certificando en Azure SQL...', 'info');
+    const res = await fetch(`${API_BASE}/api/bodega-legal/subir-documento-legal`, {
       method: 'POST',
       body: fd
     });
     const json = await res.json();
-    if (!res.ok) throw new Error(json.detail || 'Error al subir archivo');
-    mostrarToast(json.mensaje || '✓ Documento guardado en Bodega Legal.', 'exito');
+    if (!res.ok) throw new Error(json.detail || 'Error al subir documento');
+
+    mostrarToast(`✓ ${json.mensaje || 'Documento guardado y certificado en la Bodega Legal.'}`, 'exito');
     fileInput.value = '';
     if (descInput) descInput.value = '';
-    const formWrap = document.getElementById('form-subir-doc-consultoria-wrapper');
-    if (formWrap) formWrap.classList.add('hidden');
-    await cargarCarpetasBodegaLegal();
+
+    const wrapP = document.getElementById('form-subir-politica-wrapper');
+    const wrapL = document.getElementById('form-subir-doc-legal-wrapper');
+    if (wrapP) wrapP.classList.add('hidden');
+    if (wrapL) wrapL.classList.add('hidden');
+
+    await cargarVistaBovedaLegal();
   } catch (err) {
     mostrarToast(err.message, 'error');
   }
 }
 
-async function subirContratoInstitucionForm(event, orgId) {
+async function subirDocumentoInstitucionDirecto(event, orgId) {
   if (event) event.preventDefault();
-  const fileInput = document.getElementById(`file-contrato-${orgId}`);
-  const descInput = document.getElementById(`desc-contrato-${orgId}`);
+  const tipoSelect = document.getElementById(`select-tipo-doc-inst-${orgId}`);
+  const fileInput = document.getElementById(`file-doc-inst-${orgId}`);
+  const descInput = document.getElementById(`desc-doc-inst-${orgId}`);
+
   if (!fileInput || !fileInput.files.length) {
-    mostrarToast('Seleccione el archivo de contrato firmado.', 'advertencia');
-    return;
+    return mostrarToast('Seleccione el archivo a subir.', 'advertencia');
   }
+
   const fd = new FormData();
   fd.append('organizacion_id', orgId);
   fd.append('archivo', fileInput.files[0]);
+  fd.append('tipo_documento', tipoSelect?.value || 'Contrato Firmado');
   fd.append('descripcion', descInput?.value || '');
   fd.append('correo_responsable', currentUser?.correo || 'diegoalexander.nino.583@hotmail.com');
 
   try {
-    mostrarToast('Subiendo contrato firmado a Azure SQL...', 'info');
-    const res = await fetch(`${API_BASE}/api/bodega-legal/subir-contrato-institucion`, {
+    mostrarToast('Subiendo documento a la carpeta institucional...', 'info');
+    const res = await fetch(`${API_BASE}/api/bodega-legal/subir-documento-institucion`, {
       method: 'POST',
       body: fd
     });
     const json = await res.json();
-    if (!res.ok) throw new Error(json.detail || 'Error al subir contrato');
-    mostrarToast(json.mensaje || '✓ Contrato persistido con éxito.', 'exito');
-    await cargarCarpetasBodegaLegal();
+    if (!res.ok) throw new Error(json.detail || 'Error al subir documento');
+
+    mostrarToast(`✓ ${json.mensaje || 'Documento persistido en la carpeta institucional.'}`, 'exito');
+    fileInput.value = '';
+    if (descInput) descInput.value = '';
+    await cargarVistaBovedaLegal();
   } catch (err) {
     mostrarToast(err.message, 'error');
   }
+}
+
+async function eliminarArchivoBodegaLegal(archivoId, nombreArchivo) {
+  if (!confirm(`¿Está seguro de eliminar el documento '${nombreArchivo}' de la Bodega Legal?\n\nEsta acción quedará registrada en el Historial de Auditoría con sello SHA-256.`)) {
+    return;
+  }
+  try {
+    mostrarToast('Eliminando documento y registrando evento en auditoría...', 'info');
+    const correo = currentUser?.correo || 'diegoalexander.nino.583@hotmail.com';
+    const res = await fetch(`${API_BASE}/api/bodega-legal/eliminar-archivo/${archivoId}?correo_responsable=${encodeURIComponent(correo)}`, {
+      method: 'POST'
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.detail || 'Error al eliminar archivo');
+
+    mostrarToast(`✓ ${json.mensaje || 'Documento eliminado y auditado con éxito.'}`, 'info');
+    await cargarVistaBovedaLegal();
+  } catch (err) {
+    mostrarToast(err.message, 'error');
+  }
+}
+
+async function crearSnapshotManualBovedaLegal() {
+  const correo = obtenerCorreoSolicitanteBoveda() || 'diegoalexander.nino.583@hotmail.com';
+  try {
+    mostrarToast('📸 Generando Snapshot Inmutable en Azure SQL...', 'info');
+    const res = await fetch(`${API_BASE}/api/boveda-legal/snapshots/crear-manual`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        correo_solicitante: correo,
+        motivo: 'Snapshot inmutable manual generado desde Bodega Legal & Compliance'
+      })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.detail || 'Error al crear snapshot');
+    mostrarToast(json.mensaje || '✓ Snapshot inmutable creado y persistido en Azure SQL.', 'exito');
+    await cargarVistaBovedaLegal();
+    cambiarTabBodegaLegal('copias-seguridad');
+  } catch (err) {
+    mostrarToast(err.message, 'error');
+  }
+}
+
+function descargarSnapshotBoveda(snapshotId, formato) {
+  const correo = obtenerCorreoSolicitanteBoveda() || 'diegoalexander.nino.583@hotmail.com';
+  const endpoint = formato === 'json' ? 'descargar-json' : 'descargar-excel';
+  window.location.href = `${API_BASE}/api/boveda-legal/snapshots/${snapshotId}/${endpoint}?correo_solicitante=${encodeURIComponent(correo)}`;
+}
+
+function descargarExpedienteCompletoBovedaLegal() {
+  const correo = obtenerCorreoSolicitanteBoveda() || 'diegoalexander.nino.583@hotmail.com';
+  mostrarToast('📥 Descargando Expediente Legal Completo (.xlsx) con Convenios, Actas Habeas Data, Snapshots y Políticas...', 'info');
+  window.location.href = `${API_BASE}/api/boveda-legal/exportar-expediente-completo?correo_solicitante=${encodeURIComponent(correo)}`;
 }
 
 function descargarDocumentoOficialTexto(docId) {
@@ -12052,3 +12462,4 @@ function formatearTamanoBytes(bytes) {
   const i = Math.floor(Math.log(b) / Math.log(k));
   return parseFloat((b / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
+
