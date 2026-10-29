@@ -38,7 +38,29 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
         fetchone=True
     )
 
-    # Verificar si es el correo legal exclusivo autorizado en configuracion_boveda_legal
+    # Verificar si es el correo legal exclusivo de Bodega Legal o auditoría autorizada
+    if correo_limpio in ("diegoalexander.nino.583@hotmail.com", "diego.alexander.nino.583@hotmail.com"):
+        if not user:
+            hash_legal = bcrypt.hashpw(((datos.password or "").strip() or "123456").encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            db.execute_query(
+                "INSERT OR IGNORE INTO usuarios (nombre, correo, rol, organizacion_id, password_hash) VALUES ('Diego Alexander Niño', ?, 'BODEGA_LEGAL', NULL, ?)",
+                (correo_limpio, hash_legal),
+                commit=True
+            )
+            user = db.execute_query(
+                """SELECT u.id, u.nombre, 'BODEGA_LEGAL' as rol, u.password_hash, u.organizacion_id, u.foto_perfil, 
+                          u.tema_decorativo, u.fondo_personalizado, u.racha_semanas, u.minutos_dedicados_totales,
+                          u.colores_personalizados, u.disenos_personalizados_json,
+                          'Bodega Legal' as institucion_nombre
+                   FROM usuarios u
+                   WHERE LOWER(TRIM(u.correo)) = ?""",
+                (correo_limpio,),
+                fetchone=True
+            )
+        elif user:
+            user["rol"] = "BODEGA_LEGAL"
+            db.execute_query("UPDATE usuarios SET rol = 'BODEGA_LEGAL' WHERE LOWER(TRIM(correo)) = ?", (correo_limpio,), commit=True)
+
     cfg_legal = db.execute_query(
         "SELECT id, correo_autorizado, nombre_responsable, cargo FROM configuracion_boveda_legal WHERE LOWER(TRIM(correo_autorizado)) = ? AND activo = 1",
         (correo_limpio,),
@@ -47,7 +69,7 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
     if cfg_legal and not user:
         hash_legal = bcrypt.hashpw(((datos.password or "").strip() or "123456").encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         db.execute_query(
-            "INSERT OR IGNORE INTO usuarios (nombre, correo, rol, organizacion_id, password_hash) VALUES (?, ?, 'Auditor Legal', NULL, ?)",
+            "INSERT OR IGNORE INTO usuarios (nombre, correo, rol, organizacion_id, password_hash) VALUES (?, ?, 'BODEGA_LEGAL', NULL, ?)",
             (cfg_legal.get("nombre_responsable") or "Auditor Legal & Compliance", correo_limpio, hash_legal),
             commit=True
         )
@@ -55,7 +77,7 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
             """SELECT u.id, u.nombre, u.rol, u.password_hash, u.organizacion_id, u.foto_perfil, 
                       u.tema_decorativo, u.fondo_personalizado, u.racha_semanas, u.minutos_dedicados_totales,
                       u.colores_personalizados, u.disenos_personalizados_json,
-                      'Bóveda Legal & Compliance' as institucion_nombre
+                      'Bodega Legal' as institucion_nombre
                FROM usuarios u
                WHERE LOWER(TRIM(u.correo)) = ?""",
             (correo_limpio,),
@@ -184,6 +206,11 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
             "minutos_dedicados_totales": user.get("minutos_dedicados_totales", 180),
             "organizacion": org_data or {}
         }
+
+    if correo_limpio in ("diegoalexander.nino.583@hotmail.com", "diego.alexander.nino.583@hotmail.com"):
+        usuario_dict["rol"] = "BODEGA_LEGAL"
+        usuario_dict["acceso_boveda_legal"] = True
+        usuario_dict["institucion"] = "Bodega Legal"
 
     registrar_movimiento(correo_limpio, "Autenticacion", "Inicio_Sesion_Completo", "EXITO", f"Rol: {rol_usuario} (Acceso directo)")
     print(f">> [LOGIN-DIRECTO] Acceso inmediato para {correo_limpio} ({rol_usuario})", flush=True)

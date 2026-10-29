@@ -2295,3 +2295,39 @@ body.tema-oscuro .border-slate-100,
 body.tema-oscuro .border-slate-200 {
   border-color: #2b2f35 !important;
 }
+
+/* ==========================================================================
+   ARMONIZACIÓN MODO OSCURO: DRILLDOWN DE MÉTRICAS Y CAJA LEGAL HABEAS DATA
+   ========================================================================== */
+body.tema-oscuro #panel-drilldown-metricas {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+  border-color: #0284c7 !important;
+  color: #f1f5f9 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
+}
+
+body.tema-oscuro #panel-drilldown-metricas h3,
+body.tema-oscuro #panel-drilldown-metricas p,
+body.tema-oscuro #panel-drilldown-metricas span {
+  color: #e2e8f0 !important;
+}
+
+body.tema-oscuro #drilldown-explicacion-texto {
+  background-color: #0b1120 !important;
+  border-color: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+
+body.tema-oscuro .caja-legal-habeas {
+  background-color: rgba(245, 158, 11, 0.12) !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+  color: #fef3c7 !important;
+}
+
+body.tema-oscuro .caja-legal-habeas strong {
+  color: #fbbf24 !important;
+}
+
+body.tema-oscuro .caja-legal-habeas span {
+  color: #fde68a !important;
+}

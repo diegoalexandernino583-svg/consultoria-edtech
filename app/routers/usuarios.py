@@ -744,33 +744,35 @@ async def cargar_usuarios_excel(
     request: Request,
     background_tasks: BackgroundTasks,
     archivo: UploadFile = File(...),
-    organizacion_id: Optional[int] = Form(None),
+    organizacion_id: Optional[Any] = Form(None),
     modo_dominio: Optional[str] = Form("flexible"),
     confirmacion_habeas_data: Optional[str] = Form("true"),
     correo_responsable: Optional[str] = Form(None),
     rol_responsable: Optional[str] = Form("Super Administrador"),
-    org_id_query: Optional[int] = Query(None, alias="organizacion_id"),
+    org_id_query: Optional[Any] = Query(None, alias="organizacion_id"),
     modo_query: Optional[str] = Query(None, alias="modo_dominio")
 ):
-    """Carga masiva multi-rol procesando TODAS las hojas del archivo Excel (Hojas de Admins, Mentores y Aprendices):
-    - Registra un Acta Inmutable de Consentimiento Habeas Data (Ley 1581 de 2012 y Art. 7 Menores) en la Bóveda Legal
-    - Itera por todas las pestañas/hojas de cálculo sin limitarse solo a la primera
-    - Asigna roles automáticamente según el nombre de la hoja o la columna Rol
+    """Carga masiva multi-rol procesando TODAS las hojas del archivo Excel con motor de alto rendimiento (Bulk Insert):
+    - Resuelve la organización de forma ultra flexible (ID, nombre, sufijos) evitando errores de inexistencia
+    - Lectura en memoria sin límites de filas (300, 2.000, 100.000+ registros)
+    - Deduplicación previa instantánea en 1 sola consulta
+    - Inserción masiva por bloques (Bulk executemany) en SQLite y replicación en Azure SQL
+    - Auto-matriculación masiva en una sola sentencia SQL
+    - Registro inmutable de Acta de Consentimiento Habeas Data en Bodega Legal
     """
     if str(confirmacion_habeas_data or "true").strip().lower() in ("false", "0", "no"):
         raise HTTPException(
             status_code=400,
             detail="Es obligatorio marcar la declaración juramentada de Habeas Data (Ley 1581 de 2012 y autorización de padres/acudientes Art. 7 para menores de edad) antes de importar la base de datos."
         )
-    final_org_id = organizacion_id if organizacion_id is not None else org_id_query
-    if not final_org_id:
-        raise HTTPException(status_code=400, detail="Debe especificar una organización destino.")
 
-    final_modo = (modo_dominio or modo_query or "flexible").strip().lower()
-
-    org = db.execute_query("SELECT id, nombre, tipo_organizacion, dominio_permitido FROM organizaciones WHERE id = ?", (final_org_id,), fetchone=True)
+    ident_org = organizacion_id if organizacion_id is not None and str(organizacion_id).strip() != "" else org_id_query
+    org = resolver_organizacion(ident_org)
     if not org:
-        raise HTTPException(status_code=404, detail="La organización seleccionada no existe.")
+        raise HTTPException(status_code=404, detail="La organización seleccionada no existe en la base de datos. Verifique la institución destino.")
+
+    final_org_id = org["id"]
+    final_modo = (modo_dominio or modo_query or "flexible").strip().lower()
 
     nombre_archivo = archivo.filename.lower()
     contenido = await archivo.read()
@@ -787,17 +789,15 @@ async def cargar_usuarios_excel(
                 if not todas_filas:
                     continue
 
-                # Determinar rol sugerido por el nombre de la pestaña/hoja
                 hoja_titulo = sheet.title.lower().strip()
                 rol_default = None
-                if any(k in hoja_titulo for k in ["admin", "directiv", "coordinad"]):
+                if any(k in hoja_titulo for k in ["admin", "directiv", "coordinad", "rector"]):
                     rol_default = "Administrador"
-                elif any(k in hoja_titulo for k in ["mentor", "docent", "profes", "tutor", "instructor"]):
+                elif any(k in hoja_titulo for k in ["mentor", "docent", "profes", "tutor", "instructor", "lider"]):
                     rol_default = "Mentor"
-                elif any(k in hoja_titulo for k in ["aprendiz", "estudiant", "alumn"]):
+                elif any(k in hoja_titulo for k in ["aprendiz", "estudiant", "alumn", "participante", "empleado"]):
                     rol_default = "Aprendiz"
 
-                # Mapeo dinámico de columnas por encabezado para esta hoja específica
                 inicio_datos = 0
                 header_map = {}
                 if todas_filas and any(todas_filas[0]):
@@ -805,7 +805,7 @@ async def cargar_usuarios_excel(
                     for idx, c in enumerate(primera_fila):
                         if "nombre" in c: header_map["nombre"] = idx
                         elif "correo" in c and "mentor" not in c and "tutor" not in c: header_map["correo"] = idx
-                        elif "rol" in c or "cargo" in c: header_map["rol"] = idx
+                        elif "rol" in c or "cargo" in c or "puesto" in c: header_map["rol"] = idx
                         elif "mentor" in c or "tutor" in c or "profesor" in c: header_map["mentor"] = idx
                     if "nombre" in header_map or "correo" in header_map:
                         inicio_datos = 1
@@ -820,7 +820,6 @@ async def cargar_usuarios_excel(
                         nom = str(fila[idx_nom]).strip()
                         corr = str(fila[idx_corr]).strip()
                         
-                        # Si tiene columna explícita de rol, se respeta; sino se toma el rol inferido de la hoja
                         if idx_rol is not None and len(fila) > idx_rol and fila[idx_rol] and str(fila[idx_rol]).strip():
                             rol = str(fila[idx_rol]).strip()
                         elif rol_default:
@@ -836,7 +835,6 @@ async def cargar_usuarios_excel(
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Error al leer el archivo Excel: {str(e)}")
     else:
-        # Fallback CSV
         try:
             texto = contenido.decode("utf-8", errors="ignore")
             lector = csv.reader(io.StringIO(texto))
@@ -853,47 +851,48 @@ async def cargar_usuarios_excel(
                     men = fila[3].strip() if len(fila) > 3 and fila[3] else None
                     filas_procesar.append((nom, corr, rol, men))
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Error al leer archivo: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Error al leer archivo CSV: {str(e)}")
 
     if not filas_procesar:
         raise HTTPException(status_code=400, detail="No se encontraron filas con datos válidos en ninguna de las hojas del archivo.")
 
-    registrados = 0
+    # Deduplicación y validación masiva ultra-rápida (1 sola consulta en memoria)
+    filas_correos = db.execute_query("SELECT LOWER(correo) as correo FROM usuarios", fetchall=True) or []
+    correos_existentes = {r["correo"].strip().lower() for r in filas_correos if r.get("correo")}
+    correos_vistos_archivo = set()
+
     conteo_admins = 0
     conteo_mentores = 0
     conteo_aprendices = 0
     alertas = []
     dominio_org = (org["dominio_permitido"] or "").strip().lower()
     hash_generico = bcrypt.hashpw("123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-    usuarios_insertados = []
 
-    # PASO 1: Validación y registro de usuarios
+    usuarios_para_insertar = []
+    usuarios_insertados_info = []
+
     for idx, (nom, corr, rol_raw, mentor_correo) in enumerate(filas_procesar):
         corr_limpio = corr.lower().strip()
         
-        # Validar formato de email
         if "@" not in corr_limpio or "." not in corr_limpio.split("@")[-1]:
             alertas.append(f"Fila {idx+1} ({nom}): Formato de correo '{corr_limpio}' inválido (omitido).")
             continue
 
         dominio_corr = corr_limpio.split("@")[-1].strip()
         
-        # Validación según el modo seleccionado (Flexible vs Estricto)
         if final_modo == "estricto":
             if dominio_org and dominio_org != "libre" and dominio_corr != dominio_org:
                 alertas.append(f"Fila {idx+1} ({nom}): Correo @{dominio_corr} no coincide con el dominio institucional @{dominio_org} (Modo Estricto).")
                 continue
-        # En modo 'flexible': Acepta todos los dominios (@gmail.com, @hotmail.com, etc.) según su cargo
 
-        existe = db.execute_query("SELECT id FROM usuarios WHERE correo = ?", (corr_limpio,), fetchone=True)
-        if existe:
-            alertas.append(f"Fila {idx+1} ({corr_limpio}): Ya se encuentra registrado en el sistema (omitido).")
+        if corr_limpio in correos_existentes or corr_limpio in correos_vistos_archivo:
+            alertas.append(f"Fila {idx+1} ({corr_limpio}): Ya se encuentra registrado en el sistema o duplicado en el archivo (omitido).")
             continue
 
-        # Normalizar y clasificar rol según el cargo especificado en el archivo
+        correos_vistos_archivo.add(corr_limpio)
+
         rol_lower = rol_raw.lower().strip()
         if "super" in rol_lower:
-            # Por seguridad de jerarquías, no se pueden crear Super Administradores mediante Excel
             rol_final = "Administrador"
             conteo_admins += 1
         elif "admin" in rol_lower or "coordinador" in rol_lower or "rector" in rol_lower or "director" in rol_lower:
@@ -906,85 +905,90 @@ async def cargar_usuarios_excel(
             rol_final = "Aprendiz"
             conteo_aprendices += 1
 
-        db.execute_query(
-            "INSERT INTO usuarios (nombre, correo, password_hash, rol, organizacion_id, mentor_id) VALUES (?, ?, ?, ?, ?, NULL)",
-            (nom, corr_limpio, hash_generico, rol_final, final_org_id),
-            commit=True
-        )
-        registrados += 1
-        usuarios_insertados.append({
+        usuarios_para_insertar.append((nom, corr_limpio, hash_generico, rol_final, final_org_id, None))
+        usuarios_insertados_info.append({
             "nombre": nom,
             "correo": corr_limpio,
             "rol": rol_final,
             "mentor_correo": mentor_correo.lower().strip() if mentor_correo else None
         })
-        registrar_movimiento(corr_limpio, "Excel_Upload", "Crear_Usuario", "EXITO", f"Rol: {rol_final} - Org: {org['nombre']} - Modo: {final_modo}")
+
+    registrados = len(usuarios_para_insertar)
+
+    # Inserción masiva por bloques (Bulk insert con executemany)
+    if registrados > 0:
+        now_ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        now_dia = datetime.now().strftime("%Y-%m-%d")
+        conn = db._conexion_local()
+        cursor = conn.cursor()
         
-        u_creado = db.execute_query("SELECT id FROM usuarios WHERE correo = ?", (corr_limpio,), fetchone=True)
-        u_id_val = u_creado["id"] if u_creado else None
-        registrar_en_historial_integrantes(
-            nombre=nom,
-            correo=corr_limpio,
-            rol=rol_final,
-            organizacion_id=final_org_id,
-            organizacion_nombre=org["nombre"],
-            origen="Carga Excel",
-            usuario_id=u_id_val
+        CHUNK_SIZE = 1000
+        for i in range(0, registrados, CHUNK_SIZE):
+            chunk = usuarios_para_insertar[i:i + CHUNK_SIZE]
+            cursor.executemany(
+                "INSERT INTO usuarios (nombre, correo, password_hash, rol, organizacion_id, mentor_id) VALUES (?, ?, ?, ?, ?, ?)",
+                chunk
+            )
+        conn.commit()
+
+        # Historial de nuevos integrantes por bloques
+        historial_datos = [
+            (u["nombre"], u["correo"], u["rol"], final_org_id, org["nombre"], "Carga Excel", now_ts, now_dia)
+            for u in usuarios_insertados_info
+        ]
+        for i in range(0, len(historial_datos), CHUNK_SIZE):
+            chunk_h = historial_datos[i:i + CHUNK_SIZE]
+            cursor.executemany(
+                "INSERT INTO historial_nuevos_integrantes (nombre, correo, rol, organizacion_id, organizacion_nombre, origen_registro, fecha_registro, fecha_dia) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                chunk_h
+            )
+        conn.commit()
+        notificar_escritura("INSERT INTO usuarios")
+        notificar_escritura("INSERT INTO historial_nuevos_integrantes")
+
+        # Asignar mentor por defecto si hay aprendices
+        mentor_defecto = db.execute_query(
+            "SELECT id FROM usuarios WHERE organizacion_id = ? AND rol = 'Mentor' ORDER BY id ASC LIMIT 1",
+            (final_org_id,), fetchone=True
         )
+        if mentor_defecto and conteo_aprendices > 0:
+            db.execute_query(
+                "UPDATE usuarios SET mentor_id = ? WHERE organizacion_id = ? AND rol = 'Aprendiz' AND mentor_id IS NULL",
+                (mentor_defecto["id"], final_org_id),
+                commit=True
+            )
 
-    # PASO 2: Vinculación relacional de mentores para aprendices y envío de correo ejecutivo de bienvenida
-    mentor_defecto = db.execute_query(
-        "SELECT id FROM usuarios WHERE organizacion_id = ? AND rol = 'Mentor' ORDER BY id ASC LIMIT 1",
-        (final_org_id,), fetchone=True
-    )
-    for u in usuarios_insertados:
-        m_id_asignar = None
-        if u["mentor_correo"]:
-            m_user = db.execute_query("SELECT id FROM usuarios WHERE correo = ?", (u["mentor_correo"],), fetchone=True)
-            if m_user:
-                m_id_asignar = m_user["id"]
-        if not m_id_asignar and u["rol"] == "Aprendiz" and mentor_defecto:
-            m_id_asignar = mentor_defecto["id"]
-        if m_id_asignar:
-            db.execute_query("UPDATE usuarios SET mentor_id = ? WHERE correo = ?", (m_id_asignar, u["correo"]), commit=True)
-
-        cuerpo_html = generar_html_correo_bienvenida(
-            nombre=u["nombre"],
-            rol=u["rol"],
-            correo=u["correo"],
-            institucion_nombre=org["nombre"],
-            password_inicial="123456"
-        )
-        asunto_bienvenida = f"✨ Bienvenido a Consultoría EdTech | {org['nombre']} ({u['rol']})"
-        background_tasks.add_task(enviar_correo_smtp, u["correo"], asunto_bienvenida, cuerpo_html)
-
-    # Auto-matricular en 0% a los aprendices recién importados en las colecciones asignadas a la institución
-    if conteo_aprendices > 0:
-        cols_org = db.execute_query(
-            "SELECT DISTINCT material_id FROM asignacion_material WHERE organizacion_id = ?",
-            (final_org_id,),
-            fetchall=True
-        ) or []
-        if cols_org:
-            aprs_org = db.execute_query(
-                "SELECT id FROM usuarios WHERE organizacion_id = ? AND rol = 'Aprendiz'",
-                (final_org_id,),
-                fetchall=True
-            ) or []
-            for ap_row in aprs_org:
-                for col_row in cols_org:
-                    ex_prog = db.execute_query(
-                        "SELECT id FROM progreso_cursos WHERE usuario_id = ? AND curso_id = ?",
-                        (ap_row["id"], col_row["material_id"]),
-                        fetchone=True
+        # Auto-matricular instantáneamente en 1 sola consulta SQL sin bloqueos
+        if conteo_aprendices > 0:
+            try:
+                cursor.execute("""
+                    INSERT INTO progreso_cursos (usuario_id, curso_id, porcentaje_avance, tiempo_dedicado_minutos, modulos_completados, estado, fecha_actualizacion)
+                    SELECT u.id, am.material_id, 0.0, 0, 0, 'No Iniciado', DATETIME('now', 'localtime')
+                    FROM usuarios u
+                    JOIN asignacion_material am ON am.organizacion_id = u.organizacion_id
+                    WHERE u.organizacion_id = ? AND u.rol = 'Aprendiz'
+                    AND NOT EXISTS (
+                        SELECT 1 FROM progreso_cursos pc WHERE pc.usuario_id = u.id AND pc.curso_id = am.material_id
                     )
-                    if not ex_prog:
-                        db.execute_query(
-                            "INSERT INTO progreso_cursos (usuario_id, curso_id, porcentaje_avance, tiempo_dedicado_minutos, modulos_completados, estado, fecha_actualizacion) VALUES (?, ?, 0.0, 0, 0, 'No Iniciado', DATETIME('now', 'localtime'))",
-                            (ap_row["id"], col_row["material_id"]),
-                            commit=True
-                        )
+                """, (final_org_id,))
+                conn.commit()
+                notificar_escritura("INSERT INTO progreso_cursos")
+            except Exception as e_mat:
+                print(f">> [BULK-MATRICULAS] Aviso: {e_mat}")
 
+        # Despachar correos en segundo plano (Background tasks con límite amigable para no saturar SMTP)
+        for u in usuarios_insertados_info[:150]:
+            cuerpo_html = generar_html_correo_bienvenida(
+                nombre=u["nombre"],
+                rol=u["rol"],
+                correo=u["correo"],
+                institucion_nombre=org["nombre"],
+                password_inicial="123456"
+            )
+            asunto_bienvenida = f"✨ Bienvenido a Consultoría EdTech | {org['nombre']} ({u['rol']})"
+            background_tasks.add_task(enviar_correo_smtp, u["correo"], asunto_bienvenida, cuerpo_html)
+
+    # Registro legal inmutable en Bodega Legal
     ip_cliente = obtener_ip_cliente(request) if request else "127.0.0.1"
     correo_autor = (correo_responsable or "alexander.nino.583@gmail.com").strip().lower()
     rol_autor = (rol_responsable or "Super Administrador").strip()
@@ -1034,7 +1038,7 @@ async def cargar_usuarios_excel(
             "archivo_nombre": archivo.filename,
             "organizacion_id": final_org_id,
             "organizacion_nombre": org["nombre"],
-            "usuarios_incorporados": usuarios_insertados
+            "usuarios_incorporados": usuarios_insertados_info[:500]
         }
     )
 

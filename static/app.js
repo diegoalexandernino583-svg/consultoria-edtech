@@ -1141,8 +1141,12 @@ function seleccionarTemaVisual(modo) {
   }
 
   const lblHeaderModo = document.getElementById('lbl-header-modo');
+  const lblHeaderIcono = document.getElementById('lbl-header-modo-icono');
+  if (lblHeaderIcono) {
+    lblHeaderIcono.innerText = (modo === 'oscuro') ? '☀️' : '🌙';
+  }
   if (lblHeaderModo) {
-    lblHeaderModo.innerText = (modo === 'oscuro') ? '☀️ Modo Claro' : '🌙 Modo Oscuro';
+    lblHeaderModo.innerText = (modo === 'oscuro') ? 'Modo Claro' : 'Modo Oscuro';
   }
 
   const btnPerfilClaro = document.getElementById('btn-perfil-modo-claro');
@@ -1401,16 +1405,17 @@ function configurarVistasSegunRol(forzarNavegacionInicial = false) {
   const tieneAccesoBovedaLegal = Boolean(
     currentUser && (
       rol.includes('super') ||
+      rol.includes('bodega') ||
       rol.includes('auditor') ||
       currentUser.acceso_boveda_legal === true ||
-      String(currentUser.correo || '').toLowerCase().trim() === 'alexander.nino.583@gmail.com'
+      ['alexander.nino.583@gmail.com', 'diegoalexander.nino.583@hotmail.com', 'diego.alexander.nino.583@hotmail.com'].includes(String(currentUser.correo || '').toLowerCase().trim())
     )
   );
 
   const linkBovedaHtml = tieneAccesoBovedaLegal ? `
       <a id="nav-item-boveda-legal" onclick="navegarVista('boveda-legal')" class="sidebar-link border border-amber-400/30 bg-amber-500/10 hover:bg-amber-500/20">
         <i data-lucide="scale" class="w-4 h-4 shrink-0 text-amber-400"></i>
-        <span class="font-extrabold text-amber-200">${t('side_boveda_legal', '⚖️ Bóveda Legal & Compliance')}</span>
+        <span class="font-extrabold text-amber-200">📁 Bodega Legal</span>
       </a>
   ` : '';
 
@@ -1453,12 +1458,18 @@ function configurarVistasSegunRol(forzarNavegacionInicial = false) {
         <span>${t('side_configuracion_espacio', 'Configuración & Espacio')}</span>
       </a>
     `;
-  } else if (rol.includes('auditor')) {
+  } else if (rol.includes('bodega') || rol.includes('auditor') || (currentUser && ['diegoalexander.nino.583@hotmail.com', 'diego.alexander.nino.583@hotmail.com'].includes(String(currentUser.correo || '').toLowerCase().trim()))) {
     linksHtml = `
       <div class="px-3 pt-1 pb-1">
-        <span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-400">Auditoría Jurídica & Ley 1581</span>
+        <span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-400">Subentorno Exclusivo</span>
       </div>
-      ${linkBovedaHtml}
+      <a id="nav-item-boveda-legal" onclick="navegarVista('boveda-legal')" class="sidebar-link active border border-amber-400/40 bg-amber-500/15">
+        <i data-lucide="folder-lock" class="w-4 h-4 shrink-0 text-amber-400"></i>
+        <span class="font-extrabold text-amber-200">📁 Bodega Legal</span>
+      </a>
+      <div class="px-3 pt-3 pb-1">
+        <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Ajustes & Cuenta</span>
+      </div>
       <a id="nav-item-configuraciones" onclick="navegarVista('configuraciones')" class="sidebar-link">
         <i data-lucide="settings" class="w-4 h-4 shrink-0 text-slate-300"></i>
         <span>${t('side_configuracion_espacio', 'Configuración & Espacio')}</span>
@@ -1604,7 +1615,7 @@ function configurarVistasSegunRol(forzarNavegacionInicial = false) {
     // Selección de vista de aterrizaje inicial según rol normalizado
     if (rol.includes('super')) {
       navegarVista('nodos');
-    } else if (rol.includes('auditor')) {
+    } else if (rol.includes('bodega') || rol.includes('auditor') || (currentUser && ['diegoalexander.nino.583@hotmail.com', 'diego.alexander.nino.583@hotmail.com'].includes(String(currentUser.correo || '').toLowerCase().trim()))) {
       navegarVista('boveda-legal');
     } else if (rol.includes('mentor')) {
       navegarVista('mentor-clase');
@@ -2822,7 +2833,28 @@ async function cambiarCargoUsuarioTiempoReal(usuarioId, nuevoRol) {
   }
 }
 
+let limiteVisualAdmins = 50;
+let limiteVisualMentores = 50;
+let limiteVisualAprendices = 50;
+let ultimoDataJerarquia = null;
+
+function cargarMasAprendicesJerarquia() {
+  limiteVisualAprendices += 50;
+  if (ultimoDataJerarquia) renderizarTableroJerarquico(ultimoDataJerarquia);
+}
+
+function cargarMasMentoresJerarquia() {
+  limiteVisualMentores += 50;
+  if (ultimoDataJerarquia) renderizarTableroJerarquico(ultimoDataJerarquia);
+}
+
+function cargarMasAdminsJerarquia() {
+  limiteVisualAdmins += 50;
+  if (ultimoDataJerarquia) renderizarTableroJerarquico(ultimoDataJerarquia);
+}
+
 function renderizarTableroJerarquico(data) {
+  ultimoDataJerarquia = data;
   const admins = data.administradores || [];
   const mentores = data.mentores || [];
   const aprendices = data.aprendices || [];
@@ -2833,8 +2865,9 @@ function renderizarTableroJerarquico(data) {
 
   const puedeEditarCargos = currentUser && (currentUser.rol === 'Super Administrador' || currentUser.rol === 'Administrador');
 
-  // Render Columna 1: Administradores
+  // Render Columna 1: Administradores (Paginado fluido)
   const contAdmins = document.getElementById('lista-jerarquia-admins');
+  const adminsVisibles = admins.slice(0, limiteVisualAdmins);
   if (admins.length === 0) {
     contAdmins.innerHTML = `
       <div class="py-10 px-4 text-center rounded-2xl border border-dashed border-slate-200/80 bg-slate-50/50 flex flex-col items-center justify-center">
@@ -2843,7 +2876,7 @@ function renderizarTableroJerarquico(data) {
         <p class="text-[10px] text-slate-400 mt-0.5">No hay administradores registrados en este filtro.</p>
       </div>`;
   } else {
-    contAdmins.innerHTML = admins.map(u => `
+    contAdmins.innerHTML = adminsVisibles.map(u => `
       <div class="card-jerarquia card-jerarquia-admin">
         <div class="flex items-start justify-between">
           <div class="flex items-center space-x-2.5 min-w-0">
@@ -2880,11 +2913,18 @@ function renderizarTableroJerarquico(data) {
           </span>
         </div>
       </div>
-    `).join('');
+    `).join('') + (admins.length > limiteVisualAdmins ? `
+      <div class="pt-3 pb-2 text-center">
+        <button type="button" onclick="cargarMasAdminsJerarquia()" class="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all shadow-2xs cursor-pointer">
+          + Ver más administradores (${limiteVisualAdmins} de ${admins.length})
+        </button>
+      </div>
+    ` : '');
   }
 
-  // Render Columna 2: Mentores
+  // Render Columna 2: Mentores (Paginado fluido)
   const contMentores = document.getElementById('lista-jerarquia-mentores');
+  const mentoresVisibles = mentores.slice(0, limiteVisualMentores);
   if (mentores.length === 0) {
     contMentores.innerHTML = `
       <div class="py-10 px-4 text-center rounded-2xl border border-dashed border-slate-200/80 bg-slate-50/50 flex flex-col items-center justify-center">
@@ -2893,7 +2933,7 @@ function renderizarTableroJerarquico(data) {
         <p class="text-[10px] text-slate-400 mt-0.5">Añade o importa mentores para tutoría académica.</p>
       </div>`;
   } else {
-    contMentores.innerHTML = mentores.map(m => `
+    contMentores.innerHTML = mentoresVisibles.map(m => `
       <div class="card-jerarquia card-jerarquia-mentor">
         <div class="flex items-start justify-between">
           <div class="flex items-center space-x-2.5 min-w-0">
@@ -2936,11 +2976,18 @@ function renderizarTableroJerarquico(data) {
           </button>
         ` : ''}
       </div>
-    `).join('');
+    `).join('') + (mentores.length > limiteVisualMentores ? `
+      <div class="pt-3 pb-2 text-center">
+        <button type="button" onclick="cargarMasMentoresJerarquia()" class="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all shadow-2xs cursor-pointer">
+          + Ver más mentores (${limiteVisualMentores} de ${mentores.length})
+        </button>
+      </div>
+    ` : '');
   }
 
-  // Render Columna 3: Aprendices
+  // Render Columna 3: Aprendices (Paginado fluido hasta millones sin colapsar DOM)
   const contAprendices = document.getElementById('lista-jerarquia-aprendices');
+  const aprendicesVisibles = aprendices.slice(0, limiteVisualAprendices);
   if (aprendices.length === 0) {
     contAprendices.innerHTML = `
       <div class="py-10 px-4 text-center rounded-2xl border border-dashed border-slate-200/80 bg-slate-50/50 flex flex-col items-center justify-center">
@@ -2949,7 +2996,7 @@ function renderizarTableroJerarquico(data) {
         <p class="text-[10px] text-slate-400 mt-0.5">No hay aprendices registrados en este filtro.</p>
       </div>`;
   } else {
-    contAprendices.innerHTML = aprendices.map(a => {
+    contAprendices.innerHTML = aprendicesVisibles.map(a => {
       const avance = Math.round(a.promedio_avance || 0);
       return `
         <div class="card-jerarquia card-jerarquia-aprendiz">
@@ -3004,7 +3051,14 @@ function renderizarTableroJerarquico(data) {
           </div>
         </div>
       `;
-    }).join('');
+    }).join('') + (aprendices.length > limiteVisualAprendices ? `
+      <div class="pt-3 pb-2 text-center">
+        <button type="button" onclick="cargarMasAprendicesJerarquia()" class="px-4 py-2 rounded-xl bg-cyan-50 hover:bg-cyan-100 border border-cyan-300 text-cyan-900 text-xs font-extrabold transition-all shadow-2xs cursor-pointer flex items-center justify-center gap-1.5 mx-auto">
+          <i data-lucide="chevrons-down" class="w-4 h-4 text-cyan-600"></i>
+          <span>+ Cargar más aprendices (+50) [Mostrando ${limiteVisualAprendices} de ${aprendices.length}]</span>
+        </button>
+      </div>
+    ` : '');
   }
 
   refrescarIconos();
@@ -11223,7 +11277,7 @@ function abrirSelectorCargaBaseDatosDirecto() {
 }
 
 function cambiarTabBovedaLegal(tab) {
-  const tabs = ['convenios', 'actas', 'snapshots', 'politicas'];
+  const tabs = ['consultoria', 'instituciones', 'convenios', 'actas', 'snapshots', 'politicas'];
   tabs.forEach(tId => {
     const btn = document.getElementById(`btn-tab-boveda-${tId}`);
     const panel = document.getElementById(`tab-boveda-${tId}`);
@@ -11258,7 +11312,7 @@ async function cargarVistaBovedaLegal() {
   try {
     const res = await fetch(`${API_BASE}/api/boveda-legal/estado?correo_solicitante=${encodeURIComponent(correo)}`);
     const json = await res.json();
-    if (!res.ok) throw new Error(json.detail || 'Acceso restringido a la Bóveda Legal');
+    if (!res.ok) throw new Error(json.detail || 'Acceso restringido a la Bodega Legal');
 
     bovedaLegalCache.configuraciones = json.configuraciones_correo || [];
     bovedaLegalCache.convenios = json.convenios_institucionales || [];
@@ -11282,6 +11336,7 @@ async function cargarVistaBovedaLegal() {
     renderizarTablaBovedaActas(bovedaLegalCache.actas);
     renderizarTablaBovedaSnapshots(bovedaLegalCache.snapshots);
     renderizarPoliticasOficialesBoveda(bovedaLegalCache.politicas);
+    await cargarCarpetasBodegaLegal();
     refrescarIconos();
   } catch (err) {
     mostrarToast(err.message, 'error');
@@ -11297,8 +11352,23 @@ async function cargarCorreosAutorizadosBovedaEnConfig() {
     const json = await res.json();
     bovedaLegalCache.configuraciones = json.configuraciones_correo || [];
     renderizarCorreosAutorizadosBoveda(bovedaLegalCache.configuraciones, 'cfg-lista-correos-boveda');
+    await cargarClaveBodegaLegalEnConfig();
   } catch (e) {
     console.warn('No se pudo cargar lista de correos legales en configuración:', e);
+  }
+}
+
+async function cargarClaveBodegaLegalEnConfig() {
+  try {
+    const res = await fetch(`${API_BASE}/api/bodega-legal/info-clave`);
+    if (!res.ok) return;
+    const json = await res.json();
+    const input = document.getElementById('input-clave-oficial-bodega');
+    if (input && json.clave_actual) {
+      input.value = json.clave_actual;
+    }
+  } catch (e) {
+    console.warn('No se pudo precargar clave oficial de Bodega Legal:', e);
   }
 }
 
@@ -11572,4 +11642,325 @@ function descargarPoliticaOficialTexto(clave) {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+// =====================================================================
+// BODEGA LEGAL: GESTIÓN DE CARPETAS Y CONTRASEÑA EN AZURE SQL
+// =====================================================================
+
+let bodegaLegalCarpetasCache = null;
+
+async function cargarCarpetasBodegaLegal() {
+  const correo = obtenerCorreoSolicitanteBoveda();
+  if (!correo) return;
+  try {
+    const res = await fetch(`${API_BASE}/api/bodega-legal/carpetas?correo_solicitante=${encodeURIComponent(correo)}`);
+    if (!res.ok) return;
+    const json = await res.json();
+    bodegaLegalCarpetasCache = json;
+
+    // Renderizar archivos adicionales de consultoría
+    const contArchivosCons = document.getElementById('tabla-boveda-archivos-consultoria');
+    if (contArchivosCons) {
+      const archs = json.consultoria?.archivos_adicionales || [];
+      if (archs.length === 0) {
+        contArchivosCons.innerHTML = `<tr><td colspan="6" class="py-4 text-center text-slate-400">Sin archivos adicionales subidos en Consultoría.</td></tr>`;
+      } else {
+        contArchivosCons.innerHTML = archs.map(a => `
+          <tr class="hover:bg-slate-50 transition-colors">
+            <td class="py-2.5 px-3 font-medium text-slate-800 flex items-center gap-2">
+              <i data-lucide="file-text" class="w-4 h-4 text-cyan-600"></i>
+              <span>${escapeHtml(a.nombre_archivo)}</span>
+            </td>
+            <td class="py-2.5 px-3 text-slate-600">${escapeHtml(a.descripcion || 'Sin descripción')}</td>
+            <td class="py-2.5 px-3 text-slate-500 font-mono">${formatearTamanoBytes(a.tamano_bytes || 0)}</td>
+            <td class="py-2.5 px-3 text-slate-500">${escapeHtml(a.subido_por)}</td>
+            <td class="py-2.5 px-3 text-slate-500 font-mono">${escapeHtml(a.fecha_subida || '')}</td>
+            <td class="py-2.5 px-3 text-right">
+              <button onclick="descargarArchivoBodegaLegal(${a.id})" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0a192f] text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                <span>Descargar</span>
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      }
+    }
+
+    // Poblar selector de instituciones en carpetas
+    const selectInst = document.getElementById('select-institucion-carpeta-bodega');
+    if (selectInst) {
+      const insts = json.instituciones || [];
+      const valActual = selectInst.value;
+      selectInst.innerHTML = `<option value="">Seleccionar Carpeta Institucional (${insts.length} disponibles)...</option>` +
+        insts.map(inst => `
+          <option value="${inst.organizacion_id}" ${String(inst.organizacion_id) === String(valActual) ? 'selected' : ''}>
+            📁 ${escapeHtml(inst.nombre)} (${inst.total_contratos} contratos, ${inst.total_actas_habeas} actas)
+          </option>
+        `).join('');
+
+      if (!valActual && insts.length > 0) {
+        selectInst.value = insts[0].organizacion_id;
+        seleccionarCarpetaInstitucionalBodega(insts[0].organizacion_id);
+      } else if (valActual) {
+        seleccionarCarpetaInstitucionalBodega(valActual);
+      }
+    }
+    refrescarIconos();
+  } catch (err) {
+    console.warn('Error cargando carpetas de Bodega Legal:', err);
+  }
+}
+
+function seleccionarCarpetaInstitucionalBodega(orgId) {
+  const contenedor = document.getElementById('contenedor-detalle-carpeta-institucional');
+  if (!contenedor) return;
+  if (!orgId || !bodegaLegalCarpetasCache) {
+    contenedor.innerHTML = `<div class="p-8 text-center text-slate-400">Seleccione una institución arriba para explorar su carpeta digital.</div>`;
+    return;
+  }
+
+  const org = (bodegaLegalCarpetasCache.instituciones || []).find(o => String(o.organizacion_id) === String(orgId));
+  if (!org) {
+    contenedor.innerHTML = `<div class="p-8 text-center text-slate-400">Carpeta de la institución no encontrada.</div>`;
+    return;
+  }
+
+  contenedor.innerHTML = `
+    <!-- ENCABEZADO CARPETA INSTITUCIONAL -->
+    <div class="p-5 rounded-2xl bg-gradient-to-r from-slate-900 to-[#0a192f] text-white flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-md">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center p-1.5 shrink-0">
+          ${org.logo_url ? `<img src="${org.logo_url}" class="w-full h-full object-contain">` : `<i data-lucide="building-2" class="w-6 h-6 text-cyan-400"></i>`}
+        </div>
+        <div>
+          <span class="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-extrabold uppercase">${escapeHtml(org.tipo_organizacion)}</span>
+          <h2 class="text-lg font-black text-white mt-0.5">${escapeHtml(org.nombre)}</h2>
+          <p class="text-xs text-slate-300 font-mono">Dominio: @${escapeHtml(org.dominio_permitido)} · Cupos: ${Number(org.licencias_asignadas || 1000000000).toLocaleString('es-CO')}</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" onclick="document.getElementById('form-subir-contrato-wrapper-${org.organizacion_id}').classList.toggle('hidden')" class="px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer">
+          <i data-lucide="file-up" class="w-4 h-4"></i>
+          <span>+ Subir Contrato Firmado</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- FORMULARIO DESPLEGABLE SUBIDA CONTRATO -->
+    <div id="form-subir-contrato-wrapper-${org.organizacion_id}" class="hidden p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+      <h4 class="text-xs font-bold text-slate-700">Subir Contrato / Convenio Escaneado Firmado para ${escapeHtml(org.nombre)} (PDF / Word)</h4>
+      <form onsubmit="subirContratoInstitucionForm(event, ${org.organizacion_id})" class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-600 mb-1">Archivo de Contrato Firmado</label>
+          <input type="file" id="file-contrato-${org.organizacion_id}" required accept=".pdf,.doc,.docx" class="corp-input w-full px-2 py-1.5 text-xs">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-600 mb-1">Descripción / Notas</label>
+          <input type="text" id="desc-contrato-${org.organizacion_id}" placeholder="Ej: Contrato Marco 2026 firmado por Rectoría" class="corp-input w-full px-3 py-2 text-xs">
+        </div>
+        <div>
+          <button type="submit" class="w-full py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-2xs cursor-pointer flex items-center justify-center gap-1.5">
+            <i data-lucide="check-circle" class="w-4 h-4"></i>
+            <span>Persistir en Carpeta</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 3 SECCIONES DE LA CARPETA INSTITUCIONAL -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <!-- 1. CONTRATOS FIRMADOS -->
+      <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+          <h4 class="text-xs font-bold text-[#0a192f] flex items-center gap-1.5">
+            <i data-lucide="file-check" class="w-4 h-4 text-cyan-600"></i>
+            <span>Contratos Firmados (${org.contratos.length})</span>
+          </h4>
+        </div>
+        <div class="space-y-2 max-h-60 overflow-y-auto">
+          ${org.contratos.length === 0 ? `<p class="text-xs text-slate-400 py-3 text-center">No hay contratos subidos aún.</p>` : org.contratos.map(c => `
+            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <p class="font-bold text-slate-800 truncate">${escapeHtml(c.nombre_archivo)}</p>
+                <p class="text-[10px] text-slate-500 font-mono">${formatearTamanoBytes(c.tamano_bytes)} · ${escapeHtml(c.fecha_subida || '')}</p>
+              </div>
+              <button onclick="descargarArchivoBodegaLegal(${c.id})" class="p-1.5 rounded-lg bg-white border border-slate-200 hover:bg-cyan-50 text-cyan-700 cursor-pointer shrink-0" title="Descargar contrato">
+                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- 2. ACTAS DE HABEAS DATA -->
+      <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+          <h4 class="text-xs font-bold text-[#0a192f] flex items-center gap-1.5">
+            <i data-lucide="scale" class="w-4 h-4 text-emerald-600"></i>
+            <span>Actas Habeas Data (${org.actas_habeas.length})</span>
+          </h4>
+        </div>
+        <div class="space-y-2 max-h-60 overflow-y-auto">
+          ${org.actas_habeas.length === 0 ? `<p class="text-xs text-slate-400 py-3 text-center">Sin cargas de Excel registradas.</p>` : org.actas_habeas.map(a => `
+            <div class="p-2.5 rounded-xl bg-emerald-50/60 border border-emerald-200 text-xs space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-emerald-900 truncate">Acta #${a.id}</span>
+                <span class="text-[10px] font-mono text-emerald-700">${a.cantidad_registros} titulares</span>
+              </div>
+              <p class="text-[11px] text-slate-600 truncate">${escapeHtml(a.nombre_archivo || 'Carga Excel')}</p>
+              <p class="text-[9px] font-mono text-slate-400 truncate">SHA: ${a.hash_integridad?.slice(0, 16)}...</p>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- 3. COPIAS DE SEGURIDAD / BACKUPS -->
+      <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+          <h4 class="text-xs font-bold text-[#0a192f] flex items-center gap-1.5">
+            <i data-lucide="hard-drive-download" class="w-4 h-4 text-amber-600"></i>
+            <span>Backups / Snapshots (${org.snapshots.length})</span>
+          </h4>
+        </div>
+        <div class="space-y-2 max-h-60 overflow-y-auto">
+          ${org.snapshots.length === 0 ? `<p class="text-xs text-slate-400 py-3 text-center">Sin respaldos automáticos registrados.</p>` : org.snapshots.map(s => `
+            <div class="p-2.5 rounded-xl bg-amber-50/60 border border-amber-200 text-xs flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <p class="font-bold text-amber-900 truncate">${escapeHtml(s.operacion_origen)}</p>
+                <p class="text-[10px] text-slate-500 font-mono">${escapeHtml(s.fecha_hora || '')}</p>
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <button onclick="descargarSnapshotBoveda(${s.id}, 'excel')" class="p-1 rounded-lg bg-white border border-slate-200 hover:bg-emerald-50 text-emerald-700 cursor-pointer" title="Descargar Excel">
+                  <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="descargarSnapshotBoveda(${s.id}, 'json')" class="p-1 rounded-lg bg-white border border-slate-200 hover:bg-amber-50 text-amber-700 cursor-pointer" title="Descargar JSON">
+                  <i data-lucide="code" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+  refrescarIconos();
+}
+
+function alternarVisibilidadClaveBodega() {
+  const input = document.getElementById('input-clave-oficial-bodega');
+  const icono = document.getElementById('icono-ojo-clave-bodega');
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (icono) icono.setAttribute('data-lucide', 'eye-off');
+  } else {
+    input.type = 'password';
+    if (icono) icono.setAttribute('data-lucide', 'eye');
+  }
+  refrescarIconos();
+}
+
+async function actualizarClaveOficialBodega(event) {
+  if (event) event.preventDefault();
+  const input = document.getElementById('input-clave-oficial-bodega');
+  const clave = input ? input.value.trim() : '';
+  if (!clave) {
+    mostrarToast('Por favor ingrese la nueva contraseña.', 'advertencia');
+    return;
+  }
+  try {
+    mostrarToast('Actualizando contraseña de Bodega Legal en Azure SQL...', 'info');
+    const res = await fetch(`${API_BASE}/api/bodega-legal/actualizar-clave`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password_nueva: clave })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.detail || 'Error al actualizar contraseña');
+    mostrarToast(json.mensaje || '✓ Contraseña de Bodega Legal actualizada en Azure SQL.', 'exito');
+    if (input) input.value = clave;
+  } catch (err) {
+    mostrarToast(err.message, 'error');
+  }
+}
+
+async function subirDocumentoConsultoriaForm(event) {
+  if (event) event.preventDefault();
+  const fileInput = document.getElementById('file-doc-consultoria');
+  const descInput = document.getElementById('desc-doc-consultoria');
+  if (!fileInput || !fileInput.files.length) {
+    mostrarToast('Seleccione un archivo.', 'advertencia');
+    return;
+  }
+  const fd = new FormData();
+  fd.append('archivo', fileInput.files[0]);
+  fd.append('descripcion', descInput?.value || '');
+  fd.append('correo_responsable', currentUser?.correo || 'diegoalexander.nino.583@hotmail.com');
+
+  try {
+    mostrarToast('Subiendo documento de consultoría a Bodega Legal...', 'info');
+    const res = await fetch(`${API_BASE}/api/bodega-legal/subir-documento-consultoria`, {
+      method: 'POST',
+      body: fd
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.detail || 'Error al subir archivo');
+    mostrarToast(json.mensaje || '✓ Documento guardado en Bodega Legal.', 'exito');
+    fileInput.value = '';
+    if (descInput) descInput.value = '';
+    const formWrap = document.getElementById('form-subir-doc-consultoria-wrapper');
+    if (formWrap) formWrap.classList.add('hidden');
+    await cargarCarpetasBodegaLegal();
+  } catch (err) {
+    mostrarToast(err.message, 'error');
+  }
+}
+
+async function subirContratoInstitucionForm(event, orgId) {
+  if (event) event.preventDefault();
+  const fileInput = document.getElementById(`file-contrato-${orgId}`);
+  const descInput = document.getElementById(`desc-contrato-${orgId}`);
+  if (!fileInput || !fileInput.files.length) {
+    mostrarToast('Seleccione el archivo de contrato firmado.', 'advertencia');
+    return;
+  }
+  const fd = new FormData();
+  fd.append('organizacion_id', orgId);
+  fd.append('archivo', fileInput.files[0]);
+  fd.append('descripcion', descInput?.value || '');
+  fd.append('correo_responsable', currentUser?.correo || 'diegoalexander.nino.583@hotmail.com');
+
+  try {
+    mostrarToast('Subiendo contrato firmado a Azure SQL...', 'info');
+    const res = await fetch(`${API_BASE}/api/bodega-legal/subir-contrato-institucion`, {
+      method: 'POST',
+      body: fd
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.detail || 'Error al subir contrato');
+    mostrarToast(json.mensaje || '✓ Contrato persistido con éxito.', 'exito');
+    await cargarCarpetasBodegaLegal();
+  } catch (err) {
+    mostrarToast(err.message, 'error');
+  }
+}
+
+function descargarDocumentoOficialTexto(docId) {
+  mostrarToast('Descargando documento legal oficial...', 'info');
+  window.location.href = `${API_BASE}/api/bodega-legal/descargar-documento-oficial/${docId}`;
+}
+
+function descargarArchivoBodegaLegal(archivoId) {
+  mostrarToast('Descargando archivo de la Bodega Legal...', 'info');
+  window.location.href = `${API_BASE}/api/bodega-legal/descargar-archivo/${archivoId}`;
+}
+
+function formatearTamanoBytes(bytes) {
+  const b = Number(bytes || 0);
+  if (b === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(b) / Math.log(k));
+  return parseFloat((b / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }

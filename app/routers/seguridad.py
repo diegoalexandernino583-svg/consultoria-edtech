@@ -1457,3 +1457,370 @@ def exportar_expediente_completo_boveda_legal(
     )
 
 
+# ==============================================================================
+# SUBENTORNO EXCLUSIVO BODEGA LEGAL (LOGIN PROPIO, CONTRASEÑA Y CARPETAS)
+# ==============================================================================
+
+import base64
+
+class ActualizarClaveBodegaReq(BaseModel):
+    password_nueva: str
+    correo_solicitante: Optional[str] = None
+
+
+@router.get("/api/bodega-legal/info-clave")
+def obtener_info_clave_bodega_legal(request: Request, correo: Optional[str] = Query(None)):
+    """Retorna información sobre la cuenta oficial de Bodega Legal y su estado en base de datos"""
+    correo_oficial = "diegoalexander.nino.583@hotmail.com"
+    u = db.execute_query(
+        "SELECT id, nombre, correo, rol, password_hash FROM usuarios WHERE LOWER(TRIM(correo)) = ?",
+        (correo_oficial,),
+        fetchone=True
+    )
+    if not u:
+        pwd_hash = bcrypt.hashpw("123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        db.execute_query(
+            "INSERT INTO usuarios (nombre, correo, rol, password_hash) VALUES ('Diego Alexander Niño', ?, 'BODEGA_LEGAL', ?)",
+            (correo_oficial, pwd_hash),
+            commit=True
+        )
+        u = db.execute_query("SELECT id, nombre, correo, rol, password_hash FROM usuarios WHERE LOWER(TRIM(correo)) = ?", (correo_oficial,), fetchone=True)
+
+    cfg = db.execute_query(
+        "SELECT clave_plana FROM configuracion_boveda_legal WHERE LOWER(TRIM(correo_autorizado)) = ?",
+        (correo_oficial,),
+        fetchone=True
+    )
+    clave_actual = (cfg.get("clave_plana") if cfg and cfg.get("clave_plana") else None) or "123456"
+
+    return {
+        "status": "success",
+        "correo": correo_oficial,
+        "nombre": u.get("nombre") if u else "Diego Alexander Niño",
+        "rol": "BODEGA_LEGAL",
+        "tiene_clave": bool(u and u.get("password_hash")),
+        "clave_actual": clave_actual,
+        "clave_demo_sugerida": "123456"
+    }
+
+
+@router.post("/api/bodega-legal/actualizar-clave")
+def actualizar_clave_bodega_legal(datos: ActualizarClaveBodegaReq, request: Request):
+    """Actualiza de inmediato la contraseña del correo oficial de Bodega Legal en Azure SQL y SQLite"""
+    correo_oficial = "diegoalexander.nino.583@hotmail.com"
+    pwd_raw = (datos.password_nueva or "").strip()
+    if len(pwd_raw) < 4:
+        raise HTTPException(status_code=400, detail="La nueva contraseña debe tener al menos 4 caracteres.")
+
+    pwd_hash = bcrypt.hashpw(pwd_raw.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    db.execute_query(
+        "UPDATE usuarios SET password_hash = ?, rol = 'BODEGA_LEGAL' WHERE LOWER(TRIM(correo)) IN (?, 'diego.alexander.nino.583@hotmail.com')",
+        (pwd_hash, correo_oficial),
+        commit=True
+    )
+    u = db.execute_query("SELECT id FROM usuarios WHERE LOWER(TRIM(correo)) = ?", (correo_oficial,), fetchone=True)
+    if not u:
+        db.execute_query(
+            "INSERT INTO usuarios (nombre, correo, rol, password_hash) VALUES ('Diego Alexander Niño', ?, 'BODEGA_LEGAL', ?)",
+            (correo_oficial, pwd_hash),
+            commit=True
+        )
+
+    # Actualizar clave_plana en configuracion_boveda_legal para consulta/visibilidad del Superadministrador
+    db.execute_query(
+        "UPDATE configuracion_boveda_legal SET clave_plana = ? WHERE LOWER(TRIM(correo_autorizado)) = ?",
+        (pwd_raw, correo_oficial),
+        commit=True
+    )
+
+    try:
+        replicador_azure.sincronizar_inmediato(["usuarios", "configuracion_boveda_legal"])
+    except Exception:
+        pass
+
+    registrar_movimiento(
+        correo_oficial,
+        "Bodega_Legal",
+        "Actualizar_Password",
+        "EXITO",
+        f"Contraseña actualizada para {correo_oficial}"
+    )
+
+    return {
+        "status": "success",
+        "mensaje": f"Contraseña de {correo_oficial} actualizada y sincronizada en Azure SQL con éxito.",
+        "correo": correo_oficial
+    }
+
+
+@router.get("/api/bodega-legal/carpetas")
+def obtener_carpetas_bodega_legal(
+    request: Request,
+    usuario_id: Optional[int] = Query(None),
+    correo: Optional[str] = Query(None)
+):
+    """Retorna las 2 secciones de carpetas: Documentos Legales Consultoría y Carpetas Dinámicas por Institución"""
+    _exigir_acceso_boveda_legal(request, usuario_id, correo)
+    _sincronizar_convenios_existentes_en_boveda()
+
+    docs_fijos = [
+        {
+            "id": "convenio_marco",
+            "titulo": "Convenio Marco Institucional",
+            "descripcion": "Convenio marco de cooperación académica, científica y tecnológica con tratamiento de datos personales.",
+            "normativa": "Ley 1581 de 2012 · Decreto 1377 de 2013",
+            "tipo": "Documento Base Consultoría",
+            "formato": "Oficial Colombiano (PDF/Word)"
+        },
+        {
+            "id": "politica_datos",
+            "titulo": "Política de Tratamiento de Datos Personales",
+            "descripcion": "Política integral de Habeas Data, recolección, almacenamiento y uso de información bajo ley colombiana.",
+            "normativa": "Ley Estatutaria 1581 de 2012 Art. 9 y 12",
+            "tipo": "Documento Base Consultoría",
+            "formato": "Oficial Colombiano (PDF/Word)"
+        },
+        {
+            "id": "autorizacion_menores",
+            "titulo": "Autorización de Padres/Acudientes para Menores de Edad",
+            "descripcion": "Formato legal de consentimiento informado suscrito por acudientes y representantes de estudiantes escolares.",
+            "normativa": "Artículo 7 Ley 1581 de 2012 · Decreto 1377 de 2013",
+            "tipo": "Documento Base Consultoría",
+            "formato": "Oficial Colombiano (PDF/Word)"
+        },
+        {
+            "id": "consentimiento_mayores",
+            "titulo": "Consentimiento para Mayores de Edad",
+            "descripcion": "Acta de autorización y conocimiento de tratamiento de datos personales para aprendices y participantes adultos.",
+            "normativa": "Ley 1581 de 2012 Art. 4 Principio de Libertad",
+            "tipo": "Documento Base Consultoría",
+            "formato": "Oficial Colombiano (PDF/Word)"
+        }
+    ]
+
+    archivos_consultoria = db.execute_query(
+        "SELECT id, nombre_archivo, descripcion, tamano_bytes, subido_por, fecha_subida FROM bodega_legal_archivos WHERE categoria = 'CONSULTORIA' ORDER BY id DESC",
+        fetchall=True
+    ) or []
+
+    orgs = db.execute_query(
+        "SELECT id, nombre, tipo_organizacion, dominio_permitido, licencias_asignadas, logo_url, fecha_creacion FROM organizaciones ORDER BY id ASC",
+        fetchall=True
+    ) or []
+
+    archivos_institucionales = db.execute_query(
+        "SELECT id, organizacion_id, nombre_archivo, descripcion, tamano_bytes, subido_por, fecha_subida FROM bodega_legal_archivos WHERE categoria = 'INSTITUCIONAL' ORDER BY id DESC",
+        fetchall=True
+    ) or []
+
+    actas_habeas = db.execute_query(
+        "SELECT id, organizacion_id, nombre_archivo, cantidad_registros, fecha_hora, correo_responsable, rol_responsable, declaracion_legal, hash_integridad FROM boveda_legal_registros WHERE categoria = 'ACTA_HABEAS_DATA_EXCEL' ORDER BY id DESC",
+        fetchall=True
+    ) or []
+
+    snapshots = db.execute_query(
+        "SELECT id, operacion_origen, entidad_afectada, entidad_id, entidad_nombre, fecha_hora, correo_responsable, total_registros_respaldados, hash_integridad FROM boveda_legal_snapshots ORDER BY id DESC",
+        fetchall=True
+    ) or []
+
+    carpetas_orgs = []
+    for o in orgs:
+        oid = o["id"]
+        contratos_org = [a for a in archivos_institucionales if a.get("organizacion_id") == oid]
+        actas_org = [a for a in actas_habeas if a.get("organizacion_id") == oid]
+        snaps_org = [
+            s for s in snapshots 
+            if s.get("entidad_id") == oid or (s.get("entidad_nombre") and o["nombre"].lower() in str(s.get("entidad_nombre")).lower())
+        ]
+
+        carpetas_orgs.append({
+            "organizacion_id": oid,
+            "nombre": o["nombre"],
+            "tipo_organizacion": o.get("tipo_organizacion") or "Institución",
+            "dominio_permitido": o.get("dominio_permitido") or "LIBRE",
+            "licencias_asignadas": o.get("licencias_asignadas") or 1000000000,
+            "logo_url": o.get("logo_url"),
+            "fecha_creacion": o.get("fecha_creacion"),
+            "total_contratos": len(contratos_org),
+            "total_actas_habeas": len(actas_org),
+            "total_backups": len(snaps_org),
+            "contratos": contratos_org,
+            "actas_habeas": actas_org,
+            "snapshots": snaps_org
+        })
+
+    return {
+        "status": "success",
+        "consultoria": {
+            "documentos_oficiales": docs_fijos,
+            "archivos_adicionales": archivos_consultoria
+        },
+        "instituciones": carpetas_orgs
+    }
+
+
+@router.post("/api/bodega-legal/subir-documento-consultoria")
+async def subir_documento_consultoria(
+    request: Request,
+    archivo: UploadFile = File(...),
+    descripcion: Optional[str] = Form(None),
+    correo_responsable: Optional[str] = Form("diegoalexander.nino.583@hotmail.com")
+):
+    """Sube un documento oficial base a la Carpeta Fija de Consultoría en la Bodega Legal"""
+    contenido = await archivo.read()
+    tamano = len(contenido)
+    b64 = base64.b64encode(contenido).decode('utf-8')
+    subido_por = (correo_responsable or "diegoalexander.nino.583@hotmail.com").strip().lower()
+
+    arch_id = db.execute_query("""
+        INSERT INTO bodega_legal_archivos (categoria, organizacion_id, nombre_archivo, descripcion, tamano_bytes, contenido_b64, subido_por)
+        VALUES ('CONSULTORIA', NULL, ?, ?, ?, ?, ?)
+    """, (archivo.filename, descripcion or "Documento Base de Consultoría", tamano, b64, subido_por), return_id=True)
+
+    try:
+        replicador_azure.sincronizar_inmediato(["bodega_legal_archivos"])
+    except Exception:
+        pass
+
+    registrar_movimiento(subido_por, "Bodega_Legal", "Subir_Doc_Consultoria", "EXITO", f"Archivo: {archivo.filename} ({tamano} bytes)")
+    return {"status": "success", "mensaje": f"Documento '{archivo.filename}' guardado en la Bodega Legal de Consultoría.", "id": arch_id}
+
+
+@router.post("/api/bodega-legal/subir-contrato-institucion")
+async def subir_contrato_institucion(
+    request: Request,
+    organizacion_id: int = Form(...),
+    archivo: UploadFile = File(...),
+    descripcion: Optional[str] = Form(None),
+    correo_responsable: Optional[str] = Form("diegoalexander.nino.583@hotmail.com")
+):
+    """Sube un contrato PDF/Word firmado a la Carpeta Dinámica de la Institución en la Bodega Legal"""
+    org = resolver_organizacion(organizacion_id)
+    if not org:
+        raise HTTPException(status_code=404, detail="Organización no encontrada.")
+
+    contenido = await archivo.read()
+    tamano = len(contenido)
+    b64 = base64.b64encode(contenido).decode('utf-8')
+    subido_por = (correo_responsable or "diegoalexander.nino.583@hotmail.com").strip().lower()
+
+    arch_id = db.execute_query("""
+        INSERT INTO bodega_legal_archivos (categoria, organizacion_id, nombre_archivo, descripcion, tamano_bytes, contenido_b64, subido_por)
+        VALUES ('INSTITUCIONAL', ?, ?, ?, ?, ?, ?)
+    """, (org["id"], archivo.filename, descripcion or f"Contrato firmado - {org['nombre']}", tamano, b64, subido_por), return_id=True)
+
+    try:
+        replicador_azure.sincronizar_inmediato(["bodega_legal_archivos"])
+    except Exception:
+        pass
+
+    registrar_movimiento(subido_por, "Bodega_Legal", "Subir_Contrato_Institucional", "EXITO", f"Org: {org['nombre']} - Archivo: {archivo.filename}")
+    return {"status": "success", "mensaje": f"Contrato '{archivo.filename}' guardado en la carpeta de {org['nombre']}.", "id": arch_id}
+
+
+@router.get("/api/bodega-legal/descargar-archivo/{archivo_id}")
+def descargar_archivo_bodega_legal(archivo_id: int, request: Request):
+    """Descarga cualquier archivo persistido en la Bodega Legal"""
+    arch = db.execute_query("SELECT id, nombre_archivo, tamano_bytes, contenido_b64 FROM bodega_legal_archivos WHERE id = ?", (archivo_id,), fetchone=True)
+    if not arch or not arch.get("contenido_b64"):
+        raise HTTPException(status_code=404, detail="Archivo no encontrado en la Bodega Legal.")
+
+    bytes_contenido = base64.b64decode(arch["contenido_b64"])
+    buffer = io.BytesIO(bytes_contenido)
+    nombre = arch.get("nombre_archivo") or "documento_bodega_legal.bin"
+    return StreamingResponse(
+        buffer,
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": f'attachment; filename="{nombre}"'}
+    )
+
+
+@router.get("/api/bodega-legal/descargar-documento-oficial/{doc_id}")
+def descargar_documento_oficial_base(doc_id: str, request: Request):
+    """Genera y descarga el texto íntegro oficial colombiano del documento seleccionado"""
+    pol = next((p for p in POLITICAS_LEGALES_OFICIALES if p["id"] == doc_id), None)
+    
+    # Textos legales formateados oficiales
+    textos_oficiales = {
+        "convenio_marco": (
+            "CONVENIO MARCO DE COOPERACIÓN Y TRATAMIENTO DE DATOS PERSONALES\n"
+            "===============================================================\n"
+            "CONVENIO CELEBRADO ENTRE: LA CONSULTORÍA EDTECH Y LA INSTITUCIÓN PARTICIPANTE\n\n"
+            "CLÁUSULA PRIMERA - OBJETO: El presente convenio tiene por objeto establecer los términos de cooperación académica, "
+            "transferencia tecnológica y gobernanza digital para el uso del Centro de Comando Multi-tenant EdTech.\n\n"
+            "CLÁUSULA SEGUNDA - TRATAMIENTO DE DATOS PERSONALES (LEY 1581 DE 2012): "
+            "Las partes acuerdan que la Institución actúa en calidad de RESPONSABLE del tratamiento de los datos personales de sus directivos, "
+            "mentores, profesores y aprendices/estudiantes, mientras que la Consultoría EdTech actúa única y exclusivamente en calidad "
+            "de ENCARGADA del tratamiento.\n\n"
+            "CLÁUSULA TERCERA - PROTECCIÓN ESPECIAL DE MENORES DE EDAD (ARTÍCULO 7 LEY 1581 DE 2012): "
+            "Tratándose de estudiantes menores de 18 años de colegios o entidades formativas, la Institución certifica contar previamente "
+            "con la autorización expresa, libre e informada de sus padres de familia o tutores legales antes de incorporar sus datos en la plataforma.\n\n"
+            "CLÁUSULA CUARTA - USO DE SIGNOS DISTINTIVOS Y LOGOS: Las partes autorizan el uso recíproco y no exclusivo de sus logotipos "
+            "y distintivos institucionales para efectos exclusivos de la ambientación del espacio multi-tenant, emisión de reportes ejecutivos "
+            "y expedición de constancias académicas.\n\n"
+            "CLÁUSULA QUINTA - INMUTABILIDAD Y AUDITORÍA: Todo movimiento y cargue de datos genera actas inmutables en la Bodega Legal "
+            "con sellado de tiempo y hash SHA-256 para efectos de control ante la Superintendencia de Industria y Comercio (SIC).\n"
+        ),
+        "politica_datos": (
+            "POLÍTICA INSTITUCIONAL DE TRATAMIENTO DE DATOS PERSONALES (LEY ESTATUTARIA 1581 DE 2012)\n"
+            "=========================================================================================\n\n"
+            "1. IDENTIFICACIÓN DEL RESPONSABLE Y ENCARGADO:\n"
+            "La presente política regula el tratamiento de datos personales realizado dentro de la plataforma Centro de Comando EdTech, "
+            "en cumplimiento de la Constitución Política de Colombia (Art. 15), la Ley 1581 de 2012 y el Decreto Reglamentario 1377 de 2013.\n\n"
+            "2. FINALIDADES DEL TRATAMIENTO:\n"
+            "Los datos personales recolectados serán utilizados para: gestión de accesos a contenidos formativos, seguimiento de progreso y "
+            "horas dedicadas, asignación de mentores, generación de certificados de logro y elaboración de métricas estadísticas agregadas.\n\n"
+            "3. DERECHOS DE LOS TITULARES (ART. 8 LEY 1581):\n"
+            "Todo titular tiene derecho a: conocer, actualizar y rectificar sus datos personales; solicitar prueba de la autorización otorgada; "
+            "ser informado sobre el uso de sus datos; revocar la autorización o solicitar la supresión de los datos cuando no exista deber legal "
+            "o contractual de conservarlos.\n\n"
+            "4. CANAL DE ATENCIÓN DE HABEAS DATA:\n"
+            "Los titulares pueden ejercer sus derechos enviando comunicación formal al canal de Auditoría Legal y Cumplimiento: diegoalexander.nino.583@hotmail.com."
+        ),
+        "autorizacion_menores": (
+            "FORMATO OFICIAL DE AUTORIZACIÓN DE PADRES O ACUDIENTES LEGALES PARA MENORES DE EDAD\n"
+            "==================================================================================\n"
+            "(Conforme al Artículo 7 de la Ley Estatutaria 1581 de 2012 y Artículo 12 del Decreto 1377 de 2013)\n\n"
+            "Yo, actuando en calidad de padre, madre o representante legal del estudiante menor de edad, manifiesto que de manera voluntaria, "
+            "previa, explícita e informada, AUTORIZO a la Institución Educativa y a la Consultoría EdTech para tratar los datos personales "
+            "(nombre, correo electrónico institucional, cursos asignados, calificaciones y porcentaje de avance) del menor a mi cargo.\n\n"
+            "Declaro haber sido informado(a) de que el tratamiento responde al interés superior del menor de edad, respeta sus derechos fundamentales "
+            "y se realiza con fines estrictamente académicos y pedagógicos sin cesión comercial a terceros.\n\n"
+            "Firma del Padre/Madre/Acudiente Legal: ____________________________________\n"
+            "Nombre: _________________________________________________________________\n"
+            "Documento de Identidad: _________________________________________________\n"
+            "Nombre del Estudiante Menor: ____________________________________________\n"
+            "Institución Educativa: __________________________________________________\n"
+            "Fecha: ________________________\n"
+        ),
+        "consentimiento_mayores": (
+            "DECLARACIÓN DE CONSENTIMIENTO INFORMADO DE HABEAS DATA (MAYORES DE EDAD)\n"
+            "========================================================================\n"
+            "(Ley 1581 de 2012 - Principio de Libertad y Consentimiento Informado)\n\n"
+            "En mi condición de participante, estudiante universitario, aprendiz SENA o colaborador vinculado a la Institución, "
+            "declaro que he sido informado(a) acerca de la Política de Tratamiento de Datos Personales y autorizo de forma previa y expresa "
+            "el tratamiento de mis datos de contacto, seguimiento de ruta formativa y métricas de desempeño dentro del Centro de Comando EdTech.\n\n"
+            "Firma del Titular: ______________________________________________________\n"
+            "Nombre Completo: ________________________________________________________\n"
+            "Documento de Identidad: _________________________________________________\n"
+            "Correo Electrónico: _____________________________________________________\n"
+            "Fecha: ________________________\n"
+        )
+    }
+
+    contenido_texto = textos_oficiales.get(doc_id)
+    if not contenido_texto and pol:
+        contenido_texto = f"{pol['titulo']}\n{'='*len(pol['titulo'])}\nNormativa: {pol['normativa']}\nVersión: {pol['version']}\n\n{pol['contenido']}"
+
+    if not contenido_texto:
+        raise HTTPException(status_code=404, detail="Documento oficial no encontrado.")
+
+    buffer = io.BytesIO(contenido_texto.encode('utf-8'))
+    nombre_descarga = f"documento_legal_oficial_{doc_id}.txt"
+    return StreamingResponse(
+        buffer,
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{nombre_descarga}"'}
+    )
+
+

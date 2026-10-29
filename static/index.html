@@ -321,9 +321,10 @@
             <span data-i18n="btn_modo_pruebas">🎛️ Control de Avance / Pruebas</span>
           </button>
 
-          <!-- Botón Rápido de Modo Oscuro / Claro en Barra Superior -->
-          <button onclick="alternarTemaVisualRapido()" class="px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200/80 hover:border-slate-300 text-slate-700 hover:text-slate-900 font-bold text-xs flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer" title="Alternar entre Modo Claro (Blanco) y Modo Oscuro (Negro)">
-            <span id="lbl-header-modo" class="inline">☀️ Modo Claro</span>
+          <!-- Botón Rápido de Modo Oscuro / Claro en Barra Superior (Luna en Claro / Sol en Oscuro) -->
+          <button id="btn-header-modo-toggle" onclick="alternarTemaVisualRapido()" class="px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200/80 hover:border-slate-300 text-slate-700 hover:text-slate-900 font-bold text-xs flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer" title="Alternar entre Modo Claro (Blanco) y Modo Oscuro (Negro)">
+            <span id="lbl-header-modo-icono" class="text-sm">🌙</span>
+            <span id="lbl-header-modo" class="hidden sm:inline">Modo Oscuro</span>
           </button>
 
           <!-- Cargo del Usuario -->
@@ -473,12 +474,12 @@
               </div>
 
               <!-- CHECKBOX LEGAL OBLIGATORIO HABEAS DATA (LEY 1581 DE 2012 & ART. 7 MENORES DE EDAD) -->
-              <div class="p-3.5 rounded-xl bg-amber-50/90 border border-amber-300/90 shadow-2xs">
+              <div class="caja-legal-habeas p-3.5 rounded-xl bg-amber-50/90 border border-amber-300/90 shadow-2xs">
                 <label class="flex items-start gap-2.5 cursor-pointer select-none">
                   <input type="checkbox" id="check-legal-habeas-excel" onchange="actualizarEstadoBotonExcelLegal()" class="mt-0.5 w-4 h-4 rounded text-cyan-700 focus:ring-cyan-600 border-amber-400 cursor-pointer shrink-0">
                   <span class="text-[11px] text-slate-800 leading-relaxed">
                     <strong class="text-[#0a192f] font-extrabold">Declaración Obligatoria de Habeas Data (Ley 1581 de 2012 y Decreto 1377 de 2013):</strong>
-                    Certifico bajo gravedad de juramento que la Institución cuenta con la autorización previa, expresa e informada de cada titular (y de los padres/acudientes legales conforme al <strong>Art. 7 de la Ley 1581 de 2012</strong> cuando incluya menores de edad en colegios o instituciones educativas) para el tratamiento académico de sus datos en la plataforma. Esta declaración quedará registrada de forma inalterable en la <strong>⚖️ Bóveda Legal & Compliance</strong> con fecha, hora exacta e IP.
+                    Certifico bajo gravedad de juramento que la Institución cuenta con la autorización previa, expresa e informada de cada titular (y de los padres/acudientes legales conforme al <strong>Art. 7 de la Ley 1581 de 2012</strong> cuando incluya menores de edad en colegios o instituciones educativas) para el tratamiento académico de sus datos en la plataforma. Esta declaración quedará registrada de forma inalterable en la <strong>📁 Bodega Legal</strong> con fecha, hora exacta e IP.
                   </span>
                 </label>
               </div>
@@ -2296,10 +2297,10 @@
                 <span>LEY 1581 DE 2012 & DECRETO 1377 DE 2013 · COLOMBIA · AUDITORÍA INMUTABLE</span>
               </div>
               <h1 class="text-3xl font-extrabold text-[#0a192f] tracking-tight flex items-center gap-2.5">
-                <span>⚖️ Bóveda Exclusiva de Auditoría & Compliance Legal</span>
+                <span>📁 Bodega Legal</span>
               </h1>
               <p class="text-xs text-slate-600 mt-1 max-w-3xl leading-relaxed">
-                Repositorio probatorio inalterable en <strong>Azure SQL Database</strong>. Conserva el historial de convenios institucionales, actas de consentimiento Habeas Data (incluyendo Art. 7 para menores de edad en colegios), copias de seguridad (snapshots) previas a modificaciones o eliminaciones operativas y los textos oficiales de políticas legales.
+                Subentorno exclusivo de auditoría, gobernanza de convenios y compliance legal bajo la <strong>Ley 1581 de 2012 y Decreto 1377 de 2013 en Colombia</strong>. Sistema de carpetas inmutables en <strong>Azure SQL Database</strong> con documentos oficiales de la consultoría, carpetas institucionales, contratos firmados, actas de consentimiento Habeas Data y copias de seguridad (Snapshots).
               </p>
             </div>
             <div class="flex flex-wrap items-center gap-2.5 shrink-0">
@@ -2314,7 +2315,7 @@
             </div>
           </div>
 
-          <!-- KPIs de la Bóveda Legal -->
+          <!-- KPIs de la Bodega Legal -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="corp-card p-5 border-l-4 border-l-cyan-600">
               <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Convenios Aprovisionados</p>
@@ -2347,7 +2348,7 @@
                   <span>Asignación de Correo Exclusivo de Auditoría Legal & Compliance</span>
                 </h3>
                 <p class="text-xs text-slate-600 mt-0.5">
-                  Solo el Superadministrador y el correo jurídico autorizado aquí pueden ver y consultar esta Bóveda Legal. Ningún Administrador institucional, Mentor ni Aprendiz tiene acceso.
+                  Solo el Superadministrador y los correos jurídicos autorizados aquí (como <strong>diegoalexander.nino.583@hotmail.com</strong>) pueden ver y gestionar esta Bodega Legal.
                 </p>
               </div>
               <span class="px-3 py-1 rounded-full bg-[#0a192f] text-cyan-300 text-[10px] font-bold uppercase tracking-wider shrink-0">
@@ -2384,28 +2385,182 @@
             </div>
           </div>
 
-          <!-- Pestañas de la Bóveda Legal -->
+          <!-- Pestañas del Sistema de Carpetas de la Bodega Legal -->
           <div class="flex flex-wrap border-b border-slate-200 gap-2 pb-1">
-            <button id="btn-tab-boveda-convenios" onclick="cambiarTabBovedaLegal('convenios')" class="px-4 py-2.5 rounded-t-xl text-xs font-bold bg-[#0a192f] text-white flex items-center gap-2 cursor-pointer transition-all">
-              <i data-lucide="building-2" class="w-4 h-4 text-cyan-400"></i>
-              <span>1. Historial de Convenios & Logos</span>
+            <button id="btn-tab-boveda-consultoria" onclick="cambiarTabBovedaLegal('consultoria')" class="px-4 py-2.5 rounded-t-xl text-xs font-bold bg-[#0a192f] text-white flex items-center gap-2 cursor-pointer transition-all">
+              <i data-lucide="folder" class="w-4 h-4 text-amber-400"></i>
+              <span>📁 1. Documentos Legales (Consultoría)</span>
+            </button>
+            <button id="btn-tab-boveda-instituciones" onclick="cambiarTabBovedaLegal('instituciones')" class="px-4 py-2.5 rounded-t-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center gap-2 cursor-pointer transition-all">
+              <i data-lucide="folder-tree" class="w-4 h-4 text-cyan-600"></i>
+              <span>📁 2. Carpetas por Institución</span>
+            </button>
+            <button id="btn-tab-boveda-convenios" onclick="cambiarTabBovedaLegal('convenios')" class="px-4 py-2.5 rounded-t-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center gap-2 cursor-pointer transition-all">
+              <i data-lucide="building-2" class="w-4 h-4 text-blue-600"></i>
+              <span>📜 3. Historial de Convenios & Logos</span>
             </button>
             <button id="btn-tab-boveda-actas" onclick="cambiarTabBovedaLegal('actas')" class="px-4 py-2.5 rounded-t-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center gap-2 cursor-pointer transition-all">
               <i data-lucide="file-check-2" class="w-4 h-4 text-emerald-600"></i>
-              <span>2. Actas de Consentimiento Habeas Data (Excel)</span>
+              <span>📋 4. Actas Habeas Data (Excel)</span>
             </button>
             <button id="btn-tab-boveda-snapshots" onclick="cambiarTabBovedaLegal('snapshots')" class="px-4 py-2.5 rounded-t-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center gap-2 cursor-pointer transition-all">
               <i data-lucide="hard-drive-download" class="w-4 h-4 text-amber-600"></i>
-              <span>3. Copias de Seguridad Inmutables (Snapshots)</span>
+              <span>📸 5. Copias de Seguridad (Snapshots)</span>
             </button>
             <button id="btn-tab-boveda-politicas" onclick="cambiarTabBovedaLegal('politicas')" class="px-4 py-2.5 rounded-t-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center gap-2 cursor-pointer transition-all">
               <i data-lucide="scroll-text" class="w-4 h-4 text-purple-600"></i>
-              <span>4. Textos Oficiales de Políticas & Indemnidad</span>
+              <span>⚖️ 6. Políticas & Indemnidad</span>
             </button>
           </div>
 
-          <!-- TAB 1: HISTORIAL DE CONVENIOS Y APROVISIONAMIENTO -->
-          <div id="tab-boveda-convenios" class="corp-card p-6 border border-slate-200 space-y-4">
+          <!-- TAB 1: CARPETA FIJA DOCUMENTOS LEGALES (CONSULTORÍA) -->
+          <div id="tab-boveda-consultoria" class="corp-card p-6 border border-slate-200 space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
+              <div>
+                <h3 class="text-sm font-extrabold text-[#0a192f] flex items-center gap-2">
+                  <i data-lucide="folder" class="w-5 h-5 text-amber-500 fill-amber-500/20"></i>
+                  <span>📁 Carpeta Fija: Documentos Legales (Consultoría)</span>
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                  Documentación marco institucional y políticas bajo la legislación colombiana (Ley 1581 de 2012 y Art. 7 Menores de Edad) con descarga directa en 1 clic y repositorio de archivos base.
+                </p>
+              </div>
+              <button type="button" onclick="document.getElementById('form-subir-doc-consultoria-wrapper').classList.toggle('hidden')" class="px-3.5 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer">
+                <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                <span>+ Subir Nuevo Documento Base</span>
+              </button>
+            </div>
+
+            <!-- FORMULARIO DESPLEGABLE PARA SUBIR DOCUMENTO BASE -->
+            <div id="form-subir-doc-consultoria-wrapper" class="hidden p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+              <h4 class="text-xs font-bold text-slate-700">Subir Documento Marco / Política Base de Consultoría (PDF / Word)</h4>
+              <form onsubmit="subirDocumentoConsultoriaForm(event)" class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Archivo (PDF / Word / Documento)</label>
+                  <input type="file" id="file-doc-consultoria" required accept=".pdf,.doc,.docx,.txt" class="corp-input w-full px-2 py-1.5 text-xs">
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Descripción / Propósito</label>
+                  <input type="text" id="desc-doc-consultoria" placeholder="Ej: Adenda General 2026" class="corp-input w-full px-3 py-2 text-xs">
+                </div>
+                <div>
+                  <button type="submit" class="w-full py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-2xs cursor-pointer flex items-center justify-center gap-1.5">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                    <span>Guardar en Bodega Legal</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- 4 DOCUMENTOS OFICIALES PRE-CARGADOS BAJO LEY COLOMBIANA -->
+            <div>
+              <p class="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-3">Documentos Oficiales Pre-cargados (Descarga en 1 Clic):</p>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                <!-- 1. Convenio Marco -->
+                <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-2.5 flex flex-col justify-between">
+                  <div>
+                    <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-800 text-[10px] font-bold">Oficial Base</span>
+                    <h4 class="text-xs font-bold text-[#0a192f] mt-1.5 leading-snug">Convenio Marco Institucional</h4>
+                    <p class="text-[11px] text-slate-500 mt-1">Convenio de cooperación académica, ciencia y tecnología con cláusula de tratamiento de datos y logos.</p>
+                  </div>
+                  <button type="button" onclick="descargarDocumentoOficialTexto('convenio_marco')" class="w-full py-1.5 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0a192f] text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                    <i data-lucide="download" class="w-3.5 h-3.5 text-cyan-600"></i>
+                    <span>Descargar Oficial</span>
+                  </button>
+                </div>
+
+                <!-- 2. Política de Datos -->
+                <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-2.5 flex flex-col justify-between">
+                  <div>
+                    <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 text-[10px] font-bold">Ley 1581 / 2012</span>
+                    <h4 class="text-xs font-bold text-[#0a192f] mt-1.5 leading-snug">Política de Tratamiento de Datos</h4>
+                    <p class="text-[11px] text-slate-500 mt-1">Manual y política de protección de datos personales de la consultoría conforme a la ley colombiana.</p>
+                  </div>
+                  <button type="button" onclick="descargarDocumentoOficialTexto('politica_datos')" class="w-full py-1.5 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0a192f] text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                    <i data-lucide="download" class="w-3.5 h-3.5 text-emerald-600"></i>
+                    <span>Descargar Oficial</span>
+                  </button>
+                </div>
+
+                <!-- 3. Autorización Menores -->
+                <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-2.5 flex flex-col justify-between">
+                  <div>
+                    <span class="px-2 py-0.5 rounded bg-amber-50 text-amber-800 text-[10px] font-bold">Art. 7 Menores</span>
+                    <h4 class="text-xs font-bold text-[#0a192f] mt-1.5 leading-snug">Autorización de Acudientes / Menores</h4>
+                    <p class="text-[11px] text-slate-500 mt-1">Formato de consentimiento informado previo de padres o representantes para estudiantes menores en colegios.</p>
+                  </div>
+                  <button type="button" onclick="descargarDocumentoOficialTexto('autorizacion_menores')" class="w-full py-1.5 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0a192f] text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                    <i data-lucide="download" class="w-3.5 h-3.5 text-amber-600"></i>
+                    <span>Descargar Oficial</span>
+                  </button>
+                </div>
+
+                <!-- 4. Consentimiento Mayores -->
+                <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-2.5 flex flex-col justify-between">
+                  <div>
+                    <span class="px-2 py-0.5 rounded bg-purple-50 text-purple-800 text-[10px] font-bold">Mayores de Edad</span>
+                    <h4 class="text-xs font-bold text-[#0a192f] mt-1.5 leading-snug">Consentimiento para Mayores de Edad</h4>
+                    <p class="text-[11px] text-slate-500 mt-1">Declaración de consentimiento informado para aprendices universitarios, SENA o colaboradores adultos.</p>
+                  </div>
+                  <button type="button" onclick="descargarDocumentoOficialTexto('consentimiento_mayores')" class="w-full py-1.5 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0a192f] text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                    <i data-lucide="download" class="w-3.5 h-3.5 text-purple-600"></i>
+                    <span>Descargar Oficial</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- TABLA DE DOCUMENTOS BASE SUBIDOS ADICIONALES -->
+            <div>
+              <p class="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2">Archivos Adicionales Persistidos en Consultoría:</p>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                  <thead class="bg-slate-100 text-slate-700 font-bold uppercase text-[10px]">
+                    <tr>
+                      <th class="py-2.5 px-3">Archivo</th>
+                      <th class="py-2.5 px-3">Descripción</th>
+                      <th class="py-2.5 px-3">Tamaño</th>
+                      <th class="py-2.5 px-3">Subido Por</th>
+                      <th class="py-2.5 px-3">Fecha</th>
+                      <th class="py-2.5 px-3 text-right">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabla-boveda-archivos-consultoria" class="divide-y divide-slate-100 text-slate-700">
+                    <tr><td colspan="6" class="py-4 text-center text-slate-400">Sin archivos adicionales subidos.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 2: CARPETAS DINÁMICAS POR INSTITUCIÓN -->
+          <div id="tab-boveda-instituciones" class="hidden corp-card p-6 border border-slate-200 space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
+              <div>
+                <h3 class="text-sm font-extrabold text-[#0a192f] flex items-center gap-2">
+                  <i data-lucide="folder-tree" class="w-5 h-5 text-cyan-600"></i>
+                  <span>📁 Carpetas Dinámicas por Institución</span>
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                  Una carpeta digital por cada colegio, universidad, SENA o empresa registrada. Permite subir contratos firmados (PDF/Word), consultar actas de Habeas Data generadas con Excel y descargar respaldos.
+                </p>
+              </div>
+              <div class="flex items-center gap-2">
+                <label class="text-xs font-bold text-slate-600">Ver Institución:</label>
+                <select id="select-institucion-carpeta-bodega" onchange="seleccionarCarpetaInstitucionalBodega(this.value)" class="corp-input px-3 py-1.5 text-xs font-bold">
+                  <option value="">Seleccionar Carpeta Institucional...</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- DETALLE DE LA CARPETA INSTITUCIONAL SELECCIONADA -->
+            <div id="contenedor-detalle-carpeta-institucional" class="space-y-6">
+              <!-- Se pobla dinámicamente con las subcarpetas: Contratos Firmados, Actas Habeas Data y Backups -->
+            </div>
+          </div>
+
+          <!-- TAB 3: HISTORIAL DE CONVENIOS Y APROVISIONAMIENTO -->
+          <div id="tab-boveda-convenios" class="hidden corp-card p-6 border border-slate-200 space-y-4">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <h3 class="text-sm font-extrabold text-[#0a192f]">Historial Inalterable de Convenios y Aprovisionamiento Institucional</h3>
@@ -2691,44 +2846,75 @@
               </div>
             </div>
 
-            <!-- EXCLUSIVO SUPER ADMINISTRADOR: CONFIGURACIÓN DE CORREO DE AUDITORÍA LEGAL & BÓVEDA DE COMPLIANCE -->
-            <div id="card-config-correo-boveda-legal" class="hidden corp-card p-6 border border-amber-300 bg-amber-50/40 space-y-4">
+            <!-- EXCLUSIVO SUPER ADMINISTRADOR: SUBENTORNO BODEGA LEGAL & GESTIÓN DE CONTRASEÑA OFICIAL -->
+            <div id="card-config-correo-boveda-legal" class="hidden corp-card p-6 border border-amber-300 bg-amber-50/40 space-y-5">
               <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-amber-200/80">
                 <div>
                   <div class="flex items-center gap-2">
                     <i data-lucide="scale" class="w-5 h-5 text-amber-700"></i>
-                    <h3 class="text-sm font-extrabold text-[#0a192f]">⚖️ Bóveda Legal & Asignación de Correo de Auditoría Compliance (Ley 1581 de 2012)</h3>
+                    <h3 class="text-sm font-extrabold text-[#0a192f]">⚖️ Bodega Legal: Credenciales Oficiales & Acceso Exclusivo</h3>
                     <span class="px-2.5 py-0.5 rounded-full bg-[#0a192f] text-cyan-300 text-[10px] font-bold">Exclusivo SuperAdmin</span>
                   </div>
                   <p class="text-xs text-slate-600 mt-1">
-                    Autoriza un correo exclusivo de Auditoría Legal / Compliance para que pueda inspeccionar la Bóveda Legal inmutable sin tener permisos operativos sobre el resto de la plataforma.
+                    Gestión blindada de acceso y contraseña del correo oficial de Bodega Legal persistido en <strong>Azure SQL Database</strong>. Permite ingresar al subentorno directamente desde aquí o mediante inicio de sesión independiente con credenciales propias.
                   </p>
                 </div>
                 <button type="button" onclick="navegarVista('boveda-legal')" class="px-4 py-2.5 rounded-xl bg-[#0a192f] hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-2 shrink-0 cursor-pointer">
-                  <i data-lucide="shield-check" class="w-4 h-4 text-cyan-400"></i>
-                  <span>Abrir ⚖️ Bóveda Legal & Compliance</span>
+                  <i data-lucide="folder-lock" class="w-4 h-4 text-cyan-400"></i>
+                  <span>Abrir 📁 Bodega Legal</span>
                 </button>
               </div>
-              <form onsubmit="guardarCorreoLegalDesdeConfig(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
-                <div>
-                  <label class="block text-[11px] font-bold text-slate-700 mb-1">Correo Legal / Compliance Autorizado</label>
-                  <input id="cfg-input-boveda-correo" type="email" required placeholder="compliance@consultoria.com" class="corp-input w-full px-3 py-2 rounded-xl text-xs font-mono">
+
+              <!-- TARJETA DE GESTIÓN DE CONTRASEÑA DE diegoalexander.nino.583@hotmail.com -->
+              <div class="p-4 rounded-xl bg-white border border-amber-300 shadow-2xs space-y-3">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="text-xs font-bold text-slate-800">Cuenta Oficial de Bodega Legal:</span>
+                    <code class="px-2 py-0.5 rounded bg-slate-100 text-slate-900 font-mono text-xs font-bold border border-slate-300">diegoalexander.nino.583@hotmail.com</code>
+                    <span class="px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-800 text-[10px] font-extrabold">ROL: BODEGA_LEGAL</span>
+                  </div>
+                  <span class="text-[11px] text-slate-500">Clave demo sugerida: <code>123456</code></span>
                 </div>
-                <div>
-                  <label class="block text-[11px] font-bold text-slate-700 mb-1">Nombre del Responsable Jurídico</label>
-                  <input id="cfg-input-boveda-nombre" type="text" required placeholder="Auditoría Legal Externa" class="corp-input w-full px-3 py-2 rounded-xl text-xs">
-                </div>
-                <div>
-                  <label class="block text-[11px] font-bold text-slate-700 mb-1">Contraseña de Acceso (Opcional)</label>
-                  <input id="cfg-input-boveda-clave" type="password" placeholder="Contraseña para login directo" class="corp-input w-full px-3 py-2 rounded-xl text-xs font-mono">
-                </div>
-                <div>
-                  <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer">
-                    <i data-lucide="check-circle-2" class="w-4 h-4"></i>
-                    <span>Autorizar Correo Legal</span>
+
+                <form onsubmit="actualizarClaveOficialBodega(event)" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                  <div class="relative flex-1">
+                    <input id="input-clave-oficial-bodega" type="password" required placeholder="Nueva contraseña para diegoalexander.nino.583@hotmail.com" class="corp-input w-full pl-3 pr-10 py-2 rounded-xl text-xs font-mono">
+                    <button type="button" onclick="alternarVisibilidadClaveBodega()" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer p-1" title="Mostrar / Ocultar contraseña">
+                      <i id="icono-ojo-clave-bodega" data-lucide="eye" class="w-4 h-4"></i>
+                    </button>
+                  </div>
+                  <button type="submit" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 shrink-0 cursor-pointer">
+                    <i data-lucide="key-round" class="w-4 h-4"></i>
+                    <span>Actualizar Contraseña en Azure SQL</span>
                   </button>
-                </div>
-              </form>
+                </form>
+              </div>
+
+              <!-- FORMULARIO PARA AUTORIZAR OTROS CORREOS JURÍDICOS ADICIONALES -->
+              <div class="pt-2">
+                <p class="text-[11px] font-bold text-slate-700 mb-2">Autorizar Correos Jurídicos o Auditores Adicionales:</p>
+                <form onsubmit="guardarCorreoLegalDesdeConfig(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+                  <div>
+                    <label class="block text-[10px] font-bold text-slate-600 mb-1">Correo Jurídico Adicional</label>
+                    <input id="cfg-input-boveda-correo" type="email" required placeholder="abogado@institucion.edu.co" class="corp-input w-full px-3 py-2 rounded-xl text-xs font-mono">
+                  </div>
+                  <div>
+                    <label class="block text-[10px] font-bold text-slate-600 mb-1">Nombre / Dependencia</label>
+                    <input id="cfg-input-boveda-nombre" type="text" required placeholder="Oficina Jurídica" class="corp-input w-full px-3 py-2 rounded-xl text-xs">
+                  </div>
+                  <div>
+                    <label class="block text-[10px] font-bold text-slate-600 mb-1">Contraseña Inicial</label>
+                    <input id="cfg-input-boveda-clave" type="password" placeholder="Clave para login directo" class="corp-input w-full px-3 py-2 rounded-xl text-xs font-mono">
+                  </div>
+                  <div>
+                    <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-[#0a192f] hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer">
+                      <i data-lucide="user-plus" class="w-4 h-4 text-cyan-400"></i>
+                      <span>Autorizar Acceso</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
               <div id="cfg-lista-correos-boveda" class="flex flex-wrap gap-2 pt-1"></div>
             </div>
           </div>
@@ -3387,8 +3573,12 @@
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Cupos / Licencias Contratadas</label>
-          <input id="org-licencias" type="number" value="500" class="corp-input w-full px-2.5 py-2 rounded-xl text-xs">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Cupos / Licencias Contratadas (Hasta 1.000 Millones)</label>
+          <div class="flex gap-2">
+            <input id="org-licencias" type="number" value="1000000000" min="1" max="1000000000" class="corp-input w-full px-2.5 py-2 rounded-xl text-xs font-mono">
+            <button type="button" onclick="document.getElementById('org-licencias').value=1000000000" class="px-2.5 py-1.5 rounded-xl bg-cyan-50 border border-cyan-300 text-cyan-800 text-[10px] font-bold hover:bg-cyan-100 shrink-0 cursor-pointer" title="Asignar capacidad ilimitada / 1.000 millones">1.000 M</button>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1">Capacidad predeterminada: 1.000.000.000 (Mil Millones de personas por organización).</p>
         </div>
 
         <!-- LOGO INSTITUCIONAL AL CREAR -->
@@ -3479,9 +3669,12 @@
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Cupos / Licencias Asignadas (Modificable)</label>
-          <input id="edit-org-licencias" type="number" required min="1" class="corp-input w-full px-2.5 py-2 rounded-xl text-xs">
-          <p class="text-[11px] text-slate-400 mt-1">Puedes ampliar los cupos (ej. 500 a 1000/2000) por logística o crecimiento de la institución.</p>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Cupos / Licencias Asignadas (Hasta 1.000 Millones)</label>
+          <div class="flex gap-2">
+            <input id="edit-org-licencias" type="number" required min="1" max="1000000000" class="corp-input w-full px-2.5 py-2 rounded-xl text-xs font-mono">
+            <button type="button" onclick="document.getElementById('edit-org-licencias').value=1000000000" class="px-2.5 py-1.5 rounded-xl bg-cyan-50 border border-cyan-300 text-cyan-800 text-[10px] font-bold hover:bg-cyan-100 shrink-0 cursor-pointer" title="Asignar capacidad ilimitada / 1.000 millones">1.000 M</button>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1">Configuración sin límites de personas en Azure SQL (hasta 1.000.000.000 de cupos).</p>
         </div>
 
         <!-- LOGO INSTITUCIONAL AL EDITAR -->

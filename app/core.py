@@ -405,6 +405,44 @@ class ReplicadorAzure:
                 cur.execute("ALTER TABLE [organizaciones] ALTER COLUMN [nombre] NVARCHAR(MAX) NULL")
             except Exception:
                 pass
+            try:
+                cur.execute("ALTER TABLE [organizaciones] ALTER COLUMN [licencias_asignadas] BIGINT NULL")
+            except Exception:
+                pass
+            try:
+                cur.execute("ALTER TABLE [organizaciones] ALTER COLUMN [max_administradores] BIGINT NULL")
+            except Exception:
+                pass
+            try:
+                cur.execute("ALTER TABLE [organizaciones] ALTER COLUMN [max_mentores] BIGINT NULL")
+            except Exception:
+                pass
+            try:
+                cur.execute("""
+                    IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='bodega_legal_archivos' AND xtype='U')
+                    CREATE TABLE bodega_legal_archivos (
+                        id INT IDENTITY(1,1) PRIMARY KEY,
+                        categoria NVARCHAR(100) NOT NULL,
+                        organizacion_id INT NULL,
+                        nombre_archivo NVARCHAR(500) NOT NULL,
+                        descripcion NVARCHAR(MAX) NULL,
+                        tamano_bytes BIGINT DEFAULT 0,
+                        contenido_b64 NVARCHAR(MAX) NULL,
+                        subido_por NVARCHAR(255) DEFAULT 'diegoalexander.nino.583@hotmail.com',
+                        fecha_subida NVARCHAR(100) DEFAULT CONVERT(VARCHAR, GETDATE(), 120)
+                    );
+                """)
+            except Exception:
+                pass
+            try:
+                cur.execute("""
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('configuracion_boveda_legal') AND name = 'clave_plana')
+                    BEGIN
+                        ALTER TABLE [configuracion_boveda_legal] ADD [clave_plana] NVARCHAR(255) NULL DEFAULT '123456';
+                    END
+                """)
+            except Exception:
+                pass
             self.conn.commit()
         except Exception:
             try:
@@ -734,9 +772,9 @@ class DatabaseManager:
                 nombre TEXT NOT NULL,
                 tipo_organizacion TEXT NOT NULL, 
                 dominio_permitido TEXT NOT NULL, 
-                licencias_asignadas INTEGER DEFAULT 0, 
-                max_administradores INTEGER DEFAULT 1,
-                max_mentores INTEGER DEFAULT 5,
+                licencias_asignadas BIGINT DEFAULT 1000000000, 
+                max_administradores BIGINT DEFAULT 1000000000,
+                max_mentores BIGINT DEFAULT 1000000000,
                 fecha_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
                 estado_activo INTEGER DEFAULT 1
             );
@@ -1187,10 +1225,16 @@ class DatabaseManager:
                 nombre_responsable TEXT DEFAULT 'Auditor Legal / Compliance',
                 cargo TEXT DEFAULT 'Auditoría Legal & Compliance',
                 activo INTEGER DEFAULT 1,
+                clave_plana TEXT DEFAULT '123456',
                 asignado_por TEXT DEFAULT 'alexander.nino.583@gmail.com',
                 fecha_asignacion TEXT DEFAULT (DATETIME('now', 'localtime'))
             );
         """)
+
+        try:
+            cursor.execute("ALTER TABLE configuracion_boveda_legal ADD COLUMN clave_plana TEXT DEFAULT '123456'")
+        except Exception:
+            pass
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS boveda_legal_registros (
@@ -1231,6 +1275,53 @@ class DatabaseManager:
                 hash_integridad TEXT NOT NULL
             );
         """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS bodega_legal_archivos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                categoria TEXT NOT NULL,
+                organizacion_id INTEGER NULL,
+                nombre_archivo TEXT NOT NULL,
+                descripcion TEXT NULL,
+                tamano_bytes INTEGER DEFAULT 0,
+                contenido_b64 TEXT NULL,
+                subido_por TEXT DEFAULT 'diegoalexander.nino.583@hotmail.com',
+                fecha_subida TEXT DEFAULT (DATETIME('now', 'localtime')),
+                FOREIGN KEY (organizacion_id) REFERENCES organizaciones(id)
+            );
+        """)
+
+        # Asegurar credenciales y rol exclusivo oficial de la Bodega Legal
+        try:
+            pwd_hash_bodega = bcrypt.hashpw("123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            # 1. Asegurar en usuarios
+            cursor.execute("""
+                INSERT OR IGNORE INTO usuarios (organizacion_id, mentor_id, nombre, correo, rol, password_hash)
+                VALUES (NULL, NULL, 'Diego Alexander Niño', 'diegoalexander.nino.583@hotmail.com', 'BODEGA_LEGAL', ?)
+            """, (pwd_hash_bodega,))
+            cursor.execute("""
+                UPDATE usuarios
+                SET rol = 'BODEGA_LEGAL'
+                WHERE LOWER(TRIM(correo)) = 'diegoalexander.nino.583@hotmail.com'
+            """)
+            # Si existía el correo con punto diego.alexander.nino.583@hotmail.com, también actualizarlo para compatibilidad
+            cursor.execute("""
+                UPDATE usuarios
+                SET rol = 'BODEGA_LEGAL'
+                WHERE LOWER(TRIM(correo)) = 'diego.alexander.nino.583@hotmail.com'
+            """)
+            # 2. Asegurar en configuracion_boveda_legal
+            cursor.execute("""
+                INSERT OR IGNORE INTO configuracion_boveda_legal (correo_autorizado, nombre_responsable, cargo, activo, asignado_por)
+                VALUES ('diegoalexander.nino.583@hotmail.com', 'Diego Alexander Niño', 'Oficial de Cumplimiento & Bodega Legal', 1, 'alexander.nino.583@gmail.com')
+            """)
+            cursor.execute("""
+                UPDATE configuracion_boveda_legal
+                SET activo = 1, nombre_responsable = 'Diego Alexander Niño', cargo = 'Oficial de Cumplimiento & Bodega Legal'
+                WHERE LOWER(TRIM(correo_autorizado)) = 'diegoalexander.nino.583@hotmail.com'
+            """)
+        except Exception as e_bl:
+            print(f">> [BODEGA_LEGAL INIT] Aviso: {e_bl}")
 
         # Índices de alta velocidad para consultas instantáneas (<0.2ms)
         indices_sql = [
@@ -1542,10 +1633,11 @@ POLITICAS_LEGALES_OFICIALES = [
 
 def verificar_acceso_boveda_legal(usuario_id: Optional[int] = None, correo: Optional[str] = None) -> bool:
     """
-    Valida estrictamente en Backend si el usuario tiene acceso a la Bóveda Exclusiva de Auditoría & Compliance Legal.
+    Valida estrictamente en Backend si el usuario tiene acceso a la Bodega Legal & Compliance.
     SOLO pueden acceder:
     1) El Superadministrador principal (rol 'Super Administrador' o alexander.nino.583@gmail.com).
-    2) Quien inicie sesión con un Correo de Auditoría Legal / Compliance activo en configuracion_boveda_legal.
+    2) El responsable oficial de Bodega Legal (diegoalexander.nino.583@hotmail.com o rol 'BODEGA_LEGAL').
+    3) Quien inicie sesión con un Correo de Auditoría Legal / Compliance activo en configuracion_boveda_legal.
     Ningún administrador institucional, mentor ni aprendiz tiene acceso.
     """
     try:
@@ -1555,11 +1647,11 @@ def verificar_acceso_boveda_legal(usuario_id: Optional[int] = None, correo: Opti
             if u:
                 rol_u = (u.get("rol") or "").strip()
                 correo_u = (u.get("correo") or "").strip().lower()
-                if rol_u in ("Super Administrador", "Auditor Legal") or correo_u == "alexander.nino.583@gmail.com":
+                if rol_u in ("Super Administrador", "Auditor Legal", "BODEGA_LEGAL", "Bodega Legal") or correo_u in ("alexander.nino.583@gmail.com", "diegoalexander.nino.583@hotmail.com"):
                     return True
                 if not correo_norm:
                     correo_norm = correo_u
-        if correo_norm == "alexander.nino.583@gmail.com":
+        if correo_norm in ("alexander.nino.583@gmail.com", "diegoalexander.nino.583@hotmail.com"):
             return True
         if correo_norm:
             u_by_mail = db.execute_query(
@@ -1567,7 +1659,7 @@ def verificar_acceso_boveda_legal(usuario_id: Optional[int] = None, correo: Opti
                 (correo_norm,),
                 fetchone=True
             )
-            if u_by_mail and (u_by_mail.get("rol") or "").strip() in ("Super Administrador", "Auditor Legal"):
+            if u_by_mail and (u_by_mail.get("rol") or "").strip() in ("Super Administrador", "Auditor Legal", "BODEGA_LEGAL", "Bodega Legal"):
                 return True
             autorizado = db.execute_query(
                 "SELECT id FROM configuracion_boveda_legal WHERE LOWER(TRIM(correo_autorizado)) = ? AND activo = 1",
@@ -1580,6 +1672,68 @@ def verificar_acceso_boveda_legal(usuario_id: Optional[int] = None, correo: Opti
     except Exception as e:
         print(f">> [BOVEDA-AUTH] Error verificando acceso legal: {e}")
         return False
+
+def resolver_organizacion(identificador: Any) -> Optional[Dict[str, Any]]:
+    """
+    Resuelve una organización de manera ultra flexible y libre de fallos:
+    - Si es un entero o string numérico (ej. 1, '1'), busca por id.
+    - Si es string con nombre, elimina sufijos como '(Libre)', '(Estricto)', emojis, '@dominio', etc.
+    - Busca por coincidencia exacta insensible a mayúsculas/minúsculas.
+    - Si no coincide exacto, busca por coincidencia parcial (LIKE %nombre%).
+    - Si no se encuentra y existe una sola organización en la base de datos, retorna esa por fallback seguro.
+    """
+    try:
+        if identificador is None:
+            todas = db.execute_query("SELECT * FROM organizaciones", fetchall=True) or []
+            return todas[0] if len(todas) == 1 else None
+
+        ident_str = str(identificador).strip()
+        if not ident_str or ident_str.lower() in ("null", "none", "undefined", "0"):
+            todas = db.execute_query("SELECT * FROM organizaciones", fetchall=True) or []
+            return todas[0] if len(todas) == 1 else None
+
+        # 1. Si es entero o dígito directo
+        if ident_str.isdigit():
+            org = db.execute_query("SELECT * FROM organizaciones WHERE id = ?", (int(ident_str),), fetchone=True)
+            if org:
+                return org
+
+        # 2. Limpieza de sufijos comunes de la UI como '(Libre)', '(Estricto)', '[SENA]', etc.
+        nombre_limpio = re.sub(r"\s*\([^)]*\)", "", ident_str)
+        nombre_limpio = re.sub(r"\s*\[[^\]]*\]", "", nombre_limpio)
+        nombre_limpio = re.sub(r"[\U00010000-\U0010ffff]", "", nombre_limpio).strip()
+
+        # Si tras limpiar es un número
+        if nombre_limpio.isdigit():
+            org = db.execute_query("SELECT * FROM organizaciones WHERE id = ?", (int(nombre_limpio),), fetchone=True)
+            if org:
+                return org
+
+        # Búsqueda exacta limpia
+        org = db.execute_query("SELECT * FROM organizaciones WHERE LOWER(TRIM(nombre)) = LOWER(TRIM(?))", (nombre_limpio,), fetchone=True)
+        if org:
+            return org
+
+        # Búsqueda exacta original
+        org = db.execute_query("SELECT * FROM organizaciones WHERE LOWER(TRIM(nombre)) = LOWER(TRIM(?))", (ident_str,), fetchone=True)
+        if org:
+            return org
+
+        # Búsqueda parcial LIKE
+        if len(nombre_limpio) >= 2:
+            org = db.execute_query("SELECT * FROM organizaciones WHERE LOWER(nombre) LIKE LOWER(?)", (f"%{nombre_limpio}%",), fetchone=True)
+            if org:
+                return org
+
+        # Fallback de seguridad: si solo hay 1 organización en el sistema, retornar esa
+        todas = db.execute_query("SELECT * FROM organizaciones", fetchall=True) or []
+        if len(todas) == 1:
+            return todas[0]
+
+        return None
+    except Exception as e_res:
+        print(f">> [RESOLVER-ORG] Error resolviendo organización '{identificador}': {e_res}")
+        return None
 
 def registrar_evento_boveda_legal(
     categoria: str,
@@ -2668,9 +2822,9 @@ class CrearOrgRequest(BaseModel):
     nombre: str
     tipo_organizacion: str
     dominio_permitido: Optional[str] = "LIBRE"
-    licencias_asignadas: Optional[int] = 100
-    max_administradores: Optional[int] = 2
-    max_mentores: Optional[int] = 5
+    licencias_asignadas: Optional[int] = 1000000000
+    max_administradores: Optional[int] = 1000000000
+    max_mentores: Optional[int] = 1000000000
     logo_url: Optional[str] = None
     confirmacion_convenio_logos: Optional[bool] = True
     estado_convenio: Optional[str] = "CONVENIO / ALIANZA VIGENTE"
@@ -2695,9 +2849,9 @@ class ActualizarOrgRequest(BaseModel):
     nombre: str
     tipo_organizacion: str
     dominio_permitido: Optional[str] = "LIBRE"
-    licencias_asignadas: int
-    max_administradores: Optional[int] = 2
-    max_mentores: Optional[int] = 15
+    licencias_asignadas: Optional[int] = 1000000000
+    max_administradores: Optional[int] = 1000000000
+    max_mentores: Optional[int] = 1000000000
     logo_url: Optional[str] = None
 
 class SubirLogoOrgRequest(BaseModel):
