@@ -1294,3 +1294,4 @@ Fecha_Hora,Correo_Usuario,Modulo,Operacion,Estado,Detalles_Error
 2026-10-19 12:38:15,Administrador,Usuarios,Eliminar_Usuario_Con_Respaldo,EXITO,Usuario respaldado en papelera: Diana Katerin Ramirez Nieto (diana.ramirez-n@uniminuto.edu.co) - Org: Corporación Universitaria Minuto de Dios
 2026-10-19 12:38:22,Administrador,Usuarios,Cambio_Cargo_Tiempo_Real,EXITO,Usuario #2545 (david.alfonso-m@uniminuto.edu.co): Aprendiz -> Administrador
 2026-10-27 09:31:17,alexander.nino.583@gmail.com,Boveda_Legal,Autorizar_Correo_Legal,EXITO,Correo de Auditoría Legal autorizado: compliance.juridico@consultoria.co (Oficial de Cumplimiento Ley 1581)
+2026-10-30 12:59:07,diegoalexander.nino.583@hotmail.com,Bodega_Legal,Añadir_Archivo,EXITO,"Archivo: politica_seguridad_2026.docx (58 bytes, POLITICAS_EMPRESA)"

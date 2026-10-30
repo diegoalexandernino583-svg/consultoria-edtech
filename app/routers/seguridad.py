@@ -1933,8 +1933,76 @@ async def subir_contrato_institucion(
     registrar_movimiento(subido_por, "Bodega_Legal", "Subir_Doc_Institucional", "EXITO", f"Org: {org['nombre']} - Archivo: {archivo.filename} ({tipo_doc})")
     return {"status": "success", "mensaje": f"Documento '{archivo.filename}' ({tipo_doc}) guardado en la carpeta de {org['nombre']}.", "id": arch_id}
 
-    registrar_movimiento(subido_por, "Bodega_Legal", "Subir_Contrato_Institucional", "EXITO", f"Org: {org['nombre']} - Archivo: {archivo.filename}")
-    return {"status": "success", "mensaje": f"Contrato '{archivo.filename}' guardado en la carpeta de {org['nombre']}.", "id": arch_id}
+
+@router.post("/api/bodega-legal/subir-archivo")
+async def subir_cualquier_archivo_bodega_legal(
+    request: Request,
+    archivo: UploadFile = File(...),
+    destino: Optional[str] = Form("empresa"),  # "empresa" o "institucion"
+    organizacion_id: Optional[int] = Form(None),
+    categoria: Optional[str] = Form("LEGALES_EMPRESA"),
+    descripcion: Optional[str] = Form(None),
+    correo_responsable: Optional[str] = Form("diegoalexander.nino.583@hotmail.com")
+):
+    """Permite añadir CUALQUIER archivo (PDF, Word, Excel, CSV, Imagen, Zip, etc.) a la Bodega Legal de inmediato"""
+    contenido = await archivo.read()
+    tamano = len(contenido)
+    b64 = base64.b64encode(contenido).decode('utf-8')
+    subido_por = (correo_responsable or "diegoalexander.nino.583@hotmail.com").strip().lower()
+
+    dest = (destino or "empresa").strip().lower()
+    org_id_final = None
+    org_nom = "Consultoría EdTech Global"
+    cat_final = (categoria or "LEGALES_EMPRESA").strip().upper()
+
+    if dest in ("institucion", "organizacion") and organizacion_id:
+        org = resolver_organizacion(organizacion_id)
+        if org:
+            org_id_final = org["id"]
+            org_nom = org["nombre"]
+            cat_final = "INSTITUCIONAL"
+
+    desc_final = (descripcion or "").strip()
+    if not desc_final:
+        desc_final = f"Archivo añadido: {archivo.filename}"
+
+    arch_id = db.execute_query("""
+        INSERT INTO bodega_legal_archivos (categoria, organizacion_id, nombre_archivo, descripcion, tamano_bytes, contenido_b64, subido_por)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (cat_final, org_id_final, archivo.filename, desc_final, tamano, b64, subido_por), return_id=True)
+
+    ip_cliente = obtener_ip_cliente(request) if request else "127.0.0.1"
+    registrar_evento_boveda_legal(
+        categoria="CREACION_DOCUMENTO_LEGAL",
+        correo_responsable=subido_por,
+        rol_responsable="Oficial de Cumplimiento & Bodega Legal",
+        direccion_ip=ip_cliente,
+        organizacion_id=org_id_final,
+        organizacion_nombre=org_nom,
+        tipo_organizacion="Institución" if org_id_final else "Empresa",
+        estado_convenio="DOCUMENTO ACTIVO",
+        nombre_archivo=archivo.filename,
+        cantidad_registros=1,
+        confirmacion_ley1581=True,
+        confirmacion_menores_art7=True,
+        declaracion_legal=f"Archivo '{archivo.filename}' incorporado a la Bodega Legal ({org_nom}).",
+        detalles_dict={"archivo_id": arch_id, "tamano_bytes": tamano, "categoria": cat_final, "descripcion": desc_final}
+    )
+
+    try:
+        replicador_azure.sincronizar_inmediato(["bodega_legal_archivos", "boveda_legal_registros"])
+    except Exception:
+        pass
+
+    registrar_movimiento(subido_por, "Bodega_Legal", "Añadir_Archivo", "EXITO", f"Archivo: {archivo.filename} ({tamano} bytes, {cat_final})")
+    return {
+        "status": "success",
+        "mensaje": f"Archivo '{archivo.filename}' añadido exitosamente a la Bodega Legal.",
+        "id": arch_id,
+        "nombre_archivo": archivo.filename,
+        "destino": dest,
+        "organizacion_nombre": org_nom
+    }
 
 
 @router.get("/api/bodega-legal/descargar-archivo/{archivo_id}")

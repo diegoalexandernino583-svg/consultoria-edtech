@@ -2357,70 +2357,58 @@
                 <span>📁 Bodega Legal</span>
               </h1>
               <p class="text-xs text-slate-600 mt-1 max-w-3xl leading-relaxed">
-                Subentorno exclusivo de auditoría, gobernanza de convenios y compliance legal bajo la <strong>Ley 1581 de 2012 y Decreto 1377 de 2013 en Colombia</strong>. Sistema de carpetas inmutables en <strong>Azure SQL Database</strong> con documentos oficiales de la consultoría, carpetas institucionales, contratos firmados, actas de consentimiento Habeas Data y copias de seguridad (Snapshots).
+                Repositorio oficial y protegido para la gestión de <strong>documentos legales, políticas de la empresa y convenios institucionales</strong> bajo la normatividad colombiana, persistido en tiempo real en <strong>Azure SQL Database</strong>.
               </p>
             </div>
             <div class="flex flex-wrap items-center gap-2.5 shrink-0">
-              <button type="button" onclick="bloquearBodegaLegal()" class="px-3.5 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-900 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer" title="Bloquear Bodega de inmediato">
-                <i data-lucide="lock" class="w-3.5 h-3.5 text-amber-700"></i>
-                <span>Bloquear Bodega</span>
+              <button type="button" onclick="abrirModalSubirCualquierArchivoBodega()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-700 to-cyan-800 hover:from-cyan-800 hover:to-cyan-900 text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer">
+                <i data-lucide="plus-circle" class="w-4 h-4 text-cyan-200"></i>
+                <span>+ Añadir Archivo</span>
               </button>
-              <button type="button" onclick="abrirModalCambiarClaveBodega()" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer" title="Cambiar Contraseña de acceso a la Bodega Legal">
+              <button type="button" onclick="abrirModalCambiarClaveBodega()" class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer" title="Cambiar Contraseña de acceso a la Bodega Legal">
                 <i data-lucide="key" class="w-3.5 h-3.5 text-cyan-700"></i>
                 <span>Cambiar Contraseña</span>
               </button>
-              <button type="button" onclick="crearSnapshotManualBovedaLegal()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer">
-                <i data-lucide="camera" class="w-4 h-4 text-cyan-400"></i>
-                <span>📸 Crear Snapshot Inmutable</span>
-              </button>
-              <button type="button" onclick="descargarExpedienteCompletoBovedaLegal()" class="btn-excel-descarga" title="Descargar expediente legal completo en formato Excel">
-                <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
-                <span>📥 Descargar Expediente Legal (.xlsx)</span>
+              <button type="button" onclick="bloquearBodegaLegalManual()" class="px-3.5 py-2.5 rounded-xl bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-900 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer" title="Bloquear Bodega manualmente">
+                <i data-lucide="lock" class="w-3.5 h-3.5 text-amber-700"></i>
+                <span>Bloquear Bodega</span>
               </button>
             </div>
           </div>
 
-          <!-- KPIs de la Bodega Legal -->
+          <!-- KPIs de la Bodega Legal (Contadores Limpios de Archivos) -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="corp-card p-5 border-l-4 border-l-cyan-600">
-              <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Convenios Aprovisionados</p>
-              <p id="kpi-boveda-convenios" class="text-2xl font-black text-[#0a192f] mt-1">0</p>
-              <p class="text-[11px] text-slate-500 mt-1">Con autorización de marca/logos</p>
-            </div>
-            <div class="corp-card p-5 border-l-4 border-l-emerald-600">
-              <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Actas Habeas Data (Excel)</p>
-              <p id="kpi-boveda-actas" class="text-2xl font-black text-emerald-700 mt-1">0</p>
-              <p class="text-[11px] text-slate-500 mt-1">Cargas con fe de consentimiento</p>
-            </div>
-            <div class="corp-card p-5 border-l-4 border-l-purple-600">
-              <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Titulares Cubiertos en Actas</p>
-              <p id="kpi-boveda-titulares" class="text-2xl font-black text-purple-700 mt-1">0</p>
-              <p class="text-[11px] text-slate-500 mt-1">Registros con trazabilidad Ley 1581</p>
+              <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Archivos Persistidos</p>
+              <p id="kpi-boveda-total-archivos" class="text-2xl font-black text-[#0a192f] mt-1">0</p>
+              <p class="text-[11px] text-slate-500 mt-1">En Azure SQL Database</p>
             </div>
             <div class="corp-card p-5 border-l-4 border-l-amber-600">
-              <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Snapshots / Copias Inmutables</p>
-              <p id="kpi-boveda-snapshots" class="text-2xl font-black text-amber-700 mt-1">0</p>
-              <p class="text-[11px] text-slate-500 mt-1">Respaldos pre-edición y pre-borrado</p>
+              <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Documentos de la Empresa</p>
+              <p id="kpi-boveda-docs-empresa" class="text-2xl font-black text-amber-700 mt-1">0</p>
+              <p class="text-[11px] text-slate-500 mt-1">Políticas & Marco Legal</p>
+            </div>
+            <div class="corp-card p-5 border-l-4 border-l-emerald-600">
+              <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Carpetas por Institución</p>
+              <p id="kpi-boveda-carpetas-inst" class="text-2xl font-black text-emerald-700 mt-1">0</p>
+              <p class="text-[11px] text-slate-500 mt-1">Entidades con carpeta digital</p>
+            </div>
+            <div class="corp-card p-5 border-l-4 border-l-purple-600">
+              <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Oficial de Cumplimiento</p>
+              <p class="text-xs font-black text-purple-700 mt-1 truncate" title="diegoalexander.nino.583@hotmail.com">Diego Alexander Niño</p>
+              <p class="text-[10px] text-slate-400 font-mono mt-0.5 truncate">diegoalexander.nino.583@hotmail.com</p>
             </div>
           </div>
 
-          <!-- 4 PESTAÑAS 100% EN ESPAÑOL -->
+          <!-- PESTAÑAS ACTIVAS (SOLO DOCUMENTACIÓN Y CARPETAS POR INSTITUCIÓN) -->
           <div class="flex flex-wrap border-b border-slate-200 gap-2 pb-1">
             <button id="btn-tab-boveda-doc-legal" onclick="cambiarTabBodegaLegal('doc-legal')" class="tab-btn-bodega-4 active">
-              <i data-lucide="folder" class="w-4 h-4 text-amber-400"></i>
-              <span>📁 1. Documentación Legal</span>
+              <i data-lucide="folder" class="w-4 h-4 text-amber-500"></i>
+              <span>📁 1. Documentación Legal (Empresa)</span>
             </button>
             <button id="btn-tab-boveda-carpetas-inst" onclick="cambiarTabBodegaLegal('carpetas-inst')" class="tab-btn-bodega-4">
               <i data-lucide="folder-tree" class="w-4 h-4 text-cyan-600"></i>
               <span>🏢 2. Carpetas por Institución</span>
-            </button>
-            <button id="btn-tab-boveda-historial-actas" onclick="cambiarTabBodegaLegal('historial-actas')" class="tab-btn-bodega-4">
-              <i data-lucide="file-check-2" class="w-4 h-4 text-emerald-600"></i>
-              <span>📋 3. Historial de Convenios y Actas</span>
-            </button>
-            <button id="btn-tab-boveda-copias-seguridad" onclick="cambiarTabBodegaLegal('copias-seguridad')" class="tab-btn-bodega-4">
-              <i data-lucide="shield-check" class="w-4 h-4 text-purple-600"></i>
-              <span>🔒 4. Copias de Seguridad Inalterables</span>
             </button>
           </div>
 
@@ -2435,34 +2423,13 @@
                     <span>Apartado 1: Políticas de la Empresa</span>
                   </h3>
                   <p class="text-xs text-slate-500 mt-0.5">
-                    Políticas institucionales de tratamiento de datos personales, manuales de Habeas Data y protección de menores (Ley 1581 de 2012 Art. 7).
+                    Políticas institucionales de tratamiento de datos personales, manuales de Habeas Data y formatos de autorización (Ley 1581 de 2012 Art. 7).
                   </p>
                 </div>
-                <button type="button" onclick="document.getElementById('form-subir-politica-wrapper').classList.toggle('hidden')" class="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer">
-                  <i data-lucide="upload-cloud" class="w-4 h-4"></i>
-                  <span>+ Subir / Crear Nueva Política</span>
+                <button type="button" onclick="abrirModalSubirArchivoSeccion('empresa', 'POLITICAS_EMPRESA')" class="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer">
+                  <i data-lucide="plus" class="w-4 h-4"></i>
+                  <span>+ Añadir Política</span>
                 </button>
-              </div>
-
-              <!-- FORMULARIO DESPLEGABLE SUBIDA POLÍTICA -->
-              <div id="form-subir-politica-wrapper" class="hidden p-4 rounded-xl bg-amber-50/60 border border-amber-200 space-y-3">
-                <h4 class="text-xs font-bold text-amber-900">Subir Nueva Política de la Empresa (PDF / Word / Documento)</h4>
-                <form onsubmit="subirDocumentoLegalDirecto(event, 'POLITICAS_EMPRESA')" class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-                  <div>
-                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Archivo de la Política</label>
-                    <input type="file" id="file-politica-nueva" required accept=".pdf,.doc,.docx,.txt" class="corp-input w-full px-2 py-1.5 text-xs">
-                  </div>
-                  <div>
-                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Descripción / Título Oficial</label>
-                    <input type="text" id="desc-politica-nueva" placeholder="Ej: Política de Seguridad y Privacidad 2026" class="corp-input w-full px-3 py-2 text-xs">
-                  </div>
-                  <div>
-                    <button type="submit" class="w-full py-2 px-4 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold transition-all shadow-2xs cursor-pointer flex items-center justify-center gap-1.5">
-                      <i data-lucide="check-circle" class="w-4 h-4"></i>
-                      <span>Guardar en Políticas</span>
-                    </button>
-                  </div>
-                </form>
               </div>
 
               <!-- LISTA DE POLÍTICAS BASE PRE-CARGADAS -->
@@ -2510,7 +2477,7 @@
                       </tr>
                     </thead>
                     <tbody id="tabla-boveda-politicas-subidas" class="divide-y divide-slate-100 text-slate-700">
-                      <tr><td colspan="5" class="py-4 text-center text-slate-400">Sin políticas adicionales subidas.</td></tr>
+                      <tr><td colspan="5" class="py-4 text-center text-slate-400">Sin políticas adicionales subidas. Utilice "+ Añadir Política" para incorporar cualquier archivo.</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -2526,34 +2493,13 @@
                     <span>Apartado 2: Documentos Legales de la Empresa</span>
                   </h3>
                   <p class="text-xs text-slate-500 mt-0.5">
-                    Convenios marco de cooperación, actas de constitución, acuerdos de confidencialidad y autorizaciones corporativas.
+                    Convenios marco de cooperación, acuerdos de confidencialidad, actas corporativas y autorizaciones de la empresa.
                   </p>
                 </div>
-                <button type="button" onclick="document.getElementById('form-subir-doc-legal-wrapper').classList.toggle('hidden')" class="px-3.5 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer">
-                  <i data-lucide="upload-cloud" class="w-4 h-4"></i>
-                  <span>+ Subir / Crear Documento Legal</span>
+                <button type="button" onclick="abrirModalSubirArchivoSeccion('empresa', 'LEGALES_EMPRESA')" class="px-3.5 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer">
+                  <i data-lucide="plus" class="w-4 h-4"></i>
+                  <span>+ Añadir Documento Legal</span>
                 </button>
-              </div>
-
-              <!-- FORMULARIO DESPLEGABLE SUBIDA DOC LEGAL -->
-              <div id="form-subir-doc-legal-wrapper" class="hidden p-4 rounded-xl bg-cyan-50/60 border border-cyan-200 space-y-3">
-                <h4 class="text-xs font-bold text-cyan-900">Subir Documento Legal de la Empresa (PDF / Word / Documento)</h4>
-                <form onsubmit="subirDocumentoLegalDirecto(event, 'LEGALES_EMPRESA')" class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
-                  <div>
-                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Archivo del Documento Legal</label>
-                    <input type="file" id="file-doc-legal-nuevo" required accept=".pdf,.doc,.docx,.txt" class="corp-input w-full px-2 py-1.5 text-xs">
-                  </div>
-                  <div>
-                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Descripción / Propósito Legal</label>
-                    <input type="text" id="desc-doc-legal-nuevo" placeholder="Ej: Convenio Marco de Alianzas Tecnológicas" class="corp-input w-full px-3 py-2 text-xs">
-                  </div>
-                  <div>
-                    <button type="submit" class="w-full py-2 px-4 rounded-xl bg-cyan-800 hover:bg-cyan-900 text-white text-xs font-bold transition-all shadow-2xs cursor-pointer flex items-center justify-center gap-1.5">
-                      <i data-lucide="check-circle" class="w-4 h-4"></i>
-                      <span>Guardar en Documentos Legales</span>
-                    </button>
-                  </div>
-                </form>
               </div>
 
               <!-- LISTA DE DOCUMENTOS LEGALES BASE PRE-CARGADOS -->
@@ -2601,7 +2547,7 @@
                       </tr>
                     </thead>
                     <tbody id="tabla-boveda-legales-subidos" class="divide-y divide-slate-100 text-slate-700">
-                      <tr><td colspan="5" class="py-4 text-center text-slate-400">Sin documentos legales adicionales subidos.</td></tr>
+                      <tr><td colspan="5" class="py-4 text-center text-slate-400">Sin documentos legales adicionales subidos. Utilice "+ Añadir Documento Legal" para subir cualquier archivo.</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -2618,7 +2564,7 @@
                   <span>2. 🏢 Carpetas por Institución</span>
                 </h3>
                 <p class="text-xs text-slate-500 mt-0.5">
-                  Carpetas digitales creadas manual y automáticamente por cada colegio, universidad, SENA o empresa. Al abrir una carpeta se pueden consultar, subir y eliminar contratos, convenios, actas previas y autorizaciones.
+                  Carpetas digitales por cada colegio, universidad, SENA o empresa. Permite añadir, descargar y eliminar cualquier archivo asociado a la entidad (contratos, convenios, actas o autorizaciones).
                 </p>
               </div>
               <div class="flex items-center gap-2">
@@ -2634,84 +2580,6 @@
               <div class="p-8 text-center text-slate-400">Seleccione una institución arriba para explorar su carpeta digital.</div>
             </div>
           </div>
-
-          <!-- PESTAÑA 3: HISTORIAL DE CONVENIOS Y ACTAS (TRAZABILIDAD & AUDITORÍA) -->
-          <div id="tab-boveda-historial-actas" class="hidden corp-card p-6 border border-slate-200 space-y-4">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
-              <div>
-                <h3 class="text-sm font-extrabold text-[#0a192f] flex items-center gap-2">
-                  <i data-lucide="history" class="w-5 h-5 text-emerald-600"></i>
-                  <span>3. 📋 Historial de Convenios y Actas (Trazabilidad Inmutable)</span>
-                </h3>
-                <p class="text-xs text-slate-500 mt-0.5">
-                  Trazabilidad legal completa y papelera de auditoría donde queda registrado cada convenio, acta de Habeas Data, documento creado o depurado dentro de las carpetas institucionales, con sellos criptográficos SHA-256.
-                </p>
-              </div>
-              <button type="button" onclick="descargarExpedienteCompletoBovedaLegal()" class="btn-excel-descarga" title="Exportar trazabilidad completa a Excel">
-                <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
-                <span>Descargar Historial (.xlsx)</span>
-              </button>
-            </div>
-
-            <div class="overflow-x-auto">
-              <table class="w-full text-left text-xs">
-                <thead class="bg-slate-100 text-slate-700 font-bold uppercase text-[10px]">
-                  <tr>
-                    <th class="py-3 px-3">#</th>
-                    <th class="py-3 px-3">Fecha y Hora</th>
-                    <th class="py-3 px-3">Categoría / Evento</th>
-                    <th class="py-3 px-3">Institución / Entidad</th>
-                    <th class="py-3 px-3">Responsable & IP</th>
-                    <th class="py-3 px-3">Declaración Legal / Detalle</th>
-                    <th class="py-3 px-3">Sello SHA-256</th>
-                  </tr>
-                </thead>
-                <tbody id="tabla-boveda-historial-trazabilidad" class="divide-y divide-slate-100 text-slate-700">
-                  <tr><td colspan="7" class="py-6 text-center text-slate-400">Cargando historial de convenios y actas...</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- PESTAÑA 4: COPIAS DE SEGURIDAD INALTERABLES (SNAPSHOTS) -->
-          <div id="tab-boveda-copias-seguridad" class="hidden corp-card p-6 border border-slate-200 space-y-4">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
-              <div>
-                <h3 class="text-sm font-extrabold text-[#0a192f] flex items-center gap-2">
-                  <i data-lucide="shield-check" class="w-5 h-5 text-purple-600"></i>
-                  <span>4. 🔒 Copias de Seguridad Inalterables (Snapshots)</span>
-                </h3>
-                <p class="text-xs text-slate-500 mt-0.5">
-                  Copias de seguridad certificadas con sellos criptográficos SHA-256 generadas automática y manualmente en Azure SQL Database. Descarga en formato Excel (.xlsx) y JSON en 1 clic.
-                </p>
-              </div>
-              <button type="button" onclick="crearSnapshotManualBovedaLegal()" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer">
-                <i data-lucide="camera" class="w-4 h-4 text-cyan-400"></i>
-                <span>📸 Crear Copia de Seguridad Ahora</span>
-              </button>
-            </div>
-
-            <div class="overflow-x-auto">
-              <table class="w-full text-left text-xs">
-                <thead class="bg-slate-100 text-slate-700 font-bold uppercase text-[10px]">
-                  <tr>
-                    <th class="py-3 px-3">ID Snapshot</th>
-                    <th class="py-3 px-3">Fecha y Hora</th>
-                    <th class="py-3 px-3">Operación Origen</th>
-                    <th class="py-3 px-3">Entidad / Motivo</th>
-                    <th class="py-3 px-3">Responsable (IP)</th>
-                    <th class="py-3 px-3">Registros</th>
-                    <th class="py-3 px-3">Sello SHA-256</th>
-                    <th class="py-3 px-3 text-right">Descargas</th>
-                  </tr>
-                </thead>
-                <tbody id="tabla-boveda-snapshots" class="divide-y divide-slate-100 text-slate-700">
-                  <tr><td colspan="8" class="py-6 text-center text-slate-400">Cargando snapshots inmutables...</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
         </section>
 
         <!-- ===============================================================
@@ -3565,6 +3433,84 @@
        MODALES DEL SISTEMA
        ===================================================================== -->
   
+  <!-- MODAL: AÑADIR CUALQUIER ARCHIVO A LA BODEGA LEGAL -->
+  <div id="modal-subir-cualquier-archivo-bodega" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl max-w-lg w-full shadow-2xl border border-cyan-500/40">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl bg-cyan-50 dark:bg-cyan-950/50 text-cyan-700 flex items-center justify-center">
+            <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-extrabold text-[#0a192f] dark:text-white">+ Añadir Archivo a la Bodega Legal</h3>
+            <p class="text-[11px] text-slate-500">Cualquier tipo de archivo (PDF, Word, Excel, CSV, Imagen, Zip, etc.)</p>
+          </div>
+        </div>
+        <button type="button" onclick="cerrarModal('modal-subir-cualquier-archivo-bodega')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form onsubmit="ejecutarSubidaArchivoBodega(event)" class="space-y-4 mt-4">
+        <!-- Selector de Archivo -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Seleccionar Archivo (Cualquier formato)</label>
+          <div class="relative border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-cyan-600 rounded-xl p-4 text-center cursor-pointer transition-colors bg-slate-50/50 dark:bg-slate-800/40" onclick="document.getElementById('input-archivo-bodega-modal').click()">
+            <input id="input-archivo-bodega-modal" type="file" required accept="*/*" onchange="actualizarInfoArchivoSeleccionado(this)" class="hidden">
+            <i data-lucide="file-up" class="w-7 h-7 mx-auto text-cyan-600 dark:text-cyan-400 mb-1"></i>
+            <p id="label-archivo-bodega-seleccionado" class="text-xs font-semibold text-slate-700 dark:text-slate-200">
+              Haz clic aquí para examinar o arrastra cualquier archivo
+            </p>
+            <p id="sublabel-archivo-bodega-tamano" class="text-[10px] text-slate-400 mt-0.5">
+              Soporta documentos, hojas de cálculo, imágenes, comprimidos y más
+            </p>
+          </div>
+        </div>
+
+        <!-- Destino -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Destino en la Bodega Legal</label>
+          <select id="modal-subir-archivo-destino" onchange="toggleDestinoModalBodega(this.value)" class="corp-input w-full px-3 py-2 text-xs font-semibold rounded-xl border">
+            <option value="empresa" selected>🏢 Documentación Legal de la Empresa (Políticas y Normativas)</option>
+            <option value="institucion">🏫 Carpeta por Institución (Colegio, SENA, Universidad, Empresa)</option>
+          </select>
+        </div>
+
+        <!-- Si Destino es Empresa: Subcategoría -->
+        <div id="contenedor-categoria-empresa-modal">
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Categoría del Documento de la Empresa</label>
+          <select id="modal-subir-archivo-categoria" class="corp-input w-full px-3 py-2 text-xs rounded-xl border">
+            <option value="LEGALES_EMPRESA" selected>📄 Documentos Legales de la Empresa (Cámara de Comercio, RUT, etc.)</option>
+            <option value="POLITICAS_EMPRESA">🛡️ Políticas de la Empresa (Habeas Data, Términos, Seguridad)</option>
+          </select>
+        </div>
+
+        <!-- Si Destino es Institución: Selector de Organización -->
+        <div id="contenedor-institucion-bodega-modal" class="hidden">
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Institución / Entidad Destino</label>
+          <select id="modal-subir-archivo-org" class="corp-input w-full px-3 py-2 text-xs font-bold rounded-xl border">
+            <option value="">-- Seleccionar Institución --</option>
+          </select>
+        </div>
+
+        <!-- Descripción / Notas -->
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Descripción o Nombre Descriptivo (Opcional)</label>
+          <input id="modal-subir-archivo-descripcion" type="text" placeholder="Ej: Contrato Marco 2026, RUT renovado, Acta de entrega..." class="corp-input w-full px-3 py-2 text-xs rounded-xl border">
+        </div>
+
+        <div class="flex space-x-2.5 pt-2">
+          <button type="button" onclick="cerrarModal('modal-subir-cualquier-archivo-bodega')" class="w-1/2 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition-all cursor-pointer">
+            Cancelar
+          </button>
+          <button id="btn-submit-subir-archivo-bodega" type="submit" class="w-1/2 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+            <i data-lucide="check-circle" class="w-3.5 h-3.5 text-cyan-200"></i>
+            <span>Añadir a Bodega Legal</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
 
   <!-- MODAL: CAMBIAR CONTRASEÑA BODEGA LEGAL -->

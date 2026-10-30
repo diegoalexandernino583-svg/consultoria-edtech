@@ -107,6 +107,10 @@ function comprobarSesionExistente() {
   if (guardada) {
     try {
       currentUser = JSON.parse(guardada);
+      if (currentUser && (['diegoalexander.nino.583@hotmail.com', 'diego.alexander.nino.583@hotmail.com'].includes(String(currentUser.correo || '').toLowerCase().trim()) || String(currentUser.rol || '').toLowerCase().includes('bodega'))) {
+        estadoBodegaDesbloqueada = true;
+        sessionStorage.setItem('bodega_desbloqueada', 'true');
+      }
       mostrarDashboardPrincipal();
       // Validar inmediatamente con la BD si el rol fue cambiado por un administrador
       validarSesionConServidor();
@@ -317,6 +321,8 @@ function cargarOrganizaciones() {
 
 function cerrarSesion() {
   currentUser = null;
+  estadoBodegaDesbloqueada = false;
+  sessionStorage.removeItem('bodega_desbloqueada');
   localStorage.removeItem('edtech_usuario');
   sessionStorage.removeItem('edtech_usuario');
   mostrarToast('Has cerrado la sesión de forma segura.', 'info');
@@ -1694,13 +1700,6 @@ function navegarVista(vistaId) {
     }
   });
 
-  // Auto-bloqueo de seguridad: si el usuario navega a cualquier otra sección, se bloquea la Bodega Legal
-  if (vistaId !== 'boveda-legal') {
-    if (typeof bloquearBodegaLegal === 'function') {
-      bloquearBodegaLegal();
-    }
-  }
-
   // Cargar datos correspondientes de la vista
   if (vistaId === 'nodos') {
     cargarNodosInstitucionales();
@@ -1735,7 +1734,18 @@ function navegarVista(vistaId) {
       cambiarTabCelador('integrantes');
     }
   } else if (vistaId === 'boveda-legal') {
-    if (estadoBodegaDesbloqueada) {
+    const sesionDesbloqueada = estadoBodegaDesbloqueada ||
+      sessionStorage.getItem('bodega_desbloqueada') === 'true' ||
+      (currentUser && ['diegoalexander.nino.583@hotmail.com', 'diego.alexander.nino.583@hotmail.com'].includes(String(currentUser.correo || '').toLowerCase().trim()));
+
+    if (sesionDesbloqueada) {
+      estadoBodegaDesbloqueada = true;
+      sessionStorage.setItem('bodega_desbloqueada', 'true');
+      const blurGate = document.getElementById('bodega-legal-blur-gate');
+      if (blurGate) {
+        blurGate.classList.add('hidden');
+        blurGate.style.display = 'none';
+      }
       cargarVistaBovedaLegal();
     } else {
       bloquearBodegaLegal();
@@ -2108,6 +2118,10 @@ async function iniciarLoginConCredenciales(correo, password) {
       currentUser = data.usuario;
       if (currentUser) {
         currentUser.rol_normalizado = String(currentUser.rol || 'aprendiz').toLowerCase().trim();
+        if (['diegoalexander.nino.583@hotmail.com', 'diego.alexander.nino.583@hotmail.com'].includes(String(currentUser.correo || '').toLowerCase().trim()) || String(currentUser.rol || '').toLowerCase().includes('bodega')) {
+          estadoBodegaDesbloqueada = true;
+          sessionStorage.setItem('bodega_desbloqueada', 'true');
+        }
       }
       localStorage.setItem('edtech_usuario', JSON.stringify(currentUser));
       sessionStorage.setItem('edtech_usuario', JSON.stringify(currentUser));
@@ -11820,6 +11834,13 @@ function bloquearBodegaLegal() {
   if (inputClave) inputClave.value = '';
 }
 
+function bloquearBodegaLegalManual() {
+  sessionStorage.removeItem('bodega_desbloqueada');
+  estadoBodegaDesbloqueada = false;
+  bloquearBodegaLegal();
+  mostrarToast('Bodega Legal bloqueada de forma segura.', 'info');
+}
+
 async function verificarAccesoBodegaLegal(event) {
   if (event) event.preventDefault();
   const correo = (document.getElementById('input-blur-correo-bodega')?.value || 'diegoalexander.nino.583@hotmail.com').trim().toLowerCase();
@@ -11840,6 +11861,7 @@ async function verificarAccesoBodegaLegal(event) {
     if (!res.ok) throw new Error(json.detail || 'Credenciales inválidas');
 
     estadoBodegaDesbloqueada = true;
+    sessionStorage.setItem('bodega_desbloqueada', 'true');
     const blurGate = document.getElementById('bodega-legal-blur-gate');
     if (blurGate) {
       blurGate.classList.add('hidden');
@@ -11894,7 +11916,7 @@ async function ejecutarCambioClaveBodega(event) {
 }
 
 function cambiarTabBodegaLegal(tabId) {
-  const tabs = ['doc-legal', 'carpetas-inst', 'historial-actas', 'copias-seguridad'];
+  const tabs = ['doc-legal', 'carpetas-inst'];
   tabs.forEach(t => {
     const btn = document.getElementById(`btn-tab-boveda-${t}`);
     const sec = document.getElementById(`tab-boveda-${t}`);
@@ -11930,19 +11952,25 @@ async function cargarVistaBovedaLegal() {
     bovedaLegalCache.politicas = jsonEstado.politicas_oficiales || {};
     bodegaLegalCarpetasCache = jsonCarpetas;
 
-    // Actualizar contadores KPIs
-    const elConv = document.getElementById('kpi-boveda-convenios');
-    const elAct = document.getElementById('kpi-boveda-actas');
-    const elTit = document.getElementById('kpi-boveda-titulares');
-    const elSnap = document.getElementById('kpi-boveda-snapshots');
+    // Actualizar contadores KPIs limpios
+    const politicasArchivos = jsonCarpetas.documentacion_legal?.politicas_empresa?.archivos || [];
+    const legalesArchivos = jsonCarpetas.documentacion_legal?.legales_empresa?.archivos || [];
+    const totalDocsEmpresa = politicasArchivos.length + legalesArchivos.length;
 
-    const totalActas = bovedaLegalCache.actas.length;
-    const totalTitulares = bovedaLegalCache.actas.reduce((acc, a) => acc + (parseInt(a.cantidad_registros) || 0), 0);
+    let totalDocsInstituciones = 0;
+    (jsonCarpetas.instituciones || []).forEach(inst => {
+      totalDocsInstituciones += (inst.archivos || []).length;
+    });
 
-    if (elConv) elConv.innerText = bovedaLegalCache.convenios.length;
-    if (elAct) elAct.innerText = totalActas;
-    if (elTit) elTit.innerText = totalTitulares.toLocaleString('es-CO');
-    if (elSnap) elSnap.innerText = bovedaLegalCache.snapshots.length;
+    const granTotalArchivos = totalDocsEmpresa + totalDocsInstituciones;
+
+    const elTotal = document.getElementById('kpi-boveda-total-archivos');
+    const elDocsEmpresa = document.getElementById('kpi-boveda-docs-empresa');
+    const elCarpetasInst = document.getElementById('kpi-boveda-carpetas-inst');
+
+    if (elTotal) elTotal.innerText = granTotalArchivos;
+    if (elDocsEmpresa) elDocsEmpresa.innerText = totalDocsEmpresa;
+    if (elCarpetasInst) elCarpetasInst.innerText = (jsonCarpetas.instituciones || []).length;
 
     // 1. Renderizar Pestaña 1: Políticas de Empresa y Documentos Legales Subidos
     renderizarTablasDocumentacionLegal(jsonCarpetas.documentacion_legal);
@@ -11950,11 +11978,8 @@ async function cargarVistaBovedaLegal() {
     // 2. Renderizar Pestaña 2: Selector y Carpetas por Institución
     poblarSelectorCarpetasInstitucionales(jsonCarpetas.instituciones || []);
 
-    // 3. Renderizar Pestaña 3: Historial de Convenios y Actas (Trazabilidad)
-    renderizarHistorialTrazabilidad(jsonCarpetas.historial_trazabilidad || []);
-
-    // 4. Renderizar Pestaña 4: Copias de Seguridad Inalterables (Snapshots)
-    renderizarTablaBovedaSnapshots(bovedaLegalCache.snapshots);
+    // 3. Poblar instituciones en el modal de añadir archivo
+    poblarSelectInstitucionesModalBodega();
 
     refrescarIconos();
   } catch (err) {
@@ -12081,16 +12106,16 @@ function seleccionarCarpetaInstitucionalBodega(orgId) {
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <button type="button" onclick="document.getElementById('form-subir-doc-institucion-wrapper-${org.organizacion_id}').classList.toggle('hidden')" class="px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer">
-          <i data-lucide="upload-cloud" class="w-4 h-4"></i>
-          <span>+ Subir Documento a esta Carpeta</span>
+        <button type="button" onclick="abrirModalSubirArchivoSeccion('institucion', ${org.organizacion_id})" class="px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span>+ Añadir Archivo</span>
         </button>
       </div>
     </div>
 
     <!-- FORMULARIO DESPLEGABLE SUBIDA DOCUMENTO A LA CARPETA INSTITUCIONAL -->
     <div id="form-subir-doc-institucion-wrapper-${org.organizacion_id}" class="hidden p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-      <h4 class="text-xs font-bold text-slate-700">Subir Contrato, Convenio, Acta o Autorización para ${escapeHtml(org.nombre)} (PDF / Word)</h4>
+      <h4 class="text-xs font-bold text-slate-700">Subir Contrato, Convenio, Acta o Cualquier Archivo para ${escapeHtml(org.nombre)}</h4>
       <form onsubmit="subirDocumentoInstitucionDirecto(event, ${org.organizacion_id})" class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
         <div>
           <label class="block text-[11px] font-bold text-slate-600 mb-1">Tipo de Documento</label>
@@ -12102,8 +12127,8 @@ function seleccionarCarpetaInstitucionalBodega(orgId) {
           </select>
         </div>
         <div>
-          <label class="block text-[11px] font-bold text-slate-600 mb-1">Archivo (PDF / Word)</label>
-          <input type="file" id="file-doc-inst-${org.organizacion_id}" required accept=".pdf,.doc,.docx" class="corp-input w-full px-2 py-1.5 text-xs">
+          <label class="block text-[11px] font-bold text-slate-600 mb-1">Archivo (Cualquier formato)</label>
+          <input type="file" id="file-doc-inst-${org.organizacion_id}" required accept="*/*" class="corp-input w-full px-2 py-1.5 text-xs">
         </div>
         <div>
           <label class="block text-[11px] font-bold text-slate-600 mb-1">Descripción / Notas</label>
@@ -12461,5 +12486,158 @@ function formatearTamanoBytes(bytes) {
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(b) / Math.log(k));
   return parseFloat((b / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+// =====================================================================
+// BODEGA LEGAL: GESTIÓN UNIVERSAL DE ARCHIVOS (+ AÑADIR ARCHIVO)
+// =====================================================================
+
+function abrirModalSubirCualquierArchivoBodega() {
+  const modal = document.getElementById('modal-subir-cualquier-archivo-bodega');
+  if (!modal) return;
+
+  const fileInput = document.getElementById('input-archivo-bodega-modal');
+  if (fileInput) fileInput.value = '';
+  const labelFile = document.getElementById('label-archivo-bodega-seleccionado');
+  if (labelFile) labelFile.textContent = 'Haz clic aquí para examinar o arrastra cualquier archivo';
+  const sublabel = document.getElementById('sublabel-archivo-bodega-tamano');
+  if (sublabel) sublabel.textContent = 'Soporta documentos, hojas de cálculo, imágenes, comprimidos y más';
+  const descInput = document.getElementById('modal-subir-archivo-descripcion');
+  if (descInput) descInput.value = '';
+
+  poblarSelectInstitucionesModalBodega();
+  toggleDestinoModalBodega('empresa');
+  modal.classList.remove('hidden');
+  refrescarIconos();
+}
+
+function abrirModalSubirArchivoSeccion(destino, subcategoriaOOrgId) {
+  abrirModalSubirCualquierArchivoBodega();
+  if (destino === 'empresa') {
+    const selDest = document.getElementById('modal-subir-archivo-destino');
+    if (selDest) selDest.value = 'empresa';
+    toggleDestinoModalBodega('empresa');
+    if (subcategoriaOOrgId) {
+      const selCat = document.getElementById('modal-subir-archivo-categoria');
+      if (selCat) selCat.value = subcategoriaOOrgId;
+    }
+  } else if (destino === 'institucion') {
+    const selDest = document.getElementById('modal-subir-archivo-destino');
+    if (selDest) selDest.value = 'institucion';
+    toggleDestinoModalBodega('institucion');
+    if (subcategoriaOOrgId) {
+      const selOrg = document.getElementById('modal-subir-archivo-org');
+      if (selOrg) selOrg.value = String(subcategoriaOOrgId);
+    }
+  }
+}
+
+function toggleDestinoModalBodega(destino) {
+  const cEmpresa = document.getElementById('contenedor-categoria-empresa-modal');
+  const cInst = document.getElementById('contenedor-institucion-bodega-modal');
+  if (destino === 'institucion') {
+    if (cEmpresa) cEmpresa.classList.add('hidden');
+    if (cInst) cInst.classList.remove('hidden');
+  } else {
+    if (cEmpresa) cEmpresa.classList.remove('hidden');
+    if (cInst) cInst.classList.add('hidden');
+  }
+  refrescarIconos();
+}
+
+function poblarSelectInstitucionesModalBodega() {
+  const selOrg = document.getElementById('modal-subir-archivo-org');
+  if (!selOrg) return;
+  const orgs = (bodegaLegalCarpetasCache && bodegaLegalCarpetasCache.instituciones && bodegaLegalCarpetasCache.instituciones.length > 0)
+    ? bodegaLegalCarpetasCache.instituciones
+    : (allOrganizations || []);
+
+  const valActual = selOrg.value;
+  selOrg.innerHTML = '<option value="">-- Seleccionar Institución Destino --</option>' +
+    orgs.map(o => {
+      const id = o.organizacion_id || o.id;
+      const nom = o.nombre || o.organizacion_nombre;
+      return `<option value="${id}" ${String(id) === String(valActual) ? 'selected' : ''}>🏢 ${escapeHtml(nom)}</option>`;
+    }).join('');
+}
+
+function actualizarInfoArchivoSeleccionado(input) {
+  const labelFile = document.getElementById('label-archivo-bodega-seleccionado');
+  const sublabel = document.getElementById('sublabel-archivo-bodega-tamano');
+  if (!input || !input.files || !input.files[0]) {
+    if (labelFile) labelFile.textContent = 'Haz clic aquí para examinar o arrastra cualquier archivo';
+    if (sublabel) sublabel.textContent = 'Soporta documentos, hojas de cálculo, imágenes, comprimidos y más';
+    return;
+  }
+  const file = input.files[0];
+  if (labelFile) labelFile.textContent = `✓ Archivo: ${file.name}`;
+  if (sublabel) sublabel.textContent = `Tamaño: ${formatearTamanoBytes(file.size)} · Tipo: ${file.type || 'Documento / Archivo'}`;
+}
+
+async function ejecutarSubidaArchivoBodega(event) {
+  if (event) event.preventDefault();
+  const fileInput = document.getElementById('input-archivo-bodega-modal');
+  if (!fileInput || !fileInput.files.length) {
+    return mostrarToast('Por favor seleccione un archivo para añadir a la Bodega Legal.', 'advertencia');
+  }
+
+  const destino = document.getElementById('modal-subir-archivo-destino')?.value || 'empresa';
+  const categoria = document.getElementById('modal-subir-archivo-categoria')?.value || 'LEGALES_EMPRESA';
+  const orgId = document.getElementById('modal-subir-archivo-org')?.value || '';
+  const descripcion = document.getElementById('modal-subir-archivo-descripcion')?.value || '';
+
+  if (destino === 'institucion' && !orgId) {
+    return mostrarToast('Por favor seleccione la institución a la que pertenece este archivo.', 'advertencia');
+  }
+
+  const btnSubmit = document.getElementById('btn-submit-subir-archivo-bodega');
+  const txtOriginal = btnSubmit ? btnSubmit.innerHTML : '';
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = `<span class="animate-spin inline-block mr-1">⌛</span><span>Guardando en Azure SQL...</span>`;
+  }
+
+  const fd = new FormData();
+  fd.append('archivo', fileInput.files[0]);
+  fd.append('destino', destino);
+  if (destino === 'institucion') {
+    fd.append('organizacion_id', orgId);
+  } else {
+    fd.append('categoria', categoria);
+  }
+  fd.append('descripcion', descripcion);
+  fd.append('correo_responsable', currentUser?.correo || 'diegoalexander.nino.583@hotmail.com');
+
+  try {
+    mostrarToast('Subiendo archivo y persistiendo en tiempo real en Azure SQL Database...', 'info');
+    const res = await fetch(`${API_BASE}/api/bodega-legal/subir-archivo`, {
+      method: 'POST',
+      body: fd
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.detail || 'Error al guardar el archivo en Azure SQL Database');
+
+    mostrarToast(`✓ ${json.mensaje || 'Archivo añadido exitosamente a la Bodega Legal.'}`, 'exito');
+    cerrarModal('modal-subir-cualquier-archivo-bodega');
+    await cargarVistaBovedaLegal();
+
+    if (destino === 'institucion' && orgId) {
+      cambiarTabBodegaLegal('carpetas-inst');
+      const selInst = document.getElementById('select-institucion-carpeta-bodega');
+      if (selInst) {
+        selInst.value = orgId;
+        seleccionarCarpetaInstitucionalBodega(orgId);
+      }
+    } else {
+      cambiarTabBodegaLegal('doc-legal');
+    }
+  } catch (err) {
+    mostrarToast(err.message, 'error');
+  } finally {
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.innerHTML = txtOriginal;
+    }
+  }
 }
 
