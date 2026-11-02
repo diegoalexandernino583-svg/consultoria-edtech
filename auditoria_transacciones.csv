@@ -1295,3 +1295,8 @@ Fecha_Hora,Correo_Usuario,Modulo,Operacion,Estado,Detalles_Error
 2026-10-19 12:38:22,Administrador,Usuarios,Cambio_Cargo_Tiempo_Real,EXITO,Usuario #2545 (david.alfonso-m@uniminuto.edu.co): Aprendiz -> Administrador
 2026-10-27 09:31:17,alexander.nino.583@gmail.com,Boveda_Legal,Autorizar_Correo_Legal,EXITO,Correo de Auditoría Legal autorizado: compliance.juridico@consultoria.co (Oficial de Cumplimiento Ley 1581)
 2026-10-30 12:59:07,diegoalexander.nino.583@hotmail.com,Bodega_Legal,Añadir_Archivo,EXITO,"Archivo: politica_seguridad_2026.docx (58 bytes, POLITICAS_EMPRESA)"
+2026-11-02 18:52:56,correo.inventado.999@noexiste.edu.co,Autenticacion,Validacion_Credenciales,FALLO,Correo no registrado o no provisionado
+2026-11-02 18:54:23,correo.inexistente.audit999@noexiste.edu.co,Autenticacion,Validacion_Credenciales,FALLO,Correo no registrado o no provisionado
+2026-11-02 18:54:23,diegoalexander.nino.583@hotmail.com,Autenticacion,Validacion_Credenciales,FALLO,Contraseña incorrecta
+2026-11-02 18:54:23,diegoalexander.nino.583@hotmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: BODEGA_LEGAL (Acceso directo)
+2026-11-02 18:54:27,SuperAdmin,Material,Crear_Material,EXITO,Título: Ruta de Aprendizaje Cloud Architecture - ID: 17 - Módulos: 4

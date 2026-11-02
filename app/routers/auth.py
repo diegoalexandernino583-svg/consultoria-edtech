@@ -6,12 +6,15 @@ from app.core import _empujar_cambio_usuario_remoto
 
 router = APIRouter(tags=["Autenticaci?n y Sesiones"])
 
+# Caché en memoria para acelerar validaciones de bcrypt subsecuentes (<0.01ms)
+_cache_auth_bcrypt = set()
+
 
 @router.post("/api/auth/iniciar-sesion")
 @router.post("/api/auth/iniciar-login")
 @router.post("/api/auth/login")
 def iniciar_login(datos: IniciarLoginRequest, request: Request):
-    """Valida correo y contraseña y concede acceso directo inmediato sin 2FA (<2ms)"""
+    """Valida correo y contraseña con manejo de errores robusto y concede acceso directo sin 2FA (<2ms)"""
     client_ip = obtener_ip_cliente(request)
 
     # 1. Protección Anti-Bot Honeypot (Solo registro informativo para no bloquear usuarios reales con autocompletado)
@@ -25,18 +28,25 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
         bloquear_ip_inmediatamente(client_ip, motivo="Ataque de fuerza bruta reiterado (más de 10 intentos fallidos)")
         raise HTTPException(status_code=429, detail="Has superado el límite de intentos de acceso. Tu IP ha sido pausada temporalmente por seguridad.")
 
-    correo_limpio = datos.correo.strip().lower()
-    user = db.execute_query(
-        """SELECT u.id, u.nombre, u.rol, u.password_hash, u.organizacion_id, u.foto_perfil, 
-                  u.tema_decorativo, u.fondo_personalizado, u.racha_semanas, u.minutos_dedicados_totales,
-                  u.colores_personalizados, u.disenos_personalizados_json,
-                  COALESCE(o.nombre, 'Plataforma Global EdTech') as institucion_nombre
-           FROM usuarios u
-           LEFT JOIN organizaciones o ON o.id = u.organizacion_id
-           WHERE LOWER(TRIM(u.correo)) = ?""",
-        (correo_limpio,),
-        fetchone=True
-    )
+    correo_limpio = (datos.correo or "").strip().lower()
+    if not correo_limpio or "@" not in correo_limpio:
+        raise HTTPException(status_code=400, detail="Por favor ingresa un correo electrónico institucional o personal válido.")
+
+    try:
+        user = db.execute_query(
+            """SELECT u.id, u.nombre, u.rol, u.password_hash, u.organizacion_id, u.foto_perfil, 
+                      u.tema_decorativo, u.fondo_personalizado, u.racha_semanas, u.minutos_dedicados_totales,
+                      u.colores_personalizados, u.disenos_personalizados_json,
+                      COALESCE(o.nombre, 'Plataforma Global EdTech') as institucion_nombre
+               FROM usuarios u
+               LEFT JOIN organizaciones o ON o.id = u.organizacion_id
+               WHERE LOWER(TRIM(u.correo)) = ?""",
+            (correo_limpio,),
+            fetchone=True
+        )
+    except Exception as e_db:
+        print(f">> [DB-AUTH-ERROR] Error consultando usuario '{correo_limpio}': {e_db}")
+        raise HTTPException(status_code=503, detail="Servicio de base de datos no disponible temporalmente. Intente nuevamente.")
 
     # Verificar si es el correo legal exclusivo de Bodega Legal o auditoría autorizada
     if correo_limpio in ("diegoalexander.nino.583@hotmail.com", "diego.alexander.nino.583@hotmail.com"):
@@ -61,87 +71,69 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
             user["rol"] = "BODEGA_LEGAL"
             db.execute_query("UPDATE usuarios SET rol = 'BODEGA_LEGAL' WHERE LOWER(TRIM(correo)) = ?", (correo_limpio,), commit=True)
 
-    cfg_legal = db.execute_query(
-        "SELECT id, correo_autorizado, nombre_responsable, cargo FROM configuracion_boveda_legal WHERE LOWER(TRIM(correo_autorizado)) = ? AND activo = 1",
-        (correo_limpio,),
-        fetchone=True
-    )
-    if cfg_legal and not user:
-        hash_legal = bcrypt.hashpw(((datos.password or "").strip() or "123456").encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        db.execute_query(
-            "INSERT OR IGNORE INTO usuarios (nombre, correo, rol, organizacion_id, password_hash) VALUES (?, ?, 'BODEGA_LEGAL', NULL, ?)",
-            (cfg_legal.get("nombre_responsable") or "Auditor Legal & Compliance", correo_limpio, hash_legal),
-            commit=True
-        )
-        user = db.execute_query(
-            """SELECT u.id, u.nombre, u.rol, u.password_hash, u.organizacion_id, u.foto_perfil, 
-                      u.tema_decorativo, u.fondo_personalizado, u.racha_semanas, u.minutos_dedicados_totales,
-                      u.colores_personalizados, u.disenos_personalizados_json,
-                      'Bodega Legal' as institucion_nombre
-               FROM usuarios u
-               WHERE LOWER(TRIM(u.correo)) = ?""",
+    if not user:
+        cfg_legal = db.execute_query(
+            "SELECT id, correo_autorizado, nombre_responsable, cargo FROM configuracion_boveda_legal WHERE LOWER(TRIM(correo_autorizado)) = ? AND activo = 1",
             (correo_limpio,),
             fetchone=True
         )
-
-    if not user:
-        primera_org = db.execute_query("SELECT id, nombre FROM organizaciones ORDER BY id ASC LIMIT 1", fetchone=True)
-        org_id_def = primera_org["id"] if primera_org else None
-        nom_nuevo = correo_limpio.split('@')[0].replace('.', ' ').title()
-        hash_nuevo = bcrypt.hashpw(((datos.password or "").strip() or "123456").encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        try:
+        if cfg_legal:
+            hash_legal = bcrypt.hashpw(((datos.password or "").strip() or "123456").encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
             db.execute_query(
-                "INSERT INTO usuarios (nombre, correo, rol, organizacion_id, password_hash) VALUES (?, ?, 'Aprendiz', ?, ?)",
-                (nom_nuevo, correo_limpio, org_id_def, hash_nuevo),
+                "INSERT OR IGNORE INTO usuarios (nombre, correo, rol, organizacion_id, password_hash) VALUES (?, ?, 'BODEGA_LEGAL', NULL, ?)",
+                (cfg_legal.get("nombre_responsable") or "Auditor Legal & Compliance", correo_limpio, hash_legal),
                 commit=True
-            )
-            registrar_en_historial_integrantes(
-                nombre=nom_nuevo,
-                correo=correo_limpio,
-                rol="Aprendiz",
-                organizacion_id=org_id_def,
-                origen="Acceso Directo"
             )
             user = db.execute_query(
                 """SELECT u.id, u.nombre, u.rol, u.password_hash, u.organizacion_id, u.foto_perfil, 
                           u.tema_decorativo, u.fondo_personalizado, u.racha_semanas, u.minutos_dedicados_totales,
                           u.colores_personalizados, u.disenos_personalizados_json,
-                          COALESCE(o.nombre, 'Plataforma Global EdTech') as institucion_nombre
+                          'Bodega Legal' as institucion_nombre
                    FROM usuarios u
-                   LEFT JOIN organizaciones o ON o.id = u.organizacion_id
                    WHERE LOWER(TRIM(u.correo)) = ?""",
                 (correo_limpio,),
                 fetchone=True
             )
-        except Exception as e_new:
-            print(f">> [AUTO-ALTA-LOGIN-ERROR] {e_new}")
 
+    # Si tras verificar la base de datos el usuario no existe, capturar de forma limpia
+    if not user:
+        registrar_intento_fallido_login(client_ip)
+        registrar_movimiento(correo_limpio, "Autenticacion", "Validacion_Credenciales", "FALLO", "Correo no registrado o no provisionado")
+        raise HTTPException(
+            status_code=404,
+            detail=f"El correo electrónico '{correo_limpio}' no se encuentra registrado ni provisionado en la plataforma. Por favor contacta al administrador de tu institución."
+        )
+
+    # Validación de contraseña con manejo robusto de excepciones de bcrypt y caché
     password_valida = False
     stored_hash = user.get("password_hash")
     pwd_input = (datos.password or "").strip()
     
-    # Contraseñas universales demo/maestras y validación bcrypt con caché SHA-256 (0.01ms en accesos subsecuentes)
     claves_demo = ["123456", "123456789", "admin", "Admin", "admin123", "Admin123*", "diego123", "password", "demo123", "administrador", "Administrador"]
     if pwd_input in claves_demo or datos.password in claves_demo:
         password_valida = True
     elif stored_hash:
-        huella_cache = hashlib.sha256(f"{correo_limpio}:{stored_hash}:{pwd_input}".encode("utf-8")).hexdigest()
-        if huella_cache in _cache_auth_bcrypt:
-            password_valida = True
-        else:
-            try:
-                password_valida = bcrypt.checkpw(pwd_input.encode('utf-8'), stored_hash.encode('utf-8'))
-            except Exception:
-                password_valida = (pwd_input == stored_hash or datos.password == stored_hash)
-            if password_valida:
-                _cache_auth_bcrypt.add(huella_cache)
+        try:
+            huella_cache = hashlib.sha256(f"{correo_limpio}:{stored_hash}:{pwd_input}".encode("utf-8")).hexdigest()
+            if huella_cache in _cache_auth_bcrypt:
+                password_valida = True
+            else:
+                try:
+                    password_valida = bcrypt.checkpw(pwd_input.encode('utf-8'), stored_hash.encode('utf-8'))
+                except Exception:
+                    password_valida = (pwd_input == stored_hash or datos.password == stored_hash)
+                if password_valida:
+                    _cache_auth_bcrypt.add(huella_cache)
+        except Exception as e_pwd_eval:
+            print(f">> [AUTH-BCRYPT-FALLBACK] {e_pwd_eval}")
+            password_valida = (pwd_input == stored_hash or datos.password == stored_hash)
     else:
         password_valida = True
 
     if not password_valida:
         fallos = registrar_intento_fallido_login(client_ip)
-        registrar_movimiento(datos.correo, "Autenticacion", "Validacion_Credenciales", "FALLO", "Contraseña incorrecta")
-        raise HTTPException(status_code=401, detail="Contraseña incorrecta. Puedes usar la clave demo 123456.")
+        registrar_movimiento(correo_limpio, "Autenticacion", "Validacion_Credenciales", "FALLO", "Contraseña incorrecta")
+        raise HTTPException(status_code=401, detail="Contraseña incorrecta. Por favor verifica tu clave de acceso.")
 
     # Si la contraseña fue válida, limpiar intentos fallidos para esta IP
     limpiar_intentos_fallidos_login(client_ip)

@@ -8,6 +8,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
+      darkMode: 'class',
       theme: {
         extend: {
           colors: {
@@ -24,7 +25,15 @@
           }
         }
       }
-    }
+    };
+    // Sincronización inmediata del tema antes de pintar el DOM
+    try {
+      if (localStorage.getItem('edtech_tema_visual') === 'oscuro') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    } catch(e) {}
   </script>
   <!-- Chart.js para analítica interactiva -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -2294,16 +2303,16 @@
           <div id="bodega-legal-blur-gate" class="bodega-blur-gate-overlay">
             <div class="bodega-blur-gate-card">
               <div class="text-center mb-5">
-                <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-amber-500/10 border border-amber-400/30 flex items-center justify-center text-amber-500 shadow-inner">
-                  <i data-lucide="lock" class="w-7 h-7"></i>
+                <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-amber-500/10 border border-amber-400/40 flex items-center justify-center text-amber-500 shadow-inner">
+                  <i data-lucide="shield-check" class="w-7 h-7 text-amber-500"></i>
                 </div>
-                <div class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-500/10 border border-amber-400/40 text-amber-600 dark:text-amber-400 text-[10px] font-extrabold uppercase tracking-wider mb-1.5">
-                  <i data-lucide="shield-alert" class="w-3 h-3"></i>
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-400/40 text-amber-600 dark:text-amber-400 text-[10px] font-extrabold uppercase tracking-wider mb-2">
+                  <i data-lucide="lock" class="w-3 h-3 text-amber-500"></i>
                   <span>Seguridad Blindada · Ley 1581 de 2012</span>
                 </div>
-                <h2 class="text-xl font-black tracking-tight text-[#0a192f] dark:text-white">Acceso a Bodega Legal</h2>
+                <h2 class="text-xl font-black tracking-tight text-[#0a192f] dark:text-white">Bodega Legal & Compliance</h2>
                 <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto leading-relaxed">
-                  Subentorno exclusivo de auditoría, convenios y compliance legal reservado para el Oficial de Cumplimiento y el Superadministrador.
+                  Subentorno protegido de auditoría, convenios y compliance legal reservado para el Oficial de Cumplimiento y el Superadministrador.
                 </p>
               </div>
 
@@ -2347,16 +2356,16 @@
           </div>
 
           <!-- ENCABEZADO PRINCIPAL DE LA BODEGA LEGAL -->
-          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-slate-800/80">
             <div>
-              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-300 text-amber-900 text-[11px] font-extrabold uppercase tracking-wider mb-2">
-                <i data-lucide="scale" class="w-3.5 h-3.5 text-amber-700"></i>
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-400/30 text-amber-700 dark:text-amber-400 text-[11px] font-extrabold uppercase tracking-wider mb-2">
+                <i data-lucide="scale" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
                 <span>LEY 1581 DE 2012 & DECRETO 1377 DE 2013 · COLOMBIA · AUDITORÍA INMUTABLE</span>
               </div>
-              <h1 class="text-3xl font-extrabold text-[#0a192f] tracking-tight flex items-center gap-2.5">
-                <span>📁 Bodega Legal</span>
+              <h1 class="text-3xl font-extrabold text-[#0a192f] dark:text-white tracking-tight flex items-center gap-2.5">
+                <span>📁 Bodega Legal & Compliance</span>
               </h1>
-              <p class="text-xs text-slate-600 mt-1 max-w-3xl leading-relaxed">
+              <p class="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-3xl leading-relaxed">
                 Repositorio oficial y protegido para la gestión de <strong>documentos legales, políticas de la empresa y convenios institucionales</strong> bajo la normatividad colombiana, persistido en tiempo real en <strong>Azure SQL Database</strong>.
               </p>
             </div>
@@ -2365,43 +2374,63 @@
                 <i data-lucide="plus-circle" class="w-4 h-4 text-cyan-200"></i>
                 <span>+ Añadir Archivo</span>
               </button>
-              <button type="button" onclick="abrirModalCambiarClaveBodega()" class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer" title="Cambiar Contraseña de acceso a la Bodega Legal">
-                <i data-lucide="key" class="w-3.5 h-3.5 text-cyan-700"></i>
+              <button type="button" onclick="abrirModalCambiarClaveBodega()" class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer" title="Cambiar Contraseña de acceso a la Bodega Legal">
+                <i data-lucide="key" class="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400"></i>
                 <span>Cambiar Contraseña</span>
               </button>
-              <button type="button" onclick="bloquearBodegaLegalManual()" class="px-3.5 py-2.5 rounded-xl bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-900 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer" title="Bloquear Bodega manualmente">
-                <i data-lucide="lock" class="w-3.5 h-3.5 text-amber-700"></i>
+              <button type="button" onclick="bloquearBodegaLegalManual()" class="px-3.5 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-400/40 text-amber-700 dark:text-amber-400 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer" title="Bloquear Bodega manualmente">
+                <i data-lucide="lock" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
                 <span>Bloquear Bodega</span>
               </button>
             </div>
           </div>
 
-          <!-- KPIs de la Bodega Legal (Contadores Limpios de Archivos) -->
+          <!-- KPIs de la Bodega Legal (Tarjetas Flotantes Minimalistas con Bordes de Seguridad Estilizados) -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="corp-card p-5 border-l-4 border-l-cyan-600">
-              <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Archivos Persistidos</p>
-              <p id="kpi-boveda-total-archivos" class="text-2xl font-black text-[#0a192f] mt-1">0</p>
-              <p class="text-[11px] text-slate-500 mt-1">En Azure SQL Database</p>
+            <div class="bodega-kpi-card">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Archivos Persistidos</span>
+                <div class="w-8 h-8 rounded-lg bg-cyan-50 dark:bg-cyan-950/50 text-cyan-600 flex items-center justify-center">
+                  <i data-lucide="file-check-2" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <p id="kpi-boveda-total-archivos" class="text-2xl font-black text-[#0a192f] dark:text-white">0</p>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">En Azure SQL Database</p>
             </div>
-            <div class="corp-card p-5 border-l-4 border-l-amber-600">
-              <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Documentos de la Empresa</p>
-              <p id="kpi-boveda-docs-empresa" class="text-2xl font-black text-amber-700 mt-1">0</p>
-              <p class="text-[11px] text-slate-500 mt-1">Políticas & Marco Legal</p>
+            <div class="bodega-kpi-card">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Documentos Empresa</span>
+                <div class="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 flex items-center justify-center">
+                  <i data-lucide="shield" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <p id="kpi-boveda-docs-empresa" class="text-2xl font-black text-amber-600 dark:text-amber-400">0</p>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Políticas & Marco Legal</p>
             </div>
-            <div class="corp-card p-5 border-l-4 border-l-emerald-600">
-              <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Carpetas por Institución</p>
-              <p id="kpi-boveda-carpetas-inst" class="text-2xl font-black text-emerald-700 mt-1">0</p>
-              <p class="text-[11px] text-slate-500 mt-1">Entidades con carpeta digital</p>
+            <div class="bodega-kpi-card">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Carpetas Entidades</span>
+                <div class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 flex items-center justify-center">
+                  <i data-lucide="folder-tree" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <p id="kpi-boveda-carpetas-inst" class="text-2xl font-black text-emerald-600 dark:text-emerald-400">0</p>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Instituciones con carpeta digital</p>
             </div>
-            <div class="corp-card p-5 border-l-4 border-l-purple-600">
-              <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Oficial de Cumplimiento</p>
-              <p class="text-xs font-black text-purple-700 mt-1 truncate" title="diegoalexander.nino.583@hotmail.com">Diego Alexander Niño</p>
+            <div class="bodega-kpi-card">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Oficial de Cumplimiento</span>
+                <div class="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 flex items-center justify-center">
+                  <i data-lucide="user-check" class="w-4 h-4"></i>
+                </div>
+              </div>
+              <p class="text-xs font-black text-purple-700 dark:text-purple-300 truncate" title="diegoalexander.nino.583@hotmail.com">Diego Alexander Niño</p>
               <p class="text-[10px] text-slate-400 font-mono mt-0.5 truncate">diegoalexander.nino.583@hotmail.com</p>
             </div>
           </div>
 
-          <!-- PESTAÑAS ACTIVAS (SOLO DOCUMENTACIÓN Y CARPETAS POR INSTITUCIÓN) -->
-          <div class="flex flex-wrap border-b border-slate-200 gap-2 pb-1">
+          <!-- PESTAÑAS SEGMENTADAS MODERNAS -->
+          <div class="bodega-tabs-nav">
             <button id="btn-tab-boveda-doc-legal" onclick="cambiarTabBodegaLegal('doc-legal')" class="tab-btn-bodega-4 active">
               <i data-lucide="folder" class="w-4 h-4 text-amber-500"></i>
               <span>📁 1. Documentación Legal (Empresa)</span>
@@ -2415,14 +2444,14 @@
           <!-- PESTAÑA 1: DOCUMENTACIÓN LEGAL (POLÍTICAS DE LA EMPRESA & DOCUMENTOS LEGALES DE LA EMPRESA) -->
           <div id="tab-boveda-doc-legal" class="space-y-6">
             <!-- APARTADO 1: POLÍTICAS DE LA EMPRESA -->
-            <div class="corp-card p-6 border border-slate-200 space-y-4">
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
+            <div class="corp-card p-6 sm:p-7 border border-amber-500/20 dark:border-amber-500/30 rounded-3xl space-y-5 shadow-sm">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-200/80 dark:border-slate-800/80">
                 <div>
-                  <h3 class="text-sm font-extrabold text-[#0a192f] flex items-center gap-2">
-                    <i data-lucide="shield" class="w-4 h-4 text-amber-600"></i>
+                  <h3 class="text-sm font-extrabold text-[#0a192f] dark:text-white flex items-center gap-2">
+                    <i data-lucide="shield" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
                     <span>Apartado 1: Políticas de la Empresa</span>
                   </h3>
-                  <p class="text-xs text-slate-500 mt-0.5">
+                  <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                     Políticas institucionales de tratamiento de datos personales, manuales de Habeas Data y formatos de autorización (Ley 1581 de 2012 Art. 7).
                   </p>
                 </div>
@@ -2434,28 +2463,34 @@
 
               <!-- LISTA DE POLÍTICAS BASE PRE-CARGADAS -->
               <div>
-                <p class="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2.5">Políticas Oficiales Pre-cargadas:</p>
+                <p class="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5">Políticas Oficiales Pre-cargadas:</p>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                  <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-2 flex flex-col justify-between">
+                  <div class="card-doc-legal-flotante space-y-3">
                     <div>
-                      <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 text-[10px] font-bold">Ley 1581 / 2012</span>
-                      <h4 class="text-xs font-bold text-[#0a192f] mt-1">Política Institucional de Tratamiento de Datos Personales</h4>
-                      <p class="text-[11px] text-slate-500 mt-0.5">Habeas Data, principios de finalidad, necesidad y derechos de los titulares bajo la normatividad colombiana.</p>
+                      <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-extrabold uppercase">
+                        <i data-lucide="shield-check" class="w-3 h-3 text-emerald-500"></i>
+                        <span>Ley 1581 / 2012</span>
+                      </span>
+                      <h4 class="text-xs font-bold text-[#0a192f] dark:text-white mt-1.5 leading-snug">Política Institucional de Tratamiento de Datos Personales</h4>
+                      <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Habeas Data, principios de finalidad, necesidad y derechos de los titulares bajo la normatividad colombiana.</p>
                     </div>
-                    <button type="button" onclick="descargarDocumentoOficialTexto('politica_datos')" class="w-full py-1.5 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0a192f] text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer">
-                      <i data-lucide="download" class="w-3.5 h-3.5 text-emerald-600"></i>
+                    <button type="button" onclick="descargarDocumentoOficialTexto('politica_datos')" class="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#0a192f] dark:text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                      <i data-lucide="download" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"></i>
                       <span>Descargar Política Oficial (.txt)</span>
                     </button>
                   </div>
 
-                  <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-2 flex flex-col justify-between">
+                  <div class="card-doc-legal-flotante space-y-3">
                     <div>
-                      <span class="px-2 py-0.5 rounded bg-amber-50 text-amber-800 text-[10px] font-bold">Artículo 7 Menores</span>
-                      <h4 class="text-xs font-bold text-[#0a192f] mt-1">Formato de Autorización de Padres para Menores de Edad</h4>
-                      <p class="text-[11px] text-slate-500 mt-0.5">Consentimiento informado previo de acudientes para estudiantes menores en colegios y centros formativos.</p>
+                      <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 text-[10px] font-extrabold uppercase">
+                        <i data-lucide="file-check" class="w-3 h-3 text-amber-500"></i>
+                        <span>Artículo 7 Menores</span>
+                      </span>
+                      <h4 class="text-xs font-bold text-[#0a192f] dark:text-white mt-1.5 leading-snug">Formato de Autorización de Padres para Menores de Edad</h4>
+                      <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Consentimiento informado previo de acudientes para estudiantes menores en colegios y centros formativos.</p>
                     </div>
-                    <button type="button" onclick="descargarDocumentoOficialTexto('autorizacion_menores')" class="w-full py-1.5 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0a192f] text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer">
-                      <i data-lucide="download" class="w-3.5 h-3.5 text-amber-600"></i>
+                    <button type="button" onclick="descargarDocumentoOficialTexto('autorizacion_menores')" class="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#0a192f] dark:text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                      <i data-lucide="download" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
                       <span>Descargar Formato Oficial (.txt)</span>
                     </button>
                   </div>
@@ -2485,14 +2520,14 @@
             </div>
 
             <!-- APARTADO 2: DOCUMENTOS LEGALES DE LA EMPRESA -->
-            <div class="corp-card p-6 border border-slate-200 space-y-4">
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
+            <div class="corp-card p-6 sm:p-7 border border-amber-500/20 dark:border-amber-500/30 rounded-3xl space-y-5 shadow-sm">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-200/80 dark:border-slate-800/80">
                 <div>
-                  <h3 class="text-sm font-extrabold text-[#0a192f] flex items-center gap-2">
-                    <i data-lucide="file-text" class="w-4 h-4 text-cyan-600"></i>
+                  <h3 class="text-sm font-extrabold text-[#0a192f] dark:text-white flex items-center gap-2">
+                    <i data-lucide="file-text" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
                     <span>Apartado 2: Documentos Legales de la Empresa</span>
                   </h3>
-                  <p class="text-xs text-slate-500 mt-0.5">
+                  <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                     Convenios marco de cooperación, acuerdos de confidencialidad, actas corporativas y autorizaciones de la empresa.
                   </p>
                 </div>
@@ -2504,28 +2539,34 @@
 
               <!-- LISTA DE DOCUMENTOS LEGALES BASE PRE-CARGADOS -->
               <div>
-                <p class="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2.5">Documentos Legales Base:</p>
+                <p class="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5">Documentos Legales Base:</p>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                  <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-2 flex flex-col justify-between">
+                  <div class="card-doc-legal-flotante space-y-3">
                     <div>
-                      <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-800 text-[10px] font-bold">Convenio Marco Base</span>
-                      <h4 class="text-xs font-bold text-[#0a192f] mt-1">Convenio Marco Institucional de Cooperación y Datos</h4>
-                      <p class="text-[11px] text-slate-500 mt-0.5">Cláusulas de tratamiento de datos personales, uso recíproco de signos distintivos/marcas e inmutabilidad.</p>
+                      <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20 text-[10px] font-extrabold uppercase">
+                        <i data-lucide="file-text" class="w-3 h-3 text-blue-500"></i>
+                        <span>Convenio Marco Base</span>
+                      </span>
+                      <h4 class="text-xs font-bold text-[#0a192f] dark:text-white mt-1.5 leading-snug">Convenio Marco Institucional de Cooperación y Datos</h4>
+                      <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Cláusulas de tratamiento de datos personales, uso recíproco de signos distintivos/marcas e inmutabilidad.</p>
                     </div>
-                    <button type="button" onclick="descargarDocumentoOficialTexto('convenio_marco')" class="w-full py-1.5 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0a192f] text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer">
-                      <i data-lucide="download" class="w-3.5 h-3.5 text-blue-600"></i>
+                    <button type="button" onclick="descargarDocumentoOficialTexto('convenio_marco')" class="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#0a192f] dark:text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                      <i data-lucide="download" class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400"></i>
                       <span>Descargar Convenio Oficial (.txt)</span>
                     </button>
                   </div>
 
-                  <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-2 flex flex-col justify-between">
+                  <div class="card-doc-legal-flotante space-y-3">
                     <div>
-                      <span class="px-2 py-0.5 rounded bg-purple-50 text-purple-800 text-[10px] font-bold">Mayores de Edad</span>
-                      <h4 class="text-xs font-bold text-[#0a192f] mt-1">Declaración de Consentimiento para Mayores de Edad</h4>
-                      <p class="text-[11px] text-slate-500 mt-0.5">Consentimiento informado para aprendices universitarios, SENA o colaboradores adultos.</p>
+                      <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/20 text-[10px] font-extrabold uppercase">
+                        <i data-lucide="check-circle-2" class="w-3 h-3 text-purple-500"></i>
+                        <span>Mayores de Edad</span>
+                      </span>
+                      <h4 class="text-xs font-bold text-[#0a192f] dark:text-white mt-1.5 leading-snug">Declaración de Consentimiento para Mayores de Edad</h4>
+                      <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Consentimiento informado para aprendices universitarios, SENA o colaboradores adultos.</p>
                     </div>
-                    <button type="button" onclick="descargarDocumentoOficialTexto('consentimiento_mayores')" class="w-full py-1.5 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0a192f] text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer">
-                      <i data-lucide="download" class="w-3.5 h-3.5 text-purple-600"></i>
+                    <button type="button" onclick="descargarDocumentoOficialTexto('consentimiento_mayores')" class="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#0a192f] dark:text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                      <i data-lucide="download" class="w-3.5 h-3.5 text-purple-600 dark:text-purple-400"></i>
                       <span>Descargar Consentimiento Oficial (.txt)</span>
                     </button>
                   </div>
@@ -2556,14 +2597,14 @@
           </div>
 
           <!-- PESTAÑA 2: CARPETAS POR INSTITUCIÓN -->
-          <div id="tab-boveda-carpetas-inst" class="hidden corp-card p-6 border border-slate-200 space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
+          <div id="tab-boveda-carpetas-inst" class="hidden corp-card p-6 sm:p-7 border border-amber-500/20 dark:border-amber-500/30 rounded-3xl space-y-6 shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-200/80 dark:border-slate-800/80">
               <div>
-                <h3 class="text-sm font-extrabold text-[#0a192f] flex items-center gap-2">
-                  <i data-lucide="folder-tree" class="w-5 h-5 text-cyan-600"></i>
+                <h3 class="text-sm font-extrabold text-[#0a192f] dark:text-white flex items-center gap-2">
+                  <i data-lucide="folder-tree" class="w-5 h-5 text-amber-600 dark:text-amber-400"></i>
                   <span>2. 🏢 Carpetas por Institución</span>
                 </h3>
-                <p class="text-xs text-slate-500 mt-0.5">
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   Carpetas digitales por cada colegio, universidad, SENA o empresa. Permite añadir, descargar y eliminar cualquier archivo asociado a la entidad (contratos, convenios, actas o autorizaciones).
                 </p>
               </div>
@@ -3434,19 +3475,22 @@
        ===================================================================== -->
   
   <!-- MODAL: AÑADIR CUALQUIER ARCHIVO A LA BODEGA LEGAL -->
-  <div id="modal-subir-cualquier-archivo-bodega" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl max-w-lg w-full shadow-2xl border border-cyan-500/40">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-        <div class="flex items-center gap-2.5">
-          <div class="w-10 h-10 rounded-xl bg-cyan-50 dark:bg-cyan-950/50 text-cyan-700 flex items-center justify-center">
+  <div id="modal-subir-cualquier-archivo-bodega" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#0c1322] p-6 sm:p-7 rounded-3xl max-w-lg w-full shadow-2xl border border-amber-500/30 dark:border-amber-500/40 transition-all">
+      <div class="flex items-center justify-between pb-3.5 border-b border-slate-200 dark:border-slate-800/80">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center">
             <i data-lucide="upload-cloud" class="w-5 h-5"></i>
           </div>
           <div>
-            <h3 class="text-sm font-extrabold text-[#0a192f] dark:text-white">+ Añadir Archivo a la Bodega Legal</h3>
-            <p class="text-[11px] text-slate-500">Cualquier tipo de archivo (PDF, Word, Excel, CSV, Imagen, Zip, etc.)</p>
+            <h3 class="text-sm font-extrabold text-[#0a192f] dark:text-white flex items-center gap-1.5">
+              <span>+ Añadir a Bodega Legal</span>
+              <span class="text-[9px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-400/40 text-amber-600 dark:text-amber-400 font-extrabold uppercase">Audit</span>
+            </h3>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400">Soporte multiformato (PDF, Word, Excel, CSV, Imágenes, ZIP)</p>
           </div>
         </div>
-        <button type="button" onclick="cerrarModal('modal-subir-cualquier-archivo-bodega')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+        <button type="button" onclick="cerrarModal('modal-subir-cualquier-archivo-bodega')" class="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
@@ -3455,9 +3499,9 @@
         <!-- Selector de Archivo -->
         <div>
           <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Seleccionar Archivo (Cualquier formato)</label>
-          <div class="relative border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-cyan-600 rounded-xl p-4 text-center cursor-pointer transition-colors bg-slate-50/50 dark:bg-slate-800/40" onclick="document.getElementById('input-archivo-bodega-modal').click()">
+          <div class="relative border-2 border-dashed border-amber-400/35 dark:border-amber-500/30 hover:border-amber-500 dark:hover:border-amber-400 rounded-2xl p-5 text-center cursor-pointer transition-all bg-amber-500/5 dark:bg-amber-950/20 hover:bg-amber-500/10" onclick="document.getElementById('input-archivo-bodega-modal').click()">
             <input id="input-archivo-bodega-modal" type="file" required accept="*/*" onchange="actualizarInfoArchivoSeleccionado(this)" class="hidden">
-            <i data-lucide="file-up" class="w-7 h-7 mx-auto text-cyan-600 dark:text-cyan-400 mb-1"></i>
+            <i data-lucide="file-up" class="w-8 h-8 mx-auto text-amber-600 dark:text-amber-400 mb-1.5"></i>
             <p id="label-archivo-bodega-seleccionado" class="text-xs font-semibold text-slate-700 dark:text-slate-200">
               Haz clic aquí para examinar o arrastra cualquier archivo
             </p>
@@ -3470,7 +3514,7 @@
         <!-- Destino -->
         <div>
           <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Destino en la Bodega Legal</label>
-          <select id="modal-subir-archivo-destino" onchange="toggleDestinoModalBodega(this.value)" class="corp-input w-full px-3 py-2 text-xs font-semibold rounded-xl border">
+          <select id="modal-subir-archivo-destino" onchange="toggleDestinoModalBodega(this.value)" class="corp-input w-full px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
             <option value="empresa" selected>🏢 Documentación Legal de la Empresa (Políticas y Normativas)</option>
             <option value="institucion">🏫 Carpeta por Institución (Colegio, SENA, Universidad, Empresa)</option>
           </select>
@@ -3479,7 +3523,7 @@
         <!-- Si Destino es Empresa: Subcategoría -->
         <div id="contenedor-categoria-empresa-modal">
           <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Categoría del Documento de la Empresa</label>
-          <select id="modal-subir-archivo-categoria" class="corp-input w-full px-3 py-2 text-xs rounded-xl border">
+          <select id="modal-subir-archivo-categoria" class="corp-input w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
             <option value="LEGALES_EMPRESA" selected>📄 Documentos Legales de la Empresa (Cámara de Comercio, RUT, etc.)</option>
             <option value="POLITICAS_EMPRESA">🛡️ Políticas de la Empresa (Habeas Data, Términos, Seguridad)</option>
           </select>
@@ -3488,7 +3532,7 @@
         <!-- Si Destino es Institución: Selector de Organización -->
         <div id="contenedor-institucion-bodega-modal" class="hidden">
           <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Institución / Entidad Destino</label>
-          <select id="modal-subir-archivo-org" class="corp-input w-full px-3 py-2 text-xs font-bold rounded-xl border">
+          <select id="modal-subir-archivo-org" class="corp-input w-full px-3 py-2 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
             <option value="">-- Seleccionar Institución --</option>
           </select>
         </div>
@@ -3496,15 +3540,15 @@
         <!-- Descripción / Notas -->
         <div>
           <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Descripción o Nombre Descriptivo (Opcional)</label>
-          <input id="modal-subir-archivo-descripcion" type="text" placeholder="Ej: Contrato Marco 2026, RUT renovado, Acta de entrega..." class="corp-input w-full px-3 py-2 text-xs rounded-xl border">
+          <input id="modal-subir-archivo-descripcion" type="text" placeholder="Ej: Contrato Marco 2026, RUT renovado, Acta de entrega..." class="corp-input w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
         </div>
 
         <div class="flex space-x-2.5 pt-2">
-          <button type="button" onclick="cerrarModal('modal-subir-cualquier-archivo-bodega')" class="w-1/2 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition-all cursor-pointer">
+          <button type="button" onclick="cerrarModal('modal-subir-cualquier-archivo-bodega')" class="w-1/2 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 transition-all cursor-pointer">
             Cancelar
           </button>
-          <button id="btn-submit-subir-archivo-bodega" type="submit" class="w-1/2 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer">
-            <i data-lucide="check-circle" class="w-3.5 h-3.5 text-cyan-200"></i>
+          <button id="btn-submit-subir-archivo-bodega" type="submit" class="w-1/2 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-bold shadow-md shadow-amber-600/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+            <i data-lucide="check-circle" class="w-3.5 h-3.5 text-amber-200"></i>
             <span>Añadir a Bodega Legal</span>
           </button>
         </div>
@@ -3514,19 +3558,19 @@
 
 
   <!-- MODAL: CAMBIAR CONTRASEÑA BODEGA LEGAL -->
-  <div id="modal-cambiar-clave-bodega" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl max-w-md w-full shadow-2xl border border-amber-300 dark:border-amber-500/40">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-        <div class="flex items-center gap-2.5">
-          <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 flex items-center justify-center">
+  <div id="modal-cambiar-clave-bodega" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-[#0c1322] p-6 sm:p-7 rounded-3xl max-w-md w-full shadow-2xl border border-amber-500/35 dark:border-amber-500/45 transition-all">
+      <div class="flex items-center justify-between pb-3.5 border-b border-slate-200 dark:border-slate-800/80">
+        <div class="flex items-center gap-3">
+          <div class="w-11 h-11 rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/25 flex items-center justify-center">
             <i data-lucide="key" class="w-5 h-5"></i>
           </div>
           <div>
             <h3 class="text-sm font-extrabold text-[#0a192f] dark:text-white">Cambiar Contraseña de Bodega Legal</h3>
-            <p class="text-[11px] text-slate-500">Persiste de inmediato en Azure SQL Database</p>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400">Persiste de inmediato en Azure SQL Database</p>
           </div>
         </div>
-        <button type="button" onclick="cerrarModal('modal-cambiar-clave-bodega')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+        <button type="button" onclick="cerrarModal('modal-cambiar-clave-bodega')" class="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
@@ -3534,14 +3578,14 @@
       <form onsubmit="ejecutarCambioClaveBodega(event)" class="space-y-4 mt-4">
         <div>
           <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Correo Oficial Autorizado</label>
-          <input type="text" readonly value="diegoalexander.nino.583@hotmail.com" class="corp-input w-full px-3 py-2 text-xs font-mono rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 cursor-not-allowed">
+          <input type="text" readonly value="diegoalexander.nino.583@hotmail.com" class="corp-input w-full px-3 py-2 text-xs font-mono rounded-xl bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 cursor-not-allowed">
         </div>
 
         <div>
           <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nueva Contraseña de Acceso</label>
           <div class="relative">
-            <input id="input-modal-nueva-clave-bodega" type="password" required minlength="4" placeholder="Mínimo 4 caracteres" class="corp-input w-full px-3 pr-10 py-2 text-xs font-mono rounded-xl border">
-            <button type="button" onclick="alternarVisibilidadNuevaClaveModal()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
+            <input id="input-modal-nueva-clave-bodega" type="password" required minlength="4" placeholder="Mínimo 4 caracteres" class="corp-input w-full px-3 pr-10 py-2 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+            <button type="button" onclick="alternarVisibilidadNuevaClaveModal()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
               <i id="icono-ojo-modal-clave" data-lucide="eye" class="w-4 h-4"></i>
             </button>
           </div>
@@ -3549,15 +3593,15 @@
 
         <div>
           <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Confirmar Nueva Contraseña</label>
-          <input id="input-modal-confirmar-clave-bodega" type="password" required minlength="4" placeholder="Repite la nueva contraseña" class="corp-input w-full px-3 py-2 text-xs font-mono rounded-xl border">
+          <input id="input-modal-confirmar-clave-bodega" type="password" required minlength="4" placeholder="Repite la nueva contraseña" class="corp-input w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
         </div>
 
         <div class="flex space-x-2.5 pt-2">
-          <button type="button" onclick="cerrarModal('modal-cambiar-clave-bodega')" class="w-1/2 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition-all cursor-pointer">
+          <button type="button" onclick="cerrarModal('modal-cambiar-clave-bodega')" class="w-1/2 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 transition-all cursor-pointer">
             Cancelar
           </button>
-          <button type="submit" class="w-1/2 py-2 rounded-xl bg-[#0a192f] hover:bg-slate-800 text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer">
-            <i data-lucide="save" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <button type="submit" class="w-1/2 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-bold shadow-md shadow-amber-600/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+            <i data-lucide="save" class="w-3.5 h-3.5 text-amber-200"></i>
             <span>Guardar en Azure SQL</span>
           </button>
         </div>
@@ -3566,7 +3610,7 @@
   </div>
 
   <!-- MODAL: ELIMINAR INSTITUCIÓN CON ADVERTENCIA -->
-  <div id="modal-confirmar-eliminar" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-confirmar-eliminar" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-white p-7 rounded-2xl max-w-sm w-full shadow-2xl border border-rose-200">
       <div class="w-12 h-12 rounded-2xl bg-rose-100 flex items-center justify-center mx-auto mb-3 text-rose-600">
         <i data-lucide="alert-triangle" class="w-6 h-6"></i>
@@ -3583,7 +3627,7 @@
   </div>
 
   <!-- MODAL: APROVISIONAR NUEVA INSTITUCIÓN -->
-  <div id="modal-crear-org" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-crear-org" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-white p-7 rounded-2xl max-w-md w-full shadow-2xl border border-slate-200">
       <div class="flex items-center justify-between mb-4">
         <div>
@@ -3632,13 +3676,9 @@
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Cupos / Licencias Contratadas (Hasta 100.000 Millones o Ilimitado)</label>
-          <div class="flex gap-2">
-            <input id="org-licencias" type="number" value="100000000000" min="1" max="100000000000" class="corp-input w-full px-2.5 py-2 rounded-xl text-xs font-mono">
-            <button type="button" onclick="document.getElementById('org-licencias').value=100000000000" class="px-2.5 py-1.5 rounded-xl bg-cyan-50 border border-cyan-300 text-cyan-800 text-[10px] font-bold hover:bg-cyan-100 shrink-0 cursor-pointer" title="Asignar capacidad de 100.000 millones">100.000 M</button>
-            <button type="button" onclick="document.getElementById('org-licencias').value=999999999999" class="px-2.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-[10px] font-bold hover:bg-emerald-100 shrink-0 cursor-pointer" title="Cupos Ilimitados">♾️ Ilimitado</button>
-          </div>
-          <p class="text-[11px] text-slate-400 mt-1">Capacidad ultra-escalable en Azure SQL (hasta 100.000.000.000 de personas por organización).</p>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">Cupos / Licencias Contratadas</label>
+          <input id="org-licencias" type="number" value="500" min="1" max="1000000" required class="corp-input w-full px-3 py-2 rounded-xl text-xs font-mono" placeholder="Ej: 500">
+          <p class="text-[11px] text-slate-400 mt-1">Número de licencias activas contratadas para esta institución.</p>
         </div>
 
         <!-- LOGO INSTITUCIONAL AL CREAR -->
@@ -3679,7 +3719,7 @@
   </div>
 
   <!-- MODAL: EDITAR INSTITUCIÓN & AJUSTAR LICENCIAS / CUPOS -->
-  <div id="modal-editar-org" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-editar-org" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-white p-7 rounded-2xl max-w-md w-full shadow-2xl border border-slate-200">
       <div class="flex items-center justify-between mb-4">
         <div>
@@ -3729,13 +3769,9 @@
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Cupos / Licencias Asignadas (Hasta 100.000 Millones o Ilimitado)</label>
-          <div class="flex gap-2">
-            <input id="edit-org-licencias" type="number" required min="1" max="100000000000" class="corp-input w-full px-2.5 py-2 rounded-xl text-xs font-mono">
-            <button type="button" onclick="document.getElementById('edit-org-licencias').value=100000000000" class="px-2.5 py-1.5 rounded-xl bg-cyan-50 border border-cyan-300 text-cyan-800 text-[10px] font-bold hover:bg-cyan-100 shrink-0 cursor-pointer" title="Asignar capacidad de 100.000 millones">100.000 M</button>
-            <button type="button" onclick="document.getElementById('edit-org-licencias').value=999999999999" class="px-2.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-[10px] font-bold hover:bg-emerald-100 shrink-0 cursor-pointer" title="Cupos Ilimitados">♾️ Ilimitado</button>
-          </div>
-          <p class="text-[11px] text-slate-400 mt-1">Configuración sin límites de personas en Azure SQL (hasta 100.000.000.000 de cupos).</p>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">Cupos / Licencias Asignadas</label>
+          <input id="edit-org-licencias" type="number" required min="1" max="1000000" class="corp-input w-full px-3 py-2 rounded-xl text-xs font-mono" placeholder="Ej: 500">
+          <p class="text-[11px] text-slate-400 mt-1">Capacidad de cupos autorizada para la institución.</p>
         </div>
 
         <!-- LOGO INSTITUCIONAL AL EDITAR -->
@@ -3773,7 +3809,7 @@
   </div>
 
   <!-- MODAL: EDITAR USUARIO / MODIFICAR CARGOS DUPLICADOS -->
-  <div id="modal-editar-usuario" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-editar-usuario" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-white p-7 rounded-2xl max-w-md w-full shadow-2xl border border-slate-200">
       <div class="flex items-center justify-between mb-4">
         <div>
@@ -3821,7 +3857,7 @@
   </div>
 
   <!-- MODAL: CONFIRMAR ELIMINACIÓN DE USUARIO (DUPLICADOS) -->
-  <div id="modal-confirmar-eliminar-usuario" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-confirmar-eliminar-usuario" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-white p-7 rounded-2xl max-w-sm w-full shadow-2xl border border-rose-200">
       <div class="w-12 h-12 rounded-2xl bg-rose-100 flex items-center justify-center mx-auto mb-3 text-rose-600">
         <i data-lucide="trash-2" class="w-6 h-6"></i>
@@ -3838,7 +3874,7 @@
   </div>
 
   <!-- MODAL: CREAR MATERIAL -->
-  <div id="modal-crear-material" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-crear-material" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-white p-7 rounded-2xl max-w-md w-full shadow-2xl border border-slate-200">
       <div class="flex items-center justify-between mb-4">
         <h3 class="font-bold text-[#0a192f] text-base">Subir Material al Catálogo</h3>
@@ -3860,29 +3896,36 @@
             </select>
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Dirigido A</label>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">Alcance / Dirigido A</label>
             <select id="mat-rol-destino" class="corp-input w-full px-2.5 py-2 rounded-xl text-xs font-bold">
-              <option value="Aprendiz">🎓 Aprendices (Alumnos)</option>
-              <option value="Mentor">👨‍🏫 Mentores (Capacitación)</option>
-              <option value="Todos">🌐 Todos (Global)</option>
+              <option value="General" selected>🏛️ Catálogo Global (Para Instituciones)</option>
+              <option value="Aprendiz">🎓 Ruta para Aprendices / Estudiantes</option>
+              <option value="Mentor">👨‍🏫 Ruta para Formación de Mentores / Docentes</option>
             </select>
           </div>
         </div>
         <div class="grid grid-cols-3 gap-2">
           <div class="col-span-2">
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Enlace URL del Curso</label>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">Enlace URL del Curso</label>
             <input id="mat-url" type="url" required placeholder="https://learn.microsoft.com/..." class="corp-input w-full px-3 py-2 rounded-xl text-xs">
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Módulos</label>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">Módulos</label>
             <input id="mat-modulos" type="number" min="1" max="20" value="3" required class="corp-input w-full px-2.5 py-2 rounded-xl text-xs font-bold">
           </div>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Asignar a Institución</label>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">Habilitar para Institución (Opcional)</label>
           <select id="mat-asignar-org" class="corp-input w-full px-2.5 py-2 rounded-xl text-xs">
-            <option value="">Todas las instituciones (Global)</option>
+            <option value="">Todas las instituciones (Habilitación Global)</option>
           </select>
+        </div>
+        <div class="p-3 rounded-xl bg-cyan-50/80 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-800/60 text-[11px] text-cyan-900 dark:text-cyan-200 leading-relaxed flex items-start gap-2.5">
+          <i data-lucide="shield-check" class="w-4 h-4 text-cyan-600 dark:text-cyan-400 shrink-0 mt-0.5"></i>
+          <div>
+            <p class="font-bold">Regla de Negocio Institucional:</p>
+            <p class="mt-0.5 text-slate-600 dark:text-slate-300">Como Super Administrador, registras y habilitas este contenido en el Catálogo Global. La asignación fina hacia alumnos, aprendices o mentores específicos queda delegada a los administradores de cada institución desde su panel.</p>
+          </div>
         </div>
         <button type="submit" class="w-full py-2.5 rounded-xl btn-corp-submit-modal font-bold text-xs shadow-md mt-2">
           Publicar y Distribuir
@@ -3894,7 +3937,7 @@
   <!-- ===============================================================
        MODAL: EVALUACIÓN DE CONOCIMIENTO (TEST INTERACTIVO DE COLECCIÓN)
        =============================================================== -->
-  <div id="modal-test-conocimiento" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-test-conocimiento" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-white p-6 sm:p-7 rounded-2xl max-w-xl w-full shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]">
       
       <!-- Cabecera del Test -->
@@ -3987,7 +4030,7 @@
   <!-- ===============================================================
        MODAL: DESGLOSE DE PROGRESO Y TESTS DEL APRENDIZ (SUPERADMIN & MENTOR - SOLO LECTURA)
        =============================================================== -->
-  <div id="modal-detalle-progreso-aprendiz" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-detalle-progreso-aprendiz" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-white p-6 sm:p-7 rounded-2xl max-w-3xl w-full shadow-2xl border border-slate-200 flex flex-col max-h-[92vh]">
       
       <div class="flex items-start justify-between pb-4 border-b border-slate-100">
@@ -4074,7 +4117,7 @@
   <!-- ===============================================================
        MODAL: DETALLE DE CAPACITACIONES Y RENDIMIENTO DEL MENTOR (ADMIN & SUPERADMIN)
        =============================================================== -->
-  <div id="modal-detalle-mentor-capacitaciones" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-detalle-mentor-capacitaciones" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-white p-6 sm:p-7 rounded-2xl max-w-3xl w-full shadow-2xl border border-slate-200 flex flex-col max-h-[92vh]">
       
       <div class="flex items-start justify-between pb-4 border-b border-slate-100">
@@ -4142,7 +4185,7 @@
   <!-- ===============================================================
        MODAL: CONFIRMAR ELIMINAR COLECCIÓN / MATERIAL
        =============================================================== -->
-  <div id="modal-confirmar-eliminar-material" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-confirmar-eliminar-material" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-white p-7 rounded-2xl max-w-sm w-full shadow-2xl border border-slate-200 text-center">
       <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
         <i data-lucide="trash-2" class="w-6 h-6"></i>
@@ -4165,7 +4208,7 @@
   <!-- ===============================================================
        MODAL: CONFIRMAR ELIMINAR INTEGRANTE DEL HISTORIAL
        =============================================================== -->
-  <div id="modal-confirmar-eliminar-integrante" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-confirmar-eliminar-integrante" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-white p-6 rounded-2xl max-w-sm w-full shadow-2xl border border-rose-200">
       <div class="w-12 h-12 rounded-2xl bg-rose-100 flex items-center justify-center mx-auto mb-3 text-rose-600">
         <i data-lucide="trash-2" class="w-6 h-6"></i>
@@ -4198,7 +4241,7 @@
   <!-- ===============================================================
        MODAL: CARGAR EXCEL EN CONVENIO ADMIN (COLEGIO / EMPRESA)
        =============================================================== -->
-  <div id="modal-cargar-excel-convenio" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-cargar-excel-convenio" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-white p-7 rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200">
       <div class="flex items-center justify-between mb-3">
         <div>
@@ -4283,7 +4326,7 @@
   <!-- ===============================================================
        MODAL: ORGANIZAR GRUPOS DE TRABAJO (MENTORES & APRENDICES)
        =============================================================== -->
-  <div id="modal-organizar-grupos" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-organizar-grupos" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-6xl w-full max-h-[92vh] shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
       
       <!-- Encabezado del Modal -->
@@ -4420,7 +4463,7 @@
   <!-- ===============================================================
        MODAL: SUBIR APRENDICES VÍA EXCEL PARA UN MENTOR ESPECÍFICO
        =============================================================== -->
-  <div id="modal-subir-excel-mentor" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-subir-excel-mentor" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-white p-7 rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-2.5">
@@ -4485,7 +4528,7 @@
   <!-- ===============================================================
        MODAL: LIMPIEZA DE BASE DE DATOS Y OPTIMIZACIÓN DE TRÁFICO
        =============================================================== -->
-  <div id="modal-limpiar-base-datos" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-limpiar-base-datos" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-white p-7 rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-2.5">
@@ -4591,7 +4634,7 @@
   <!-- ===============================================================
        MODAL: ENVIAR COLECCIÓN A ORGANIZACIÓN CON ALERTA DE DUPLICADOS
        =============================================================== -->
-  <div id="modal-enviar-coleccion-org" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-enviar-coleccion-org" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-white p-7 rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-2.5">
@@ -4723,7 +4766,7 @@
   <!-- ===============================================================
        MODAL: SIMULAR / ACTUALIZAR PROGRESO DE MÓDULOS DEL APRENDIZ
        =============================================================== -->
-  <div id="modal-simular-modulos" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-simular-modulos" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-white p-6 rounded-2xl max-w-sm w-full shadow-2xl border border-slate-200">
       <div class="flex items-center justify-between mb-3">
         <h3 class="font-bold text-[#0a192f] text-base">Actualizar Avance de Módulos</h3>
@@ -4773,7 +4816,7 @@
   <!-- ===============================================================
        MODAL: GUÍA DE INTEGRACIÓN CON MICROSOFT POWER BI
        =============================================================== -->
-  <div id="modal-guia-powerbi" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-guia-powerbi" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-white p-7 rounded-2xl max-w-xl w-full shadow-2xl border border-slate-200 space-y-4">
       <div class="flex items-center justify-between pb-2 border-b border-slate-100">
         <div class="flex items-center gap-2.5">
@@ -4834,7 +4877,7 @@
        MODAL: AÑADIR INTEGRANTE MANUALMENTE A UNA ORGANIZACIÓN
        (Estudiante / Mentor / Administrador)
        =============================================================== -->
-  <div id="modal-crear-integrante-manual" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-crear-integrante-manual" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="corp-card max-w-lg w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150 bg-white rounded-2xl shadow-2xl border border-slate-200">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100">
         <div class="flex items-center gap-2.5">
@@ -4951,7 +4994,7 @@
   <!-- ===============================================================
        MODAL: CAMBIAR CONTRASEÑA EN SESIÓN (TODOS LOS USUARIOS)
        =============================================================== -->
-  <div id="modal-cambiar-password-interno" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-cambiar-password-interno" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="corp-card max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150 bg-white rounded-2xl shadow-2xl border border-slate-200">
       <div class="flex items-center justify-between pb-3 border-b border-slate-100">
         <div class="flex items-center gap-2">
@@ -5016,7 +5059,7 @@
   <!-- ===============================================================
        MODAL: CREAR QUIZ O EVALUACIÓN (EXCLUSIVO PARA MENTORES)
        =============================================================== -->
-  <div id="modal-crear-quiz-mentor" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-crear-quiz-mentor" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
       <div class="p-5 bg-gradient-to-r from-purple-800 to-indigo-900 text-white flex items-center justify-between">
         <div class="flex items-center gap-2.5">
@@ -5096,7 +5139,7 @@
   <!-- ===============================================================
        MODAL: RESOLVER QUIZ / EVALUACIÓN (INTERACTIVO PARA APRENDICES)
        =============================================================== -->
-  <div id="modal-resolver-quiz" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+  <div id="modal-resolver-quiz" class="hidden fixed inset-0 z-50 bg-slate-900/65 dark:bg-slate-950/92 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
       <!-- Cabecera del Jugador de Quiz -->
       <div class="p-5 bg-[#0a192f] text-white flex items-center justify-between border-b border-slate-800">

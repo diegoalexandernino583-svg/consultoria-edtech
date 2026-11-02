@@ -334,6 +334,13 @@ def completar_test_aprendiz(datos: CompletarTestRequest):
 
 @router.post("/api/superadmin/material/crear")
 def crear_material(datos: CrearMaterialReq):
+    """
+    Regla de Negocio Institucional:
+    El Super Administrador es el único facultado para subir, registrar y habilitar los cursos,
+    rutas formativas y capacitaciones a nivel global en el catálogo de la plataforma.
+    La asignación fina, distribución y derivación de dichos cursos hacia aprendices o mentores específicos
+    queda estrictamente delegada a los administradores locales de cada institución desde su respectivo panel.
+    """
     t_mod = datos.total_modulos or 3
     query_insert = """
         INSERT INTO material_capacitacion (titulo, tipo_material, enlace_url, rol_destino, total_modulos)

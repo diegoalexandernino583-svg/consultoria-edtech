@@ -1127,6 +1127,16 @@ function seleccionarTemaVisual(modo) {
 
   document.body.classList.remove('tema-predeterminado', 'tema-oscuro', 'tema-claro', 'tema-institucional', 'tema-artistico');
   document.body.classList.add(`tema-${modo}`);
+  
+  // Sincronización robusta con Tailwind .dark para modales y componentes globales
+  if (modo === 'oscuro') {
+    document.documentElement.classList.add('dark');
+    document.body.classList.add('dark');
+  } else {
+    document.documentElement.classList.remove('dark');
+    document.body.classList.remove('dark');
+  }
+
   localStorage.setItem('edtech_tema_visual', modo);
 
   // Limpiar estilos manuales inline para respetar el modo al 100%
@@ -2108,7 +2118,7 @@ async function iniciarLoginConCredenciales(correo, password) {
       if (res.status === 404) {
         const alertaNoReg = document.getElementById('alerta-no-registrado');
         if (alertaNoReg) alertaNoReg.classList.remove('hidden');
-        mostrarToast('Este correo no está en el sistema. Puedes crear tu cuenta aquí.', 'advertencia');
+        mostrarToast(data.detail || 'El correo electrónico no se encuentra registrado ni provisionado en la plataforma.', 'advertencia');
         return;
       }
       throw new Error(data.detail || 'Credenciales incorrectas');
@@ -5682,8 +5692,8 @@ async function cargarMateriales() {
 }
 
 function abrirModalCrearMaterial() {
-  if (currentUser && (currentUser.rol === 'Aprendiz' || currentUser.rol === 'Estudiante')) {
-    mostrarToast('Los aprendices no tienen permisos para subir material.', 'error');
+  if (currentUser && currentUser.rol !== 'Super Administrador') {
+    mostrarToast('Acceso exclusivo: Solo el Super Administrador está facultado para subir y habilitar contenidos en el catálogo global de la plataforma.', 'advertencia');
     return;
   }
   document.getElementById('modal-crear-material').classList.remove('hidden');
@@ -5691,8 +5701,8 @@ function abrirModalCrearMaterial() {
 
 async function guardarNuevoMaterial(event) {
   event.preventDefault();
-  if (currentUser && (currentUser.rol === 'Aprendiz' || currentUser.rol === 'Estudiante')) {
-    mostrarToast('Los aprendices no tienen permisos para subir material.', 'error');
+  if (currentUser && currentUser.rol !== 'Super Administrador') {
+    mostrarToast('Acceso exclusivo: Solo el Super Administrador está facultado para subir y habilitar contenidos en el catálogo global.', 'error');
     return;
   }
   const titulo = document.getElementById('mat-titulo').value.trim();
@@ -5712,7 +5722,7 @@ async function guardarNuevoMaterial(event) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || 'Error al subir material');
 
-    mostrarToast('✓ Material o colección agregada al catálogo con éxito.', 'exito');
+    mostrarToast('✓ Contenido registrado en el Catálogo Global. Los administradores institucionales ya pueden derivarlo.', 'exito');
     cerrarModal('modal-crear-material');
     document.getElementById('mat-titulo').value = '';
     document.getElementById('mat-url').value = '';
@@ -12102,7 +12112,7 @@ function seleccionarCarpetaInstitucionalBodega(orgId) {
         <div>
           <span class="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-extrabold uppercase">${escapeHtml(org.tipo_organizacion)}</span>
           <h2 class="text-lg font-black text-white mt-0.5">${escapeHtml(org.nombre)}</h2>
-          <p class="text-xs text-slate-300 font-mono">Dominio: @${escapeHtml(org.dominio_permitido)} · Cupos: ${Number(org.licencias_asignadas || 1000000000).toLocaleString('es-CO')}</p>
+          <p class="text-xs text-slate-300 font-mono">Dominio: @${escapeHtml(org.dominio_permitido)} · Cupos: ${Number(org.licencias_asignadas || 500).toLocaleString('es-CO')}</p>
         </div>
       </div>
       <div class="flex items-center gap-2">

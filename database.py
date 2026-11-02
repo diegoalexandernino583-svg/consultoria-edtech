@@ -73,10 +73,10 @@ def get_db() -> Generator:
 def ejecutar_migraciones_automaticas():
     """
     Ejecuta migraciones automáticas seguras al iniciar la aplicación.
-    Modifica columnas existentes a BIGINT (100.000 Millones) y crea índices
-    compuestos sin romper el arranque de Uvicorn ni fallar ante tablas ya creadas.
+    Verifica columnas e índices compuestos sin romper el arranque
+    de Uvicorn ni fallar ante tablas ya creadas.
     """
-    print(">> [MIGRACIONES] Verificando esquema de ultra-escalabilidad (100.000 Millones)...")
+    print(">> [MIGRACIONES] Verificando esquema e integridad de base de datos...")
     
     # 1. Migraciones en SQLite local
     try:
