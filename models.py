@@ -1,7 +1,6 @@
 """
 Modelos de Datos Relacionales (SQLAlchemy / Azure SQL Database).
-Capacidad de Ultra-Escalabilidad de hasta 100.000 Millones de Registros por Institución (BIGINT).
-Incluye índices compuestos optimizados para consultas en sub-milisegundos.
+Estructura relacional optimizada con tipos e índices compuestos.
 """
 from sqlalchemy import (
     Column,
@@ -25,9 +24,9 @@ class Organizacion(Base):
     nombre = Column(String(500), nullable=False)
     tipo_organizacion = Column(String(100), nullable=False)
     dominio_permitido = Column(String(255), nullable=False)
-    licencias_asignadas = Column(BigInteger, default=100000000000)  # Hasta 100.000 Millones
-    max_administradores = Column(BigInteger, default=100000000000)
-    max_mentores = Column(BigInteger, default=100000000000)
+    licencias_asignadas = Column(BigInteger, default=500)
+    max_administradores = Column(BigInteger, default=50)
+    max_mentores = Column(BigInteger, default=100)
     fecha_creacion = Column(String(100), default=func.datetime('now', 'localtime'))
     estado_activo = Column(Integer, default=1)
 

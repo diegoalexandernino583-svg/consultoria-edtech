@@ -876,9 +876,9 @@ body.tema-oscuro .modal-overlay,
 .dark .modal-overlay,
 body.tema-oscuro #sidebar-backdrop,
 .dark #sidebar-backdrop {
-  background-color: rgba(2, 6, 23, 0.90) !important; /* Capa sólida y opaca bg-slate-950/90 */
-  backdrop-filter: blur(16px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(160%) !important;
+  background-color: rgba(2, 6, 23, 0.95) !important; /* Capa sólida y opaca bg-slate-950/95 */
+  backdrop-filter: blur(20px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
 }
 
 /* Modales: Cajas Flotantes en Modo Oscuro */
@@ -2676,8 +2676,8 @@ body.tema-claro .bodega-blur-gate-overlay {
 
 body.tema-oscuro .bodega-blur-gate-overlay,
 .dark .bodega-blur-gate-overlay {
-  background: rgba(2, 6, 23, 0.92) !important;
-  backdrop-filter: blur(20px) saturate(190%) !important;
+  background: rgba(2, 6, 23, 0.96) !important; /* Opacidad sólida de seguridad */
+  backdrop-filter: blur(24px) saturate(200%) !important;
 }
 
 /* Tarjeta Flotante del Blur Gate (Acceso Seguro) */
@@ -2837,4 +2837,3 @@ body.tema-oscuro .card-doc-legal-flotante:hover,
   border-color: rgba(245, 158, 11, 0.6) !important;
   box-shadow: 0 12px 28px -5px rgba(0, 0, 0, 0.7), 0 0 20px rgba(245, 158, 11, 0.15) !important;
 }
-

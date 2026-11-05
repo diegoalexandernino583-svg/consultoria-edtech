@@ -1,6 +1,6 @@
 """
 Módulo de Configuración de Base de Datos y Motor SQLAlchemy / Azure SQL.
-Proporciona soporte híbrido de ultra-escalabilidad (hasta 100.000 Millones de registros),
+Proporciona soporte relacional optimizado para alta concurrencia,
 motor transaccional con fast_executemany=True y migraciones seguras automáticas al inicio.
 """
 import os

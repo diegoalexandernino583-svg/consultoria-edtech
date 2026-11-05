@@ -5626,6 +5626,7 @@ async function cargarMateriales() {
       return;
     }
 
+    const esSuperAdmin = currentUser && currentUser.rol === 'Super Administrador';
     const puedeEliminar = currentUser && (currentUser.rol === 'Super Administrador' || currentUser.rol === 'Administrador');
     const esAprendiz = currentUser && (currentUser.rol === 'Aprendiz' || currentUser.rol === 'Estudiante');
     const puedeEnviarOrg = currentUser && (currentUser.rol === 'Super Administrador' || currentUser.rol === 'Administrador' || currentUser.rol === 'Mentor');
@@ -5636,6 +5637,15 @@ async function cargarMateriales() {
         contAccionesCatalogo.classList.add('hidden');
       } else {
         contAccionesCatalogo.classList.remove('hidden');
+      }
+    }
+
+    const btnSubirMaterial = document.getElementById('btn-subir-material-catalogo');
+    if (btnSubirMaterial) {
+      if (esSuperAdmin) {
+        btnSubirMaterial.classList.remove('hidden');
+      } else {
+        btnSubirMaterial.classList.add('hidden');
       }
     }
 
