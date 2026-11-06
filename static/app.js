@@ -4714,6 +4714,9 @@ async function cargarVistaAdminConvenio() {
     adminAprendicesFiltrados = json.aprendices || [];
     renderizarTablaAprendicesAdmin();
     renderizarCuadroHonorTop10AprendicesAdmin(adminAprendicesFiltrados);
+    if (typeof renderizarCuadroHonorTop5AlumnosAdmin === 'function') {
+      renderizarCuadroHonorTop5AlumnosAdmin(adminAprendicesFiltrados);
+    }
 
     // Actualizar Cuadro de Honor del Mejor Estudiante
     if (adminAprendicesFiltrados.length > 0) {
@@ -5429,7 +5432,7 @@ async function cargarMentoresRendimientoAdmin() {
 
     renderizarCuadroHonorTop5MentoresAdmin(adminMentoresFormacionData);
     if (typeof renderizarCuadroHonorTop5AlumnosAdmin === 'function') {
-      renderizarCuadroHonorTop5AlumnosAdmin(adminConvenioData?.aprendices || []);
+      renderizarCuadroHonorTop5AlumnosAdmin((adminConvenioData && adminConvenioData.aprendices && adminConvenioData.aprendices.length > 0) ? adminConvenioData.aprendices : (adminAprendicesFiltrados || []));
     }
 
     if (adminMentoresFormacionData.length === 0) {
