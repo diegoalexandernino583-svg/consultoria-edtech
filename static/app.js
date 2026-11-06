@@ -1577,26 +1577,22 @@ function configurarVistasSegunRol(forzarNavegacionInicial = false) {
         <i data-lucide="graduation-cap" class="w-4 h-4 shrink-0 text-purple-400"></i>
         <span>${t('side_mis_clases', 'Mis Clases & Tutorías')}</span>
       </a>
+      <a id="nav-item-directorio" onclick="navegarVista('directorio')" class="sidebar-link">
+        <i data-lucide="users-2" class="w-4 h-4 shrink-0 text-emerald-400"></i>
+        <span>${t('side_estructura_equipos', 'Estructura & Equipos')}</span>
+      </a>
 
       <div class="px-3 pt-3 pb-1">
-        <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">${t('side_sec_metricas', 'Métricas & Contenidos')}</span>
+        <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">${t('side_sec_contenidos', 'Catálogo')}</span>
       </div>
-      <a id="nav-item-metricas" onclick="navegarVista('metricas')" class="sidebar-link">
-        <i data-lucide="bar-chart-2" class="w-4 h-4 shrink-0 text-amber-400"></i>
-        <span>${t('side_metricas_graficas', 'Métricas & Gráficas')}</span>
-      </a>
       <a id="nav-item-catalogo" onclick="navegarVista('catalogo')" class="sidebar-link">
         <i data-lucide="layers" class="w-4 h-4 shrink-0 text-cyan-300"></i>
         <span>${t('side_catalogo_contenidos', 'Catálogo de Contenidos')}</span>
       </a>
 
       <div class="px-3 pt-3 pb-1">
-        <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">${t('side_sec_seguridad', 'Seguridad & Ajustes')}</span>
+        <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">${t('side_sec_seguridad', 'Ajustes & Cuenta')}</span>
       </div>
-      <a id="nav-item-celador" onclick="navegarVista('celador')" class="sidebar-link">
-        <i data-lucide="clipboard-list" class="w-4 h-4 shrink-0 text-cyan-400"></i>
-        <span>${t('side_registro_actividad', 'Registro de Actividad')}</span>
-      </a>
       <a id="nav-item-configuraciones" onclick="navegarVista('configuraciones')" class="sidebar-link">
         <i data-lucide="settings" class="w-4 h-4 shrink-0 text-slate-300"></i>
         <span>${t('side_configuracion_espacio', 'Configuración & Espacio')}</span>
@@ -1756,6 +1752,15 @@ function navegarVista(vistaId) {
       volverDesdeConfiguraciones();
       return;
     }
+  }
+
+  // Restricciones estrictas para el rol Mentor (Solo ve su entorno asignado y herramientas pedagógicas)
+  const rolRaw = currentUser ? String(currentUser.rol || '').trim().toLowerCase() : '';
+  const esMentor = rolRaw.includes('mentor');
+  if (esMentor && (vistaId === 'nodos' || vistaId === 'admin-convenio' || vistaId === 'celador' || vistaId === 'metricas')) {
+    mostrarToast('Esta sección es de gestión exclusiva para el Administrador.', 'warning');
+    navegarVista('mentor-clase');
+    return;
   }
 
   // Guardar vista previa antes de entrar a configuraciones para retorno inteligente
@@ -3161,6 +3166,70 @@ function renderizarTableroJerarquico(data) {
   if (badgeAdmins) badgeAdmins.innerText = admins.length;
   if (badgeMentores) badgeMentores.innerText = mentores.length;
   if (badgeAprendices) badgeAprendices.innerText = aprendices.length;
+
+  // Depuración y ocultamiento de columnas según rol y contadores (cero espacios vacíos)
+  const colAdmins = document.getElementById('lista-jerarquia-admins')?.closest('.jerarquia-col');
+  const colMentores = document.getElementById('lista-jerarquia-mentores')?.closest('.jerarquia-col');
+  const colAprendices = document.getElementById('lista-jerarquia-aprendices')?.closest('.jerarquia-col');
+
+  // Si es mentor o no hay administradores, ocultar columna de administradores
+  if (colAdmins) {
+    if (esMentor || admins.length === 0) {
+      colAdmins.classList.add('hidden');
+    } else {
+      colAdmins.classList.remove('hidden');
+    }
+  }
+
+  // Si mentores está en ceros para este contexto, ocultar columna
+  if (colMentores) {
+    if (mentores.length === 0) {
+      colMentores.classList.add('hidden');
+    } else {
+      colMentores.classList.remove('hidden');
+    }
+  }
+
+  // Si aprendices está en ceros, ocultar columna
+  if (colAprendices) {
+    if (aprendices.length === 0) {
+      colAprendices.classList.add('hidden');
+    } else {
+      colAprendices.classList.remove('hidden');
+    }
+  }
+
+  // Ajuste inteligente de la grilla de columnas
+  const contenedorJerarquia = document.getElementById('contenedor-jerarquia-3col');
+  if (contenedorJerarquia) {
+    let colsVisibles = 0;
+    if (colAdmins && !colAdmins.classList.contains('hidden')) colsVisibles++;
+    if (colMentores && !colMentores.classList.contains('hidden')) colsVisibles++;
+    if (colAprendices && !colAprendices.classList.contains('hidden')) colsVisibles++;
+
+    contenedorJerarquia.classList.remove('lg:grid-cols-3', 'lg:grid-cols-2', 'lg:grid-cols-1');
+    if (colsVisibles === 1) {
+      contenedorJerarquia.classList.add('lg:grid-cols-1');
+    } else if (colsVisibles === 2) {
+      contenedorJerarquia.classList.add('lg:grid-cols-2');
+    } else {
+      contenedorJerarquia.classList.add('lg:grid-cols-3');
+    }
+  }
+
+  // Ocultar botones de administración institucional si es Mentor
+  const btnCargarBd = document.getElementById('btn-acceso-rapido-cargar-bd');
+  const btnToggleExcel = document.getElementById('btn-toggle-carga-excel');
+  const seccionExcel = document.getElementById('seccion-carga-excel-jerarquia');
+  const btnCrearInt = document.querySelector("button[onclick='abrirModalCrearIntegranteManual()']");
+  if (esMentor) {
+    if (btnCargarBd) btnCargarBd.classList.add('hidden');
+    if (btnToggleExcel) btnToggleExcel.classList.add('hidden');
+    if (seccionExcel) seccionExcel.classList.add('hidden');
+    if (btnCrearInt) btnCrearInt.classList.add('hidden');
+  } else if (currentUser && (currentUser.rol === 'Super Administrador' || currentUser.rol === 'Administrador')) {
+    if (btnCrearInt) btnCrearInt.classList.remove('hidden');
+  }
 
   const puedeEditarCargos = currentUser && (currentUser.rol === 'Super Administrador' || currentUser.rol === 'Administrador');
 
@@ -5430,7 +5499,27 @@ async function cargarMentoresRendimientoAdmin() {
       }
     }
 
-    renderizarCuadroHonorTop5MentoresAdmin(adminMentoresFormacionData);
+    // Control de visibilidad del Cuadro de Honor:
+    // Top 5 Alumnos visible para Mentores y Administradores; Top 5 Mentores exclusivo para Administradores
+    const rolActualUsuario = currentUser ? String(currentUser.rol || '').trim().toLowerCase() : '';
+    const esMentorActivo = rolActualUsuario.includes('mentor');
+    const contTopMentores = document.getElementById('contenedor-cuadro-honor-mentores-admin');
+    const contTopAlumnos = document.getElementById('contenedor-cuadro-honor-alumnos-admin');
+
+    if (contTopMentores) {
+      if (esMentorActivo) {
+        contTopMentores.classList.add('hidden');
+      } else {
+        contTopMentores.classList.remove('hidden');
+      }
+    }
+    if (contTopAlumnos) {
+      contTopAlumnos.classList.remove('hidden');
+    }
+
+    if (!esMentorActivo) {
+      renderizarCuadroHonorTop5MentoresAdmin(adminMentoresFormacionData);
+    }
     if (typeof renderizarCuadroHonorTop5AlumnosAdmin === 'function') {
       renderizarCuadroHonorTop5AlumnosAdmin((adminConvenioData && adminConvenioData.aprendices && adminConvenioData.aprendices.length > 0) ? adminConvenioData.aprendices : (adminAprendicesFiltrados || []));
     }

@@ -1300,3 +1300,11 @@ Fecha_Hora,Correo_Usuario,Modulo,Operacion,Estado,Detalles_Error
 2026-11-02 18:54:23,diegoalexander.nino.583@hotmail.com,Autenticacion,Validacion_Credenciales,FALLO,Contraseña incorrecta
 2026-11-02 18:54:23,diegoalexander.nino.583@hotmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: BODEGA_LEGAL (Acceso directo)
 2026-11-02 18:54:27,SuperAdmin,Material,Crear_Material,EXITO,Título: Ruta de Aprendizaje Cloud Architecture - ID: 17 - Módulos: 4
+2026-11-05 13:20:39,usuario.inexistente.xyz123@noexiste.edu.co,Autenticacion,Validacion_Credenciales,FALLO,Correo no registrado o no provisionado
+2026-11-05 13:20:40,diegoalexander.nino.583@hotmail.com,Autenticacion,Validacion_Credenciales,FALLO,Contraseña incorrecta
+2026-11-05 13:20:40,diegoalexander.nino.583@hotmail.com,Autenticacion,Validacion_Credenciales,FALLO,Contraseña incorrecta
+2026-11-05 13:21:50,usuario.inexistente.xyz123@noexiste.edu.co,Autenticacion,Validacion_Credenciales,FALLO,Correo no registrado o no provisionado
+2026-11-05 13:21:50,diegoalexander.nino.583@hotmail.com,Autenticacion,Validacion_Credenciales,FALLO,Contraseña incorrecta
+2026-11-05 13:21:50,diegoalexander.nino.583@hotmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: BODEGA_LEGAL (Acceso directo)
+2026-11-06 07:21:28,noexiste.testing@edu.co,Autenticacion,Validacion_Credenciales,FALLO,Correo no registrado o no provisionado
+2026-11-06 07:21:28,diegoalexander.nino.583@hotmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: BODEGA_LEGAL (Acceso directo)
