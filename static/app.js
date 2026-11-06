@@ -1621,12 +1621,8 @@ function configurarVistasSegunRol(forzarNavegacionInicial = false) {
       </a>
 
       <div class="px-3 pt-3 pb-1">
-        <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">${t('side_sec_mi_espacio', 'Mi Espacio & Registro')}</span>
+        <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">${t('side_sec_mi_espacio', 'Ajustes & Preferencias')}</span>
       </div>
-      <a id="nav-item-celador" onclick="navegarVista('celador')" class="sidebar-link">
-        <i data-lucide="clipboard-list" class="w-4 h-4 shrink-0 text-cyan-400"></i>
-        <span>${t('side_registro_actividad', 'Mi Registro de Actividad')}</span>
-      </a>
       <a id="nav-item-configuraciones" onclick="navegarVista('configuraciones')" class="sidebar-link">
         <i data-lucide="settings" class="w-4 h-4 shrink-0 text-slate-300"></i>
         <span>${t('side_configuracion_espacio', 'Mi Espacio & Preferencias')}</span>
@@ -1757,7 +1753,21 @@ function navegarVista(vistaId) {
   // Restricciones estrictas para el rol Mentor (Solo ve su entorno asignado y herramientas pedagógicas)
   const rolRaw = currentUser ? String(currentUser.rol || '').trim().toLowerCase() : '';
   const esMentor = rolRaw.includes('mentor');
-  if (esMentor && (vistaId === 'nodos' || vistaId === 'admin-convenio' || vistaId === 'celador' || vistaId === 'metricas')) {
+  const esAprendiz = rolRaw.includes('aprendiz') || rolRaw.includes('estudiante');
+  const esAdminOAuditor = rolRaw.includes('admin') || rolRaw.includes('super');
+
+  // Restricción definitiva: Registro de Actividad exclusivo para el Administrador
+  if (vistaId === 'celador' && !esAdminOAuditor) {
+    mostrarToast('Acceso restringido: El Registro de Actividad y Auditoría es exclusivo para el Administrador de la institución.', 'warning');
+    if (esMentor) {
+      navegarVista('mentor-clase');
+    } else {
+      navegarVista('aprendiz');
+    }
+    return;
+  }
+
+  if (esMentor && (vistaId === 'nodos' || vistaId === 'admin-convenio' || vistaId === 'metricas')) {
     mostrarToast('Esta sección es de gestión exclusiva para el Administrador.', 'warning');
     navegarVista('mentor-clase');
     return;
@@ -4779,8 +4789,14 @@ async function cargarVistaAdminConvenio() {
       }
     }
 
-    // Renderizar Aprendices
-    adminAprendicesFiltrados = json.aprendices || [];
+    // Renderizar Aprendices: Los mentores solo visualizan de forma exclusiva a sus propios estudiantes asignados
+    let listaAprendicesConvenio = json.aprendices || [];
+    const rolConvenio = currentUser ? String(currentUser.rol || '').trim().toLowerCase() : '';
+    const esMentorConvenio = rolConvenio.includes('mentor');
+    if (esMentorConvenio) {
+      listaAprendicesConvenio = listaAprendicesConvenio.filter(a => a.mentor_id == currentUser.id || a.tutor_id == currentUser.id);
+    }
+    adminAprendicesFiltrados = listaAprendicesConvenio;
     renderizarTablaAprendicesAdmin();
     renderizarCuadroHonorTop10AprendicesAdmin(adminAprendicesFiltrados);
     if (typeof renderizarCuadroHonorTop5AlumnosAdmin === 'function') {
@@ -5500,28 +5516,34 @@ async function cargarMentoresRendimientoAdmin() {
     }
 
     // Control de visibilidad del Cuadro de Honor:
-    // Top 5 Alumnos visible para Mentores y Administradores; Top 5 Mentores exclusivo para Administradores
+    // Top 5 Mentores EXCLUSIVO para Administradores y Super Administradores; oculto para rol Mentor.
+    // Los Mentores solo visualizan de forma exclusiva los datos y el rendimiento de sus propios estudiantes asignados.
     const rolActualUsuario = currentUser ? String(currentUser.rol || '').trim().toLowerCase() : '';
     const esMentorActivo = rolActualUsuario.includes('mentor');
+    const esAdminAutorizado = rolActualUsuario.includes('admin') || rolActualUsuario.includes('super');
     const contTopMentores = document.getElementById('contenedor-cuadro-honor-mentores-admin');
     const contTopAlumnos = document.getElementById('contenedor-cuadro-honor-alumnos-admin');
 
     if (contTopMentores) {
-      if (esMentorActivo) {
-        contTopMentores.classList.add('hidden');
-      } else {
+      if (esAdminAutorizado && !esMentorActivo) {
         contTopMentores.classList.remove('hidden');
+      } else {
+        contTopMentores.classList.add('hidden');
       }
     }
     if (contTopAlumnos) {
       contTopAlumnos.classList.remove('hidden');
     }
 
-    if (!esMentorActivo) {
+    if (esAdminAutorizado && !esMentorActivo) {
       renderizarCuadroHonorTop5MentoresAdmin(adminMentoresFormacionData);
     }
     if (typeof renderizarCuadroHonorTop5AlumnosAdmin === 'function') {
-      renderizarCuadroHonorTop5AlumnosAdmin((adminConvenioData && adminConvenioData.aprendices && adminConvenioData.aprendices.length > 0) ? adminConvenioData.aprendices : (adminAprendicesFiltrados || []));
+      let listaAlumnosParaHonor = (adminConvenioData && adminConvenioData.aprendices && adminConvenioData.aprendices.length > 0) ? adminConvenioData.aprendices : (adminAprendicesFiltrados || []);
+      if (esMentorActivo) {
+        listaAlumnosParaHonor = listaAlumnosParaHonor.filter(a => a.mentor_id == currentUser.id || a.tutor_id == currentUser.id);
+      }
+      renderizarCuadroHonorTop5AlumnosAdmin(listaAlumnosParaHonor);
     }
 
     if (adminMentoresFormacionData.length === 0) {
@@ -6910,24 +6932,24 @@ function mostrarDrillDownMetricas(payload) {
     }
 
     contCards.innerHTML = `
-      <div class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
-        <span class="text-[10px] font-bold uppercase text-slate-400 block">Avance Asignado / Real</span>
-        <strong class="text-xl font-black text-emerald-700">${pct}%</strong>
-        <span class="text-[11px] text-slate-500 block mt-0.5">Representa el ${pesoSobreTotal}% del peso gráfico comparativo</span>
+      <div class="card-drilldown-subitem p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+        <span class="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-400 block">Avance Asignado / Real</span>
+        <strong class="text-xl font-black text-emerald-700 dark:text-emerald-400">${pct}%</strong>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">Representa el ${pesoSobreTotal}% del peso gráfico comparativo</span>
       </div>
-      <div class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
-        <span class="text-[10px] font-bold uppercase text-slate-400 block">Estructura Humana</span>
-        <strong class="text-sm font-black text-[#0a192f] block mt-0.5">${aprendices} Aprendices · ${mentores} Mentores</strong>
-        <span class="text-[11px] text-sky-800 font-bold block mt-0.5">${admins} en Cuerpo Administrativo</span>
+      <div class="card-drilldown-subitem p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+        <span class="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-400 block">Estructura Humana</span>
+        <strong class="text-sm font-black text-[#0a192f] dark:text-slate-100 block mt-0.5">${aprendices} Aprendices · ${mentores} Mentores</strong>
+        <span class="text-[11px] text-sky-800 dark:text-sky-300 font-bold block mt-0.5">${admins} en Cuerpo Administrativo</span>
       </div>
-      <div class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
-        <span class="text-[10px] font-bold uppercase text-slate-400 block">Módulos y Colecciones</span>
-        <strong class="text-xl font-black text-indigo-700">${modComp} / ${modAsig}</strong>
-        <span class="text-[11px] text-slate-500 block mt-0.5">${colecciones} colección(es) activa(s)</span>
+      <div class="card-drilldown-subitem p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+        <span class="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-400 block">Módulos y Colecciones</span>
+        <strong class="text-xl font-black text-indigo-700 dark:text-indigo-400">${modComp} / ${modAsig}</strong>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">${colecciones} colección(es) activa(s)</span>
       </div>
-      <div class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs flex flex-col justify-between">
-        <span class="text-[10px] font-bold uppercase text-slate-400 block">Acción Directa</span>
-        <button type="button" onclick="cambiarOrganizacionAnalitica(${inst.id})" class="mt-1 w-full py-1.5 px-3 rounded-lg bg-[#0a192f] hover:bg-[#112240] text-cyan-300 font-bold text-xs cursor-pointer">
+      <div class="card-drilldown-subitem p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
+        <span class="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-400 block">Acción Directa</span>
+        <button type="button" onclick="cambiarOrganizacionAnalitica(${inst.id})" class="mt-1 w-full py-1.5 px-3 rounded-lg bg-[#0a192f] hover:bg-[#112240] text-cyan-300 font-bold text-xs cursor-pointer border border-cyan-500/30">
           Inspeccionar Institución →
         </button>
       </div>
@@ -6952,25 +6974,25 @@ function mostrarDrillDownMetricas(payload) {
     if (badgeModo) badgeModo.innerText = `${col.total_modulos || 3} Módulos Oficiales`;
 
     contCards.innerHTML = `
-      <div class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
-        <span class="text-[10px] font-bold uppercase text-slate-400 block">Avance en la Ruta</span>
-        <strong class="text-xl font-black text-cyan-700">${pct}%</strong>
-        <span class="text-[11px] text-slate-500 block mt-0.5">${col.total_modulos || 3} módulos totales</span>
+      <div class="card-drilldown-subitem p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+        <span class="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-400 block">Avance en la Ruta</span>
+        <strong class="text-xl font-black text-cyan-700 dark:text-cyan-400">${pct}%</strong>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">${col.total_modulos || 3} módulos totales</span>
       </div>
-      <div class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
-        <span class="text-[10px] font-bold uppercase text-slate-400 block">Aprendices Matriculados</span>
-        <strong class="text-xl font-black text-[#0a192f]">${mat}</strong>
-        <span class="text-[11px] text-slate-500 block mt-0.5">${sinIni} sin iniciar</span>
+      <div class="card-drilldown-subitem p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+        <span class="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-400 block">Aprendices Matriculados</span>
+        <strong class="text-xl font-black text-[#0a192f] dark:text-slate-100">${mat}</strong>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">${sinIni} sin iniciar</span>
       </div>
-      <div class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
-        <span class="text-[10px] font-bold uppercase text-slate-400 block">En Progreso Activo</span>
-        <strong class="text-xl font-black text-amber-600">${enProg}</strong>
-        <span class="text-[11px] text-slate-500 block mt-0.5">Cursando módulos</span>
+      <div class="card-drilldown-subitem p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+        <span class="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-400 block">En Progreso Activo</span>
+        <strong class="text-xl font-black text-amber-600 dark:text-amber-400">${enProg}</strong>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">Cursando módulos</span>
       </div>
-      <div class="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
-        <span class="text-[10px] font-bold uppercase text-slate-400 block">Certificados (100%)</span>
-        <strong class="text-xl font-black text-emerald-700">${comp}</strong>
-        <span class="text-[11px] text-slate-500 block mt-0.5">Tasa finalización: ${col.tasa_finalizacion || 0}%</span>
+      <div class="card-drilldown-subitem p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+        <span class="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-400 block">Certificados (100%)</span>
+        <strong class="text-xl font-black text-emerald-700 dark:text-emerald-400">${comp}</strong>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">Tasa finalización: ${col.tasa_finalizacion || 0}%</span>
       </div>
     `;
 

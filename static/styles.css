@@ -2394,25 +2394,87 @@ body.tema-oscuro .border-slate-200 {
 }
 
 /* ==========================================================================
-   ARMONIZACIÓN MODO OSCURO: DRILLDOWN DE MÉTRICAS Y CAJA LEGAL HABEAS DATA
+   ARMONIZACIÓN MODO OSCURO: DRILLDOWN DE MÉTRICAS, CARDS Y AVISOS ELEGANTES
    ========================================================================== */
-body.tema-oscuro #panel-drilldown-metricas {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
-  border-color: #0284c7 !important;
+body.tema-oscuro .aviso-drilldown-banner,
+.dark .aviso-drilldown-banner {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+
+body.tema-oscuro .aviso-drilldown-banner i,
+.dark .aviso-drilldown-banner i {
+  color: #38bdf8 !important;
+}
+
+body.tema-oscuro #badge-modo-vista-metricas,
+.dark #badge-modo-vista-metricas {
+  background-color: #1e293b !important;
+  border: 1px solid #334155 !important;
+  color: #38bdf8 !important;
+}
+
+body.tema-oscuro #badge-grafica-barras-org,
+.dark #badge-grafica-barras-org {
+  background-color: #1e293b !important;
+  border: 1px solid #334155 !important;
+  color: #38bdf8 !important;
+}
+
+body.tema-oscuro #badge-grafica-dona-org,
+.dark #badge-grafica-dona-org {
+  background-color: #1e293b !important;
+  border: 1px solid #334155 !important;
+  color: #c084fc !important;
+}
+
+body.tema-oscuro #panel-drilldown-metricas,
+.dark #panel-drilldown-metricas {
+  background: #0f172a !important;
+  border: 1px solid #1e293b !important;
   color: #f1f5f9 !important;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
 }
 
 body.tema-oscuro #panel-drilldown-metricas h3,
-body.tema-oscuro #panel-drilldown-metricas p,
-body.tema-oscuro #panel-drilldown-metricas span {
-  color: #e2e8f0 !important;
+.dark #panel-drilldown-metricas h3 {
+  color: #f8fafc !important;
 }
 
-body.tema-oscuro #drilldown-explicacion-texto {
+body.tema-oscuro #panel-drilldown-metricas p,
+.dark #panel-drilldown-metricas p {
+  color: #94a3b8 !important;
+}
+
+body.tema-oscuro #drilldown-contenido-dinamico > div,
+.dark #drilldown-contenido-dinamico > div {
+  background-color: #1e293b !important;
+  border: 1px solid #334155 !important;
+  color: #f1f5f9 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.tema-oscuro #drilldown-contenido-dinamico > div span,
+.dark #drilldown-contenido-dinamico > div span {
+  color: #94a3b8 !important;
+}
+
+body.tema-oscuro #drilldown-contenido-dinamico > div strong,
+.dark #drilldown-contenido-dinamico > div strong {
+  color: #f8fafc !important;
+}
+
+body.tema-oscuro #drilldown-explicacion-texto,
+.dark #drilldown-explicacion-texto {
   background-color: #0b1120 !important;
-  border-color: #1e293b !important;
+  border: 1px solid #1e293b !important;
   color: #cbd5e1 !important;
+}
+
+body.tema-oscuro #drilldown-explicacion-texto strong,
+.dark #drilldown-explicacion-texto strong {
+  color: #38bdf8 !important;
 }
 
 body.tema-oscuro .caja-legal-habeas {

@@ -1508,12 +1508,12 @@
             </div>
 
             <!-- Aviso de Drill-Down Interactivo -->
-            <div class="px-4 py-2.5 rounded-xl bg-cyan-50/80 border border-cyan-200 flex flex-wrap items-center justify-between gap-2 text-xs text-cyan-900">
+            <div class="aviso-drilldown-banner px-4 py-2.5 rounded-xl bg-cyan-50/80 dark:bg-slate-900 border border-cyan-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs text-cyan-900 dark:text-slate-300">
               <div class="flex items-center gap-2 font-semibold">
-                <i data-lucide="mouse-pointer-click" class="w-4 h-4 text-cyan-600 shrink-0"></i>
+                <i data-lucide="mouse-pointer-click" class="w-4 h-4 text-cyan-600 dark:text-cyan-400 shrink-0"></i>
                 <span data-i18n="v_met_drilldown_hint">💡 Gráficas Interactivas (Drill-Down): Haz clic sobre cualquier segmento del diagrama de pastel/dona o barra para desplegar el desglose explicativo de esa institución o ruta.</span>
               </div>
-              <span id="badge-modo-vista-metricas" class="px-2.5 py-0.5 rounded-full bg-cyan-700 text-white text-[10px] font-extrabold uppercase tracking-wider">Vista Consolidada Global</span>
+              <span id="badge-modo-vista-metricas" class="px-2.5 py-0.5 rounded-full bg-cyan-700 dark:bg-slate-800 text-white dark:text-cyan-300 dark:border dark:border-cyan-500/30 text-[10px] font-extrabold uppercase tracking-wider">Vista Consolidada Global</span>
             </div>
 
             <!-- Gráficas de Rendimiento Interactivas (Chart.js) -->
@@ -1546,18 +1546,18 @@
             </div>
 
             <!-- PANEL DE DRILL-DOWN INTERACTIVO (Se despliega al hacer clic en cualquier segmento o barra de las gráficas) -->
-            <div id="panel-drilldown-metricas" class="hidden corp-card p-6 border-2 border-cyan-500 bg-gradient-to-br from-white to-cyan-50/40 shadow-lg space-y-4 transition-all">
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-cyan-200/70">
+            <div id="panel-drilldown-metricas" class="hidden corp-card p-6 border border-cyan-200 dark:border-slate-800 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 shadow-lg space-y-4 transition-all">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-cyan-200/70 dark:border-slate-800">
                 <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-xl bg-[#0a192f] text-cyan-400 flex items-center justify-center font-black text-sm shadow-sm">
+                  <div class="w-10 h-10 rounded-xl bg-[#0a192f] dark:bg-slate-800 text-cyan-400 dark:text-cyan-300 flex items-center justify-center font-black text-sm shadow-sm border border-slate-700/50">
                     <i data-lucide="search-check" class="w-5 h-5"></i>
                   </div>
                   <div>
                     <div class="flex items-center gap-2 flex-wrap">
-                      <span class="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-cyan-100 text-cyan-900">Desglose Explicativo (Drill-Down)</span>
-                      <span id="drilldown-badge-modo" class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">Datos en Tiempo Real Azure SQL</span>
+                      <span class="text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-cyan-100 dark:bg-slate-800 text-cyan-900 dark:text-cyan-300 dark:border dark:border-slate-700">Desglose Explicativo (Drill-Down)</span>
+                      <span id="drilldown-badge-modo" class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 dark:border dark:border-emerald-800/40">Datos en Tiempo Real Azure SQL</span>
                     </div>
-                    <h3 id="drilldown-titulo" class="text-lg font-extrabold text-[#0a192f] mt-0.5">Detalle de Institución</h3>
+                    <h3 id="drilldown-titulo" class="text-lg font-extrabold text-[#0a192f] dark:text-slate-100 mt-0.5">Detalle de Institución</h3>
                   </div>
                 </div>
                 <div class="flex items-center gap-2">
@@ -1573,7 +1573,7 @@
               <div id="drilldown-contenido-dinamico" class="grid grid-cols-1 md:grid-cols-4 gap-3.5 text-xs">
                 <!-- Poblado dinámicamente al hacer clic en una gráfica -->
               </div>
-              <div id="drilldown-explicacion-texto" class="p-3.5 rounded-xl bg-white border border-slate-200 text-xs text-slate-700 leading-relaxed">
+              <div id="drilldown-explicacion-texto" class="p-3.5 rounded-xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                 <!-- Explicación detallada del porcentaje -->
               </div>
             </div>
