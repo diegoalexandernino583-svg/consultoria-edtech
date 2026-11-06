@@ -2927,7 +2927,7 @@ class CrearMaterialReq(BaseModel):
     titulo: str
     tipo_material: str
     enlace_url: str
-    rol_destino: Optional[str] = "Aprendiz"
+    rol_destino: Optional[str] = "General"
     total_modulos: Optional[int] = 3
     descripcion_modulos: Optional[str] = None
     organizacion_id: Optional[int] = None

@@ -349,7 +349,7 @@ def crear_material(datos: CrearMaterialReq):
     """
     mat_id = db.execute_query(
         query_insert,
-        (datos.titulo.strip(), datos.tipo_material, datos.enlace_url.strip(), datos.rol_destino or "Aprendiz", t_mod),
+        (datos.titulo.strip(), datos.tipo_material, datos.enlace_url.strip(), datos.rol_destino or "General", t_mod),
         return_id=True
     )
     if not mat_id:
