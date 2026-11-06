@@ -242,6 +242,9 @@ def cambiar_cargo_usuario_tiempo_real(usuario_id: int, datos: CambiarCargoTiempo
     if not nuevo_rol:
         raise HTTPException(status_code=400, detail="El cargo o rol no puede estar vacío.")
 
+    if nuevo_rol == "Super Administrador":
+        raise HTTPException(status_code=403, detail="No está permitido delegar el rol de Super Administrador arbitrariamente.")
+
     org_id = u.get("organizacion_id") or 13
     mentor_id_final = None
     if nuevo_rol == "Aprendiz":

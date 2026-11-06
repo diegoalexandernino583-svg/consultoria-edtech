@@ -1,3 +1,78 @@
+
+function renderizarCuadroHonorTop5AlumnosAdmin(aprendices) {
+  const container = document.getElementById('contenedor-cards-top5-alumnos-admin');
+  if (!container) return;
+
+  if (!aprendices || aprendices.length === 0) {
+    container.innerHTML = `<div class="p-6 text-center text-indigo-300/70 col-span-full font-medium">No se encontraron alumnos para el Cuadro de Honor estudiantil.</div>`;
+    return;
+  }
+
+  const top5 = [...aprendices]
+    .sort((a, b) => ((b.promedio_avance || 0) - (a.promedio_avance || 0)) || ((b.total_minutos || 0) - (a.total_minutos || 0)) || ((b.racha_semanal || 0) - (a.racha_semanal || 0)))
+    .slice(0, 5);
+
+  const medallas = ['🥇 #1', '🥈 #2', '🥉 #3', '#4', '#5'];
+  const gradientes = [
+    'from-amber-500/20 via-indigo-950/40 to-slate-900/50 border-amber-400/50',
+    'from-slate-300/20 via-indigo-950/40 to-slate-900/50 border-slate-300/50',
+    'from-orange-500/20 via-indigo-950/40 to-slate-900/50 border-orange-400/50',
+    'from-indigo-900/40 to-slate-900/50 border-indigo-700/40',
+    'from-indigo-900/40 to-slate-900/50 border-indigo-700/40'
+  ];
+
+  container.innerHTML = top5.map((a, idx) => {
+    const puesto = idx + 1;
+    const medalla = medallas[idx];
+    const grad = gradientes[idx];
+    const avance = Math.round(a.promedio_avance || 0);
+    const tiempo = a.total_minutos || 0;
+    const racha = a.racha_semanal || 1;
+    const mentor = a.mentor_nombre || 'Sin tutor';
+
+    return `
+      <div class="rounded-2xl p-4 bg-gradient-to-b ${grad} border flex flex-col justify-between transition-all hover:scale-[1.02] shadow-sm">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="px-2.5 py-1 rounded-xl text-xs font-black bg-white/10 text-white border border-white/20 shadow-2xs">
+              ${medalla}
+            </span>
+            <span class="text-[10px] font-bold text-amber-300">🔥 ${racha} sem</span>
+          </div>
+
+          <div class="flex items-center gap-3 mb-3">
+            ${a.foto_perfil 
+              ? `<img src="${a.foto_perfil}" class="w-10 h-10 rounded-xl object-cover border-2 border-indigo-300 shrink-0 shadow-sm">` 
+              : `<div class="w-10 h-10 rounded-xl bg-indigo-600/40 text-indigo-200 font-black text-xs flex items-center justify-center shrink-0 border border-indigo-400/40">${obtenerIniciales(a.nombre)}</div>`}
+            <div class="min-w-0">
+              <h5 class="font-extrabold text-white text-xs truncate" title="${escapeHtml(a.nombre)}">${escapeHtml(a.nombre)}</h5>
+              <p class="text-[10px] text-indigo-200/80 font-mono truncate" title="${escapeHtml(a.correo)}">${escapeHtml(a.correo)}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-2 pt-2.5 border-t border-white/10 text-xs">
+          <div>
+            <div class="flex justify-between text-[11px] font-bold mb-1">
+              <span class="text-indigo-200">Avance Total</span>
+              <span class="text-cyan-300 font-extrabold">${avance}%</span>
+            </div>
+            <div class="w-full bg-slate-900/60 rounded-full h-1.5 overflow-hidden">
+              <div class="bg-gradient-to-r from-cyan-400 to-indigo-400 h-1.5 rounded-full" style="width: ${avance}%"></div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between text-[10px] text-indigo-200/90 pt-1 font-semibold">
+            <span>⏱️ ${tiempo} min</span>
+            <span class="truncate max-w-[100px]" title="Tutor: ${escapeHtml(mentor)}">🎓 ${escapeHtml(mentor)}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  refrescarIconos();
+}
+
 const HABILITAR_MODO_PRUEBAS_SUPERADMIN = true; // Cambiar a false en esta única línea para ocultar el panel de Control Manual de Avance / Modo Pruebas
 
 // =====================================================================
@@ -545,6 +620,7 @@ const I18N_DICCIONARIO = {
     side_creador_entornos: 'Creador de Entornos',
     side_estructura_equipos: 'Estructura & Equipos',
     side_metricas_graficas: 'Métricas & Gráficas',
+    side_desempeno_docente: 'Desempeño Docente & Formación',
     side_catalogo_contenidos: 'Catálogo de Contenidos',
     side_registro_actividad: 'Registro de Actividad',
     side_configuracion_espacio: 'Configuración & Espacio',
@@ -693,6 +769,7 @@ const I18N_DICCIONARIO = {
     side_creador_entornos: 'Environment Creator',
     side_estructura_equipos: 'Structure & Teams',
     side_metricas_graficas: 'Metrics & Analytics',
+    side_desempeno_docente: 'Teaching Performance & Training',
     side_catalogo_contenidos: 'Content Catalog',
     side_registro_actividad: 'Activity Log',
     side_configuracion_espacio: 'Settings & Workspace',
@@ -841,6 +918,7 @@ const I18N_DICCIONARIO = {
     side_creador_entornos: 'Criador de Ambientes',
     side_estructura_equipos: 'Estrutura & Equipes',
     side_metricas_graficas: 'Métricas & Gráficos',
+    side_desempeno_docente: 'Desempenho Docente & Formação',
     side_catalogo_contenidos: 'Catálogo de Conteúdos',
     side_registro_actividad: 'Registro de Atividade',
     side_configuracion_espacio: 'Configurações & Espaço',
@@ -1420,11 +1498,10 @@ function configurarVistasSegunRol(forzarNavegacionInicial = false) {
 
   const tieneAccesoBovedaLegal = Boolean(
     currentUser && (
-      rol.includes('super') ||
-      rol.includes('bodega') ||
-      rol.includes('auditor') ||
-      currentUser.acceso_boveda_legal === true ||
-      ['alexander.nino.583@gmail.com', 'diegoalexander.nino.583@hotmail.com', 'diego.alexander.nino.583@hotmail.com'].includes(String(currentUser.correo || '').toLowerCase().trim())
+      rol === 'super administrador' ||
+      rol === 'superadmin' ||
+      rol === 'bodega_legal' ||
+      (rol.includes('super') && ['alexander.nino.583@gmail.com', 'diegoalexander.nino.583@hotmail.com', 'diego.alexander.nino.583@hotmail.com'].includes(String(currentUser.correo || '').toLowerCase().trim()))
     )
   );
 
@@ -1578,8 +1655,8 @@ function configurarVistasSegunRol(forzarNavegacionInicial = false) {
         <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">${t('side_sec_metricas', 'Desempeño & Formación')}</span>
       </div>
       <a id="nav-item-admin-desempeno" onclick="navegarVista('admin-desempeno')" class="sidebar-link">
-        <i data-lucide="award" class="w-4 h-4 shrink-0 text-sky-400"></i>
-        <span>${t('side_metricas_graficas', 'Desempeño Unificado')}</span>
+        <i data-lucide="award" class="w-4 h-4 shrink-0 text-purple-400"></i>
+        <span>${t('side_desempeno_docente', 'Desempeño Docente & Formación')}</span>
       </a>
 
       <div class="px-3 pt-3 pb-1">
@@ -1597,7 +1674,6 @@ function configurarVistasSegunRol(forzarNavegacionInicial = false) {
       <div class="px-3 pt-3 pb-1">
         <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">${t('side_sec_seguridad', 'Seguridad & Ajustes')}</span>
       </div>
-      ${linkBovedaHtml}
       <a id="nav-item-celador" onclick="navegarVista('celador')" class="sidebar-link">
         <i data-lucide="clipboard-list" class="w-4 h-4 shrink-0 text-cyan-400"></i>
         <span>${t('side_registro_actividad', 'Registro de Actividad')}</span>
@@ -1652,10 +1728,13 @@ function configurarVistasSegunRol(forzarNavegacionInicial = false) {
 
 function volverDesdeConfiguraciones() {
   const rol = currentUser ? String(currentUser.rol || '').toLowerCase().trim() : '';
+  if (ultimaVistaAntesDeConfiguracion && ultimaVistaAntesDeConfiguracion !== 'configuraciones') {
+    navegarVista(ultimaVistaAntesDeConfiguracion);
+    return;
+  }
+  // Retorno por defecto según el rol del usuario (Evita enviar erróneamente a Creador de Entornos)
   if (rol.includes('super')) {
-    navegarVista('nodos');
-  } else if (rol.includes('auditor')) {
-    navegarVista('boveda-legal');
+    navegarVista('directorio');
   } else if (rol.includes('mentor')) {
     navegarVista('mentor-clase');
   } else if (rol.includes('aprendiz') || rol.includes('estudiante')) {
@@ -1665,7 +1744,31 @@ function volverDesdeConfiguraciones() {
   }
 }
 
+let ultimaVistaAntesDeConfiguracion = 'directorio';
+
 function navegarVista(vistaId) {
+  // Blindaje de seguridad: Bodega Legal exclusiva para Super Administrador autorizado
+  if (vistaId === 'boveda-legal') {
+    const rolRaw = currentUser ? String(currentUser.rol || '').trim().toLowerCase() : '';
+    const esSuperAdmin = rolRaw.includes('super') || rolRaw.includes('bodega');
+    if (!esSuperAdmin) {
+      mostrarToast('Acceso denegado: La Bodega Legal es un subentorno confidencial exclusivo para el Super Administrador.', 'error');
+      volverDesdeConfiguraciones();
+      return;
+    }
+  }
+
+  // Guardar vista previa antes de entrar a configuraciones para retorno inteligente
+  if (vistaId === 'configuraciones') {
+    const todas = ['nodos', 'admin-convenio', 'directorio', 'aprendiz', 'mentor-clase', 'metricas', 'catalogo', 'celador', 'boveda-legal'];
+    const activa = todas.find(v => {
+      const el = document.getElementById(`vista-${v}`);
+      return el && !el.classList.contains('hidden');
+    });
+    if (activa) ultimaVistaAntesDeConfiguracion = activa;
+  } else {
+    ultimaVistaAntesDeConfiguracion = vistaId;
+  }
   if (vistaId === 'nuevos-integrantes') {
     vistaId = 'celador';
     cambiarTabCelador('integrantes');
@@ -2875,6 +2978,26 @@ function clasificarRolUsuario(rol) {
 async function cambiarCargoUsuarioTiempoReal(usuarioId, nuevoRol) {
   if (!usuarioId || !nuevoRol) return;
 
+  const esAdmin = Boolean(currentUser && (currentUser.rol === 'Super Administrador' || currentUser.rol === 'Administrador'));
+  if (!esAdmin) {
+    mostrarToast('Restricción de seguridad: No tienes permisos para alterar rangos o cargos en el sistema.', 'error');
+    return;
+  }
+
+  // Restricción estricta de autogestión: No se permite modificar el propio cargo
+  if (currentUser && currentUser.id == usuarioId && currentUser.rol !== 'Super Administrador') {
+    mostrarToast('Restricción de autogestión: Prohibido modificar o elevar tu propio rango de cuenta.', 'advertencia');
+    cargarJerarquia3Columnas();
+    return;
+  }
+
+  // Prohibición estricta de asignación de Super Administrador arbitraria
+  if (nuevoRol === 'Super Administrador' && currentUser.rol !== 'Super Administrador') {
+    mostrarToast('Acceso no autorizado: Solo un Super Administrador puede delegar dicho nivel.', 'error');
+    cargarJerarquia3Columnas();
+    return;
+  }
+
   // 1. Mover tarjeta en tiempo real instantáneamente en el frontend (Optimistic UI)
   let rolPrevio = null;
   if (allHierarchyData) {
@@ -3003,9 +3126,29 @@ function renderizarTableroJerarquico(data) {
   });
   const unicos = Array.from(mapaUnicos.values());
 
-  const admins = unicos.filter(u => clasificarRolUsuario(u.rol) === 'ADMIN');
-  const mentores = unicos.filter(u => clasificarRolUsuario(u.rol) === 'MENTOR');
-  const aprendices = unicos.filter(u => clasificarRolUsuario(u.rol) === 'APRENDIZ');
+  // Filtrado y aislamiento por rol: Los mentores solo ven su institución y aprendices a cargo
+  const esMentor = Boolean(currentUser && currentUser.rol === 'Mentor');
+  const esAprendiz = Boolean(currentUser && (currentUser.rol === 'Aprendiz' || currentUser.rol === 'Estudiante'));
+
+  let admins = unicos.filter(u => clasificarRolUsuario(u.rol) === 'ADMIN');
+  let mentores = unicos.filter(u => clasificarRolUsuario(u.rol) === 'MENTOR');
+  let aprendices = unicos.filter(u => clasificarRolUsuario(u.rol) === 'APRENDIZ');
+
+  if (esMentor) {
+    // Un mentor solo visualiza su institución asignada, su equipo de mentores y sus aprendices directos
+    const myOrgId = currentUser.organizacion_id;
+    if (myOrgId) {
+      admins = admins.filter(a => a.organizacion_id == myOrgId && a.rol !== 'Super Administrador');
+      mentores = mentores.filter(m => m.organizacion_id == myOrgId);
+      aprendices = aprendices.filter(a => a.mentor_id == currentUser.id || a.organizacion_id == myOrgId);
+    } else {
+      admins = admins.filter(a => a.rol !== 'Super Administrador');
+      aprendices = aprendices.filter(a => a.mentor_id == currentUser.id);
+    }
+  } else if (esAprendiz) {
+    // Aprendices no ven elementos de Super Administrador global
+    admins = admins.filter(a => a.rol !== 'Super Administrador');
+  }
 
   data.administradores = admins;
   data.mentores = mentores;
@@ -5285,6 +5428,9 @@ async function cargarMentoresRendimientoAdmin() {
     }
 
     renderizarCuadroHonorTop5MentoresAdmin(adminMentoresFormacionData);
+    if (typeof renderizarCuadroHonorTop5AlumnosAdmin === 'function') {
+      renderizarCuadroHonorTop5AlumnosAdmin(adminConvenioData?.aprendices || []);
+    }
 
     if (adminMentoresFormacionData.length === 0) {
       tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400">No hay mentores registrados en esta institución.</td></tr>`;
@@ -8591,7 +8737,8 @@ function renderizarInterfazGrupos(data, mentorIdFoco = null) {
               </span>
             </div>
 
-            <!-- Casillita de Carga Excel para el Mentor -->
+            <!-- Casillita de Carga Excel para el Mentor (Exclusivo Administradores) -->
+            ${(currentUser && (currentUser.rol === 'Super Administrador' || currentUser.rol === 'Administrador')) ? `
             <div class="px-3 py-2 bg-emerald-50/70 border-b border-emerald-100/80 flex items-center justify-between gap-2">
               <div class="flex items-center gap-1.5 min-w-0">
                 <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-600 shrink-0"></i>
@@ -8606,7 +8753,7 @@ function renderizarInterfazGrupos(data, mentorIdFoco = null) {
                 <i data-lucide="upload" class="w-3 h-3"></i>
                 <span>Subir Aprendices</span>
               </button>
-            </div>
+            </div>` : ''}
 
             <!-- Lista de Aprendices de este Mentor -->
             <div class="p-3 space-y-2 flex-1 max-h-[320px] overflow-y-auto bg-white">
@@ -8655,10 +8802,11 @@ function renderizarInterfazGrupos(data, mentorIdFoco = null) {
             <!-- Footer rápido del mentor -->
             <div class="p-2 bg-slate-50/60 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500">
               <span>Carga actual: <strong>${m.aprendices.length}</strong></span>
+              ${(currentUser && (currentUser.rol === 'Super Administrador' || currentUser.rol === 'Administrador')) ? `
               <button onclick="abrirModalSubirExcelMentor(${m.id}, '${nombreEscapado}', '${correoEscapado}')" class="text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1">
                 <i data-lucide="file-spreadsheet" class="w-3 h-3"></i>
                 <span>Cargar Excel</span>
-              </button>
+              </button>` : ''}
             </div>
 
           </div>
@@ -8818,6 +8966,10 @@ async function ejecutarAsignacionLote() {
 // CARGA DE APRENDICES POR EXCEL PARA UN MENTOR ESPECÍFICO
 // =====================================================================
 function abrirModalSubirExcelMentor(mentorId, mentorNombre, mentorCorreo) {
+  if (currentUser && currentUser.rol !== 'Super Administrador' && currentUser.rol !== 'Administrador') {
+    mostrarToast('Restricción de seguridad: La inserción y subida masiva de Excel queda reservada a los administradores.', 'advertencia');
+    return;
+  }
   const inputId = document.getElementById('input-subir-excel-mentor-id');
   const labelSub = document.getElementById('label-subir-excel-mentor-subtitulo');
   const inputArchivo = document.getElementById('input-archivo-excel-mentor');

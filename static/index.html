@@ -364,7 +364,7 @@
         <!-- ===============================================================
              VISTA 1: GESTOR DE NODOS INSTITUCIONALES (SOLO SUPERADMIN)
              =============================================================== -->
-        <section id="vista-nodos" class="vista-seccion space-y-6">
+        <section id="vista-nodos" class="vista-seccion hidden space-y-6">
           <div class="pb-2 border-b border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <p class="text-xs font-bold text-cyan-600 tracking-[0.16em] uppercase mb-1" data-i18n="v_nodos_cat">ENTORNOS & COMUNIDADES</p>
@@ -516,7 +516,7 @@
 
             <!-- Botón Cargar Base de Datos, Añadir Integrante, Grupos de Trabajo y Alternador de Vista -->
             <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-              <button type="button" id="btn-acceso-rapido-cargar-bd" onclick="abrirSelectorCargaBaseDatosDirecto()" class="btn-corp-secundario border-cyan-300 bg-cyan-50/70 hover:bg-cyan-100/80 text-cyan-900 font-bold" title="Cargar Base de Datos Excel para la institución seleccionada">
+              <button type="button" id="btn-acceso-rapido-cargar-bd" onclick="abrirSelectorCargaBaseDatosDirecto()" class="hidden btn-corp-secundario border-cyan-300 bg-cyan-50/70 hover:bg-cyan-100/80 text-cyan-900 font-bold" title="Cargar Base de Datos Excel para la institución seleccionada">
                 <i data-lucide="file-spreadsheet" class="w-4 h-4 text-cyan-700"></i>
                 <span>📥 Cargar Base de Datos</span>
               </button>
@@ -976,6 +976,35 @@
               <!-- Top 5 Mentores Cards Grid -->
               <div id="contenedor-cards-top5-mentores-admin" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
                 <!-- Se cargan dinámicamente los 5 mejores mentores -->
+              </div>
+            </div>
+
+            <!-- CUADRO DE HONOR: TOP 5 ALUMNOS / APRENDICES DESTACADOS -->
+            <div id="contenedor-cuadro-honor-alumnos-admin" class="corp-card p-6 bg-gradient-to-br from-[#1b1434] via-[#281545] to-[#0a192f] text-white border border-indigo-800 shadow-md">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-3 border-b border-indigo-700/60">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-300 flex items-center justify-center border border-indigo-400/30 shadow-2xs">
+                    <i data-lucide="trophy" class="w-5 h-5 text-amber-400"></i>
+                  </div>
+                  <div>
+                    <h3 class="text-base font-extrabold text-white flex items-center gap-2">
+                      <span>Cuadro de Honor · Los 5 Mejores Alumnos</span>
+                      <span class="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 text-[10px] font-black uppercase tracking-wider">Top 5 Alumnos</span>
+                    </h3>
+                    <p class="text-xs text-indigo-200/80 mt-0.5">Ranking de estudiantes líderes con mayor avance formativo y constancia académica en la plataforma.</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 text-xs font-semibold text-indigo-200">
+                  <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-indigo-900/60 text-indigo-200 border border-indigo-700/60">
+                    <i data-lucide="flame" class="w-3.5 h-3.5 text-amber-400"></i>
+                    <span>Criterio: Avance + Horas Dedicadas</span>
+                  </span>
+                </div>
+              </div>
+
+              <!-- Top 5 Alumnos Cards Grid -->
+              <div id="contenedor-cards-top5-alumnos-admin" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+                <!-- Se cargan dinámicamente los 5 mejores alumnos -->
               </div>
             </div>
 
