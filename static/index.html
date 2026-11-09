@@ -1200,6 +1200,34 @@
               <!-- Cargado dinámicamente con opciones interactivas -->
             </div>
           </div>
+
+          <!-- SECCIÓN 3: VIDEOJUEGO INTERACTIVO DE MATEMÁTICAS (ESCOLARIZADO, EDUCATIVO, VOCACIONAL) -->
+          <div class="space-y-4 pt-6 border-t border-slate-200">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <span class="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  PENSAMIENTO LÓGICO & GAMIFICACIÓN EDUCATIVA
+                </span>
+                <h2 class="text-xl font-extrabold text-[#0a192f] dark:text-slate-100 flex items-center gap-2">
+                  <span>🎮 Videojuego Educativo de Matemáticas</span>
+                  <span class="px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 text-[10px] font-black uppercase">3 Niveles Oficiales</span>
+                </h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Explora los desafíos de los niveles <strong>Escolarizado</strong>, <strong>Educativo</strong> y <strong>Vocacional</strong>. Gana medallas, estrellas y racha académica en tiempo real.
+                </p>
+              </div>
+              <button onclick="abrirModalVideojuegoMatematicas()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-700 hover:to-cyan-700 text-white font-extrabold text-xs shadow-md hover:shadow-lg transition-all flex items-center gap-2 shrink-0 cursor-pointer">
+                <i data-lucide="gamepad-2" class="w-4 h-4"></i>
+                <span>¡Jugar Desafío Matemático!</span>
+              </button>
+            </div>
+
+            <!-- Cards de los 3 Niveles en el Dashboard del Estudiante -->
+            <div id="grid-niveles-videojuego-resumen" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <!-- Cargado dinámicamente -->
+            </div>
+          </div>
         </section>
 
         <!-- ===============================================================
@@ -5496,6 +5524,209 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ===============================================================
+       MODAL: VIDEOJUEGO DE MATEMÁTICAS (DIAGRAMA DE SECUENCIA)
+       =============================================================== -->
+  <div id="modal-videojuego-matematicas" class="hidden fixed inset-0 z-50 bg-slate-900/80 dark:bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+    <div class="bg-white dark:bg-[#0c1322] w-full max-w-4xl rounded-3xl shadow-2xl border border-emerald-500/30 overflow-hidden flex flex-col max-h-[92vh] transition-all">
+      
+      <!-- CABECERA DEL JUEGO -->
+      <div class="px-6 py-4 bg-gradient-to-r from-emerald-900 via-teal-900 to-[#0a192f] text-white flex items-center justify-between border-b border-emerald-700/40">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-xl shadow-inner">
+            🎮
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-400 text-slate-900">ACTIVIDAD INTERACTIVA</span>
+              <span id="vj-badge-nivel-activo" class="text-xs text-emerald-300 font-bold">Selección de Nivel</span>
+            </div>
+            <h3 class="text-base font-extrabold text-white">Videojuego Educativo de Matemáticas</h3>
+          </div>
+        </div>
+        <button onclick="cerrarVideojuegoMatematicas()" class="p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer" title="Cerrar juego">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- CUERPO PRINCIPAL DEL JUEGO (PANTALLAS) -->
+      <div class="p-6 overflow-y-auto flex-1 space-y-6">
+
+        <!-- PANTALLA 1: SELECCIÓN DE NIVEL (ESCOLARIZADO, EDUCATIVO, VOCACIONAL) -->
+        <div id="vj-pantalla-seleccion-nivel" class="space-y-6">
+          <div class="text-center max-w-xl mx-auto space-y-1.5">
+            <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Paso 1: Selecciona tu Desafío</span>
+            <h4 class="text-2xl font-black text-[#0a192f] dark:text-white">Elige tu Nivel de Aprendizaje</h4>
+            <p class="text-xs text-slate-500 dark:text-slate-400">
+              Cada nivel cuenta con ejercicios interactivos, temporizador, vidas y recompensas pedagógicas avaladas institucionalmente.
+            </p>
+          </div>
+
+          <div id="vj-grid-niveles-selector" class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <!-- Cargado dinámicamente -->
+          </div>
+        </div>
+
+        <!-- PANTALLA 2: GUÍA DE USUARIO E INICIO -->
+        <div id="vj-pantalla-guia-usuario" class="hidden max-w-2xl mx-auto space-y-6 py-4">
+          <div class="p-6 rounded-3xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 text-center space-y-4">
+            <div id="vj-guia-icono" class="text-5xl mx-auto">🎒</div>
+            <div>
+              <span id="vj-guia-nivel-sub" class="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">NIVEL SELECCIONADO</span>
+              <h3 id="vj-guia-nivel-titulo" class="text-2xl font-black text-[#0a192f] dark:text-white">Nivel Escolarizado</h3>
+              <p id="vj-guia-nivel-desc" class="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto mt-1"></p>
+            </div>
+
+            <!-- Reglas y parámetros -->
+            <div class="grid grid-cols-3 gap-3 pt-3 border-t border-slate-200 dark:border-slate-800 text-center text-xs">
+              <div class="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <span class="text-slate-400 text-[10px] uppercase font-bold block">Vidas</span>
+                <strong class="text-rose-500 font-black text-lg">❤️ 3</strong>
+              </div>
+              <div class="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <span class="text-slate-400 text-[10px] uppercase font-bold block">Tiempo Total</span>
+                <strong id="vj-guia-tiempo" class="text-cyan-600 font-black text-lg">180s</strong>
+              </div>
+              <div class="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <span class="text-slate-400 text-[10px] uppercase font-bold block">Ejercicios</span>
+                <strong id="vj-guia-total-ejercicios" class="text-emerald-600 font-black text-lg">4</strong>
+              </div>
+            </div>
+
+            <!-- Instrucciones de la Guía -->
+            <div class="text-left p-4 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 space-y-2">
+              <h5 class="text-xs font-bold text-[#0a192f] dark:text-white flex items-center gap-1.5">
+                <i data-lucide="info" class="w-4 h-4 text-emerald-500"></i>
+                <span>Guía del Estudiante:</span>
+              </h5>
+              <ul id="vj-guia-lista-instrucciones" class="text-xs text-slate-600 dark:text-slate-300 space-y-1.5 list-disc list-inside">
+              </ul>
+            </div>
+
+            <div class="flex items-center justify-center gap-3 pt-2">
+              <button onclick="volverASeleccionNivelMatematicas()" class="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
+                ← Cambiar Nivel
+              </button>
+              <button onclick="comenzarPartidaNivelMatematicas()" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black shadow-lg transition-all flex items-center gap-2 cursor-pointer">
+                <span>¡Iniciar Actividad!</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PANTALLA 3: ARENA DE JUEGO INTERACTIVA (PREGUNTAS Y EJERCICIOS) -->
+        <div id="vj-pantalla-arena-juego" class="hidden max-w-2xl mx-auto space-y-5">
+          <!-- Barra de Estado: Vidas, Temporizador, Pregunta y Puntaje -->
+          <div class="flex items-center justify-between p-3.5 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+            <div class="flex items-center gap-2">
+              <span id="vj-arena-vidas" class="text-base tracking-widest">❤️❤️❤️</span>
+            </div>
+            <div class="flex items-center gap-2 font-mono font-bold">
+              <i data-lucide="clock" class="w-4 h-4 text-cyan-600 animate-spin"></i>
+              <span id="vj-arena-timer" class="text-sm text-cyan-700 dark:text-cyan-400">03:00</span>
+            </div>
+            <div class="flex items-center gap-1.5 font-bold">
+              <span class="text-slate-400 text-[10px] uppercase">Puntos:</span>
+              <span id="vj-arena-puntaje-actual" class="text-emerald-600 font-black text-sm">0</span>
+            </div>
+          </div>
+
+          <!-- Barra de Progreso de Preguntas -->
+          <div class="space-y-1">
+            <div class="flex items-center justify-between text-[11px] font-bold text-slate-500">
+              <span id="vj-arena-progreso-texto">Ejercicio 1 de 4</span>
+              <span id="vj-arena-categoria-badge" class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px]">Conteo</span>
+            </div>
+            <div class="progress-track-cyan h-2 rounded-full overflow-hidden">
+              <div id="vj-arena-barra-progreso" class="progress-bar-cyan h-full transition-all duration-300" style="width: 25%;"></div>
+            </div>
+          </div>
+
+          <!-- Tarjeta del Ejercicio Actual -->
+          <div class="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md space-y-5">
+            <div class="flex items-start gap-4">
+              <div id="vj-arena-ejercicio-icono" class="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/40 flex items-center justify-center text-3xl shrink-0">
+                🍎
+              </div>
+              <div class="space-y-1 flex-1">
+                <h4 id="vj-arena-ejercicio-titulo" class="text-sm font-black text-[#0a192f] dark:text-white">Conteo de Manzanas</h4>
+                <p id="vj-arena-ejercicio-enunciado" class="text-sm text-slate-700 dark:text-slate-200 leading-relaxed font-medium">
+                  Cargando enunciado...
+                </p>
+              </div>
+            </div>
+
+            <!-- Opciones de Respuesta -->
+            <div id="vj-arena-grid-opciones" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <!-- Renderizado dinámicamente -->
+            </div>
+
+            <!-- Retroalimentación instantánea del ejercicio -->
+            <div id="vj-arena-feedback-instantaneo" class="hidden p-3.5 rounded-2xl text-xs font-semibold flex items-center gap-2">
+            </div>
+
+            <!-- Botón Siguiente / Enviar -->
+            <div class="flex justify-end pt-2">
+              <button id="vj-btn-siguiente-ejercicio" onclick="siguienteEjercicioMatematicas()" disabled class="px-6 py-2.5 rounded-xl bg-slate-300 dark:bg-slate-800 text-slate-500 font-black text-xs transition-all flex items-center gap-2 cursor-not-allowed">
+                <span>Continuar</span>
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PANTALLA 4: RESULTADOS, FEEDBACK PEDAGÓGICO Y RECOMPENSAS VISUALES -->
+        <div id="vj-pantalla-recompensas" class="hidden max-w-xl mx-auto space-y-6 text-center py-4">
+          <div class="p-8 rounded-3xl bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-[#0c1322] border border-slate-200 dark:border-slate-800 shadow-xl space-y-5">
+            <!-- Estrellas Animadas -->
+            <div id="vj-recompensas-estrellas" class="text-5xl animate-bounce tracking-widest">
+              ⭐⭐⭐
+            </div>
+
+            <div class="space-y-1">
+              <span id="vj-recompensas-badge-medalla" class="px-3 py-1 rounded-full text-xs font-black bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 inline-block">
+                🥇 Medalla de Oro en Pensamiento Matemático
+              </span>
+              <h3 id="vj-recompensas-titulo" class="text-2xl font-black text-[#0a192f] dark:text-white mt-2">¡Felicitaciones! Desafío Superado</h3>
+              <p id="vj-recompensas-mensaje-feedback" class="text-xs text-slate-600 dark:text-slate-300 max-w-md mx-auto leading-relaxed">
+                Has demostrado un excelente dominio matemático. Tus puntos han sido persistidos en Azure SQL.
+              </p>
+            </div>
+
+            <!-- Métricas Resumen -->
+            <div class="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs">
+              <div>
+                <span class="text-slate-400 text-[10px] uppercase font-bold block">Puntaje</span>
+                <strong id="vj-resumen-puntos" class="text-emerald-600 font-black text-xl">400</strong>
+              </div>
+              <div>
+                <span class="text-slate-400 text-[10px] uppercase font-bold block">Aciertos</span>
+                <strong id="vj-resumen-aciertos" class="text-cyan-600 font-black text-xl">4 / 4</strong>
+              </div>
+              <div>
+                <span class="text-slate-400 text-[10px] uppercase font-bold block">Tiempo</span>
+                <strong id="vj-resumen-tiempo" class="text-purple-600 font-black text-xl">45s</strong>
+              </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="flex items-center justify-center gap-3 pt-3">
+              <button onclick="volverASeleccionNivelMatematicas()" class="px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer">
+                Elegir Otro Nivel
+              </button>
+              <button onclick="reiniciarNivelMatematicasActual()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black shadow-md transition-all flex items-center gap-1.5 cursor-pointer">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                <span>Jugar de Nuevo</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
   </div>
 

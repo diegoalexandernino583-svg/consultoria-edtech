@@ -125,3 +125,37 @@ class ConfiguracionBodegaLegal(Base):
     clave_plana = Column(String(255), default="123456")
     asignado_por = Column(String(255), default="alexander.nino.583@gmail.com")
     fecha_asignacion = Column(String(100), default=func.datetime('now', 'localtime'))
+
+
+class VideojuegoMatematicasEjercicios(Base):
+    __tablename__ = "videojuego_matematicas_ejercicios"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True, index=True)
+    nivel = Column(String(50), nullable=False, index=True)  # escolarizado, educativo, vocacional
+    categoria = Column(String(50), nullable=False)  # conteo, problema, finanzas, etc.
+    titulo = Column(String(255), nullable=False)
+    enunciado = Column(Text, nullable=False)
+    imagen_o_icono = Column(String(100), nullable=True)
+    opciones_json = Column(Text, nullable=False)
+    respuesta_correcta = Column(String(255), nullable=False)
+    explicacion = Column(Text, nullable=True)
+    puntos = Column(Integer, default=100)
+    tiempo_limite_segundos = Column(Integer, default=60)
+    activo = Column(Integer, default=1)
+
+
+class ProgresoVideojuegoMatematicas(Base):
+    __tablename__ = "progreso_videojuego_matematicas"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True, index=True)
+    usuario_id = Column(BigInteger, ForeignKey("usuarios.id"), nullable=False, index=True)
+    organizacion_id = Column(BigInteger, ForeignKey("organizaciones.id"), nullable=True, index=True)
+    nivel = Column(String(50), nullable=False, index=True)
+    puntaje_obtenido = Column(Integer, nullable=False)
+    aciertos = Column(Integer, nullable=False)
+    total_preguntas = Column(Integer, nullable=False)
+    tiempo_empleado_segundos = Column(Integer, default=0)
+    recompensas_json = Column(Text, nullable=True)
+    feedback_mensaje = Column(Text, nullable=True)
+    fecha_registro = Column(String(100), default=func.datetime('now', 'localtime'))
+

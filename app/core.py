@@ -1342,6 +1342,135 @@ class DatabaseManager:
             except Exception:
                 pass
 
+        # =====================================================================
+        # TABLAS PARA EL VIDEOJUEGO DE MATEMÁTICAS (NIVELES: ESCOLARIZADO, EDUCATIVO, VOCACIONAL)
+        # =====================================================================
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS videojuego_matematicas_ejercicios (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                nivel TEXT NOT NULL,
+                categoria TEXT NOT NULL,
+                titulo TEXT NOT NULL,
+                enunciado TEXT NOT NULL,
+                imagen_o_icono TEXT,
+                opciones_json TEXT NOT NULL,
+                respuesta_correcta TEXT NOT NULL,
+                explicacion TEXT,
+                puntos INTEGER DEFAULT 100,
+                tiempo_limite_segundos INTEGER DEFAULT 60,
+                activo INTEGER DEFAULT 1
+            );
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS progreso_videojuego_matematicas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_id INTEGER NOT NULL,
+                organizacion_id INTEGER NULL,
+                nivel TEXT NOT NULL,
+                puntaje_obtenido INTEGER NOT NULL,
+                aciertos INTEGER NOT NULL,
+                total_preguntas INTEGER NOT NULL,
+                tiempo_empleado_segundos INTEGER DEFAULT 0,
+                recompensas_json TEXT,
+                feedback_mensaje TEXT,
+                fecha_registro TEXT DEFAULT (DATETIME('now', 'localtime')),
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+            );
+        """)
+
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_vj_ejercicios_nivel ON videojuego_matematicas_ejercicios(nivel, activo);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_vj_progreso_usuario ON progreso_videojuego_matematicas(usuario_id, nivel);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_vj_progreso_org ON progreso_videojuego_matematicas(organizacion_id, puntaje_obtenido DESC);")
+
+        # Sembrar ejercicios oficiales si la tabla está vacía
+        cursor.execute("SELECT COUNT(*) FROM videojuego_matematicas_ejercicios")
+        if cursor.fetchone()[0] == 0:
+            ejercicios_semilla = [
+                # NIVEL 1: ESCOLARIZADO
+                (
+                    'escolarizado', 'conteo', 'Conteo de Manzanas Escolares',
+                    'En la canasta escolar del aula hay 7 manzanas rojas y la maestra añade 5 manzanas verdes. ¿Cuántas manzanas hay en total para repartir?',
+                    '🍎', json.dumps(['10', '11', '12', '13']), '12',
+                    '7 manzanas iniciales + 5 añadidas = 12 manzanas en total.', 100, 45, 1
+                ),
+                (
+                    'escolarizado', 'secuencias', 'Completar la Serie Numérica',
+                    'Observa con atención la secuencia de números escolares: 4, 8, 12, 16, ___. ¿Cuál es el número que sigue?',
+                    '🔢', json.dumps(['18', '20', '22', '24']), '20',
+                    'La secuencia avanza sumando 4 en cada paso (16 + 4 = 20).', 100, 45, 1
+                ),
+                (
+                    'escolarizado', 'reparto', 'Reparto Equitativo de Lápices',
+                    'Un estudiante tiene 18 lápices de colores y desea compartirlos en partes iguales entre 3 amigos. ¿Cuántos lápices recibe cada uno?',
+                    '✏️', json.dumps(['4', '5', '6', '7']), '6',
+                    '18 lápices divididos entre 3 amigos = 6 lápices para cada uno (18 ÷ 3 = 6).', 100, 45, 1
+                ),
+                (
+                    'escolarizado', 'resta', 'Pupitres Libres en el Salón',
+                    'El salón de matemáticas tiene 25 pupitres en total. Si 17 estudiantes ya están sentados, ¿cuántos pupitres quedan disponibles?',
+                    '🪑', json.dumps(['7', '8', '9', '10']), '8',
+                    '25 pupitres totales - 17 ocupados = 8 pupitres libres (25 - 17 = 8).', 100, 45, 1
+                ),
+
+                # NIVEL 2: EDUCATIVO
+                (
+                    'educativo', 'porcentajes', 'Descuento en Material Didáctico',
+                    'Un libro interactivo de ciencias cuesta $80.000 COP y la librería institucional ofrece un 25% de descuento. ¿Cuál es el valor final a pagar?',
+                    '📚', json.dumps(['$55.000', '$60.000', '$65.000', '$70.000']), '$60.000',
+                    'El 25% de 80.000 es 20.000 (80.000 * 0.25). 80.000 - 20.000 = $60.000.', 150, 60, 1
+                ),
+                (
+                    'educativo', 'fracciones', 'Fracción de la Jornada Académica',
+                    'En una jornada pedagógica de 6 horas diarias, se dedican 2 horas completas a tutorías de matemáticas. ¿Qué fracción irreducible del día escolar representa?',
+                    '⏱️', json.dumps(['1/4', '1/3', '1/2', '2/5']), '1/3',
+                    '2 horas de 6 totales se expresa como 2/6, que al simplificar entre 2 resulta en 1/3.', 150, 60, 1
+                ),
+                (
+                    'educativo', 'geometria', 'Perímetro del Laboratorio de Cómputo',
+                    'El aula de cómputo tiene forma rectangular con 12 metros de largo y 8 metros de ancho. ¿Cuál es su perímetro total para el cableado perimetral?',
+                    '📐', json.dumps(['36 metros', '40 metros', '96 metros', '44 metros']), '40 metros',
+                    'El perímetro es la suma de todos los lados: 2 * (12 + 8) = 2 * 20 = 40 metros.', 150, 60, 1
+                ),
+                (
+                    'educativo', 'proporciones', 'Regla de Tres en el Taller',
+                    'Si 3 impresoras 3D fabrican 15 piezas didácticas en 2 horas, ¿cuántas piezas fabricarán 6 impresoras 3D en el mismo tiempo?',
+                    '🖨️', json.dumps(['25 piezas', '30 piezas', '35 piezas', '40 piezas']), '30 piezas',
+                    'Al duplicar la cantidad de impresoras manteniendo el tiempo, la producción se duplica: 15 * 2 = 30 piezas.', 150, 60, 1
+                ),
+
+                # NIVEL 3: VOCACIONAL
+                (
+                    'vocacional', 'finanzas', 'Punto de Equilibrio del Emprendimiento',
+                    'Un proyecto técnico vocacional tiene costos fijos de $900.000. Si cada kit de robótica deja un margen de $45.000, ¿cuántos kits deben venderse para no ganar ni perder?',
+                    '💼', json.dumps(['15 kits', '20 kits', '25 kits', '30 kits']), '20 kits',
+                    'Punto de equilibrio = Costos Fijos / Margen = 900.000 / 45.000 = 20 kits.', 200, 75, 1
+                ),
+                (
+                    'vocacional', 'interes', 'Rendimiento de Cooperativa Estudiantil',
+                    'Se depositan $1.200.000 a una tasa de interés simple anual del 10%. ¿Cuánto dinero por concepto de intereses se obtendrá al cabo de 6 meses?',
+                    '📈', json.dumps(['$50.000', '$60.000', '$80.000', '$120.000']), '$60.000',
+                    'Interés = Capital * Tasa * Tiempo = 1.200.000 * 0.10 * (6/12) = $60.000.', 200, 75, 1
+                ),
+                (
+                    'vocacional', 'probabilidad', 'Probabilidad en Control de Calidad',
+                    'En una línea de producción vocacional de 100 componentes, 85 están en perfecto estado y 15 tienen detalles menores. ¿Cuál es la probabilidad de tomar uno perfecto al azar?',
+                    '🎯', json.dumps(['75%', '80%', '85%', '90%']), '85%',
+                    'Probabilidad = Casos favorables / Casos totales = 85 / 100 = 85%.', 200, 75, 1
+                ),
+                (
+                    'vocacional', 'algoritmos', 'Capacidad y Rendimiento en Nube',
+                    'Un clúster procesa 200 solicitudes por segundo con 4 núcleos. Si se optimiza la concurrencia aumentando a 8 núcleos con 90% de eficiencia, ¿cuál será la nueva capacidad?',
+                    '⚡', json.dumps(['360 QPS', '380 QPS', '400 QPS', '420 QPS']), '360 QPS',
+                    'Rendimiento = 200 * (8 / 4) * 0.90 = 200 * 2 * 0.90 = 360 QPS.', 200, 75, 1
+                )
+            ]
+            cursor.executemany("""
+                INSERT INTO videojuego_matematicas_ejercicios
+                (nivel, categoria, titulo, enunciado, imagen_o_icono, opciones_json, respuesta_correcta, explicacion, puntos, tiempo_limite_segundos, activo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, ejercicios_semilla)
+
         conn.commit()
         conn.close()
 

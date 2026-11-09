@@ -2,10 +2,12 @@ services:
   - type: web
     name: consultoria-edtech
     env: docker
-    plan: free
+    plan: starter
     region: oregon
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/estado-servidor
+    numInstances: 2 # Soporte para escalado horizontal sin pérdida de estado
+    autoDeploy: true
     envVars:
       - key: DB_SERVER
         value: servidor-consultoria-diego.database.windows.net
@@ -15,6 +17,13 @@ services:
         value: admin_diego
       - key: DB_PASSWORD
         sync: false
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: edtech-redis-cache
+          property: connectionString
       - key: EMAIL_APP
         sync: false
       - key: EMAIL_PASS
@@ -23,3 +32,14 @@ services:
         value: "false"
       - key: AZURE_REPLICA
         value: "true"
+      - key: FORCE_HTTPS
+        value: "true"
+      - key: MULTITENANT_ENFORCE
+        value: "true"
+
+  - type: redis
+    name: edtech-redis-cache
+    plan: starter
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: [] # Solo accesible internamente por los servicios de Render

@@ -3871,6 +3871,9 @@ async function cargarCursosAprendiz() {
     }
 
     refrescarIconos();
+    if (typeof cargarNivelesVideojuegoResumen === 'function') {
+      cargarNivelesVideojuegoResumen();
+    }
   } catch (e) {
     console.error('Error cargando cursos del aprendiz:', e);
   }
@@ -12927,3 +12930,388 @@ async function ejecutarSubidaArchivoBodega(event) {
   }
 }
 
+
+
+// =====================================================================
+// VIDEOJUEGO EDUCATIVO DE MATEMÁTICAS (DIAGRAMA DE SECUENCIA)
+// NIVELES: ESCOLARIZADO, EDUCATIVO, VOCACIONAL
+// =====================================================================
+let vjNivelActivo = null;
+let vjConfiguracionNivel = null;
+let vjEjerciciosNivel = [];
+let vjIndiceActual = 0;
+let vjVidasRestantes = 3;
+let vjPuntajeAcumulado = 0;
+let vjRespuestasUsuario = [];
+let vjTiempoRestante = 180;
+let vjIntervaloTimer = null;
+let vjOpcionSeleccionadaTemporal = null;
+
+async function cargarNivelesVideojuegoResumen() {
+  const gridResumen = document.getElementById('grid-niveles-videojuego-resumen');
+  const gridSelector = document.getElementById('vj-grid-niveles-selector');
+  if (!gridResumen && !gridSelector) return;
+
+  try {
+    const usrParam = currentUser && currentUser.id ? `?usuario_id=${currentUser.id}` : '';
+    const res = await fetch(`${API_BASE}/api/videojuego/matematicas/niveles${usrParam}`);
+    if (!res.ok) return;
+    const json = await res.json();
+    const niveles = json.niveles || [];
+
+    // Renderizar en el dashboard del estudiante
+    if (gridResumen) {
+      gridResumen.innerHTML = niveles.map(n => `
+        <div class="corp-card p-5 border border-slate-200 dark:border-slate-800 hover:border-emerald-500/50 transition-all flex flex-col justify-between group shadow-sm hover:shadow-md">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-3xl p-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/60 shadow-xs">${n.icono}</span>
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300/40">
+                ${n.partidas_jugadas > 0 ? `Record: ${n.mejor_puntaje} pts` : 'Por Jugar'}
+              </span>
+            </div>
+            <div>
+              <h4 class="text-sm font-black text-[#0a192f] dark:text-white group-hover:text-emerald-600 transition-colors">${n.nombre}</h4>
+              <p class="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">${n.subtitulo}</p>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">${n.descripcion}</p>
+            </div>
+          </div>
+          <div class="pt-4 border-t border-slate-100 dark:border-slate-800 mt-4 flex items-center justify-between">
+            <div class="flex items-center gap-2 text-[11px] font-semibold text-slate-400">
+              <span>❤️ ${n.vidas} vidas</span>
+              <span>•</span>
+              <span>⏱️ ${n.tiempo_segundos}s</span>
+            </div>
+            <button onclick="iniciarVideojuegoNivelDirecto('${n.id}')" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center gap-1 shadow-sm transition-all cursor-pointer">
+              <span>Jugar</span>
+              <i data-lucide="play" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Renderizar en el modal de selección de nivel
+    if (gridSelector) {
+      gridSelector.innerHTML = niveles.map(n => `
+        <div onclick="seleccionarNivelMatematicas('${n.id}')" class="p-6 rounded-3xl bg-slate-50 dark:bg-slate-900/80 border-2 border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-400 transition-all cursor-pointer text-center space-y-4 hover:scale-[1.02] shadow-sm hover:shadow-lg flex flex-col justify-between">
+          <div class="space-y-3">
+            <div class="w-16 h-16 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 mx-auto flex items-center justify-center text-3xl shadow-sm">
+              ${n.icono}
+            </div>
+            <div>
+              <span class="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">DESAFÍO ${n.nombre.toUpperCase()}</span>
+              <h4 class="text-lg font-black text-[#0a192f] dark:text-white mt-0.5">${n.nombre}</h4>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">${n.descripcion}</p>
+            </div>
+          </div>
+          <div class="pt-3 border-t border-slate-200 dark:border-slate-800 text-xs">
+            <div class="flex items-center justify-between text-slate-400 mb-3 text-[11px] font-semibold">
+              <span>Vidas: ❤️ ${n.vidas}</span>
+              <span>Tiempo: ⏱️ ${n.tiempo_segundos}s</span>
+            </div>
+            <button type="button" class="w-full py-2.5 rounded-xl bg-gradient-to-r ${n.color} text-white font-black text-xs shadow-md transition-all flex items-center justify-center gap-2">
+              <span>Elegir Nivel</span>
+              <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    refrescarIconos();
+  } catch (err) {
+    console.debug('Aviso niveles videojuego:', err);
+  }
+}
+
+function abrirModalVideojuegoMatematicas() {
+  const modal = document.getElementById('modal-videojuego-matematicas');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  volverASeleccionNivelMatematicas();
+  cargarNivelesVideojuegoResumen();
+  refrescarIconos();
+}
+
+function cerrarVideojuegoMatematicas() {
+  if (vjIntervaloTimer) clearInterval(vjIntervaloTimer);
+  const modal = document.getElementById('modal-videojuego-matematicas');
+  if (modal) modal.classList.add('hidden');
+  if (typeof cargarCursosAprendiz === 'function') {
+    cargarCursosAprendiz();
+  }
+}
+
+function volverASeleccionNivelMatematicas() {
+  if (vjIntervaloTimer) clearInterval(vjIntervaloTimer);
+  document.getElementById('vj-pantalla-seleccion-nivel')?.classList.remove('hidden');
+  document.getElementById('vj-pantalla-guia-usuario')?.classList.add('hidden');
+  document.getElementById('vj-pantalla-arena-juego')?.classList.add('hidden');
+  document.getElementById('vj-pantalla-recompensas')?.classList.add('hidden');
+  const badge = document.getElementById('vj-badge-nivel-activo');
+  if (badge) badge.innerText = 'Selección de Nivel';
+  refrescarIconos();
+}
+
+function iniciarVideojuegoNivelDirecto(nivelId) {
+  abrirModalVideojuegoMatematicas();
+  seleccionarNivelMatematicas(nivelId);
+}
+
+async function seleccionarNivelMatematicas(nivelId) {
+  vjNivelActivo = nivelId;
+  const badge = document.getElementById('vj-badge-nivel-activo');
+  if (badge) badge.innerText = `Nivel: ${nivelId.toUpperCase()}`;
+
+  try {
+    const usrParam = currentUser && currentUser.id ? `?usuario_id=${currentUser.id}` : '';
+    const res = await fetch(`${API_BASE}/api/videojuego/matematicas/nivel/${nivelId}${usrParam}`);
+    if (!res.ok) throw new Error('No se pudo cargar la configuración del nivel');
+    const data = await res.json();
+
+    vjConfiguracionNivel = data.configuracion || {};
+    vjEjerciciosNivel = data.ejercicios || [];
+
+    // Poblar Pantalla 2: Guía de Usuario
+    const iconoEl = document.getElementById('vj-guia-icono');
+    const titEl = document.getElementById('vj-guia-nivel-titulo');
+    const descEl = document.getElementById('vj-guia-nivel-desc');
+    const tiempoEl = document.getElementById('vj-guia-tiempo');
+    const totEjEl = document.getElementById('vj-guia-total-ejercicios');
+    const listaInstEl = document.getElementById('vj-guia-lista-instrucciones');
+
+    if (iconoEl) iconoEl.innerText = vjConfiguracionNivel.icono || '🎮';
+    if (titEl) titEl.innerText = `Nivel ${vjConfiguracionNivel.nombre}`;
+    if (descEl) descEl.innerText = vjConfiguracionNivel.subtitulo || '';
+    if (tiempoEl) tiempoEl.innerText = `${vjConfiguracionNivel.tiempo_total_segundos || 180}s`;
+    if (totEjEl) totEjEl.innerText = `${vjEjerciciosNivel.length}`;
+
+    if (listaInstEl) {
+      const guias = vjConfiguracionNivel.guia_usuario || [];
+      listaInstEl.innerHTML = guias.map(g => `<li>${g}</li>`).join('');
+    }
+
+    // Mostrar Pantalla 2 (Guía de Usuario)
+    document.getElementById('vj-pantalla-seleccion-nivel')?.classList.add('hidden');
+    document.getElementById('vj-pantalla-guia-usuario')?.classList.remove('hidden');
+    document.getElementById('vj-pantalla-arena-juego')?.classList.add('hidden');
+    document.getElementById('vj-pantalla-recompensas')?.classList.add('hidden');
+    refrescarIconos();
+  } catch (err) {
+    mostrarToast(err.message, 'error');
+  }
+}
+
+function comenzarPartidaNivelMatematicas() {
+  if (!vjEjerciciosNivel || vjEjerciciosNivel.length === 0) {
+    return mostrarToast('No hay ejercicios disponibles para este nivel.', 'advertencia');
+  }
+
+  vjIndiceActual = 0;
+  vjVidasRestantes = vjConfiguracionNivel.vidas || 3;
+  vjPuntajeAcumulado = 0;
+  vjRespuestasUsuario = [];
+  vjTiempoRestante = vjConfiguracionNivel.tiempo_total_segundos || 180;
+  vjOpcionSeleccionadaTemporal = null;
+
+  document.getElementById('vj-pantalla-guia-usuario')?.classList.add('hidden');
+  document.getElementById('vj-pantalla-arena-juego')?.classList.remove('hidden');
+
+  iniciarTemporizadorVideojuego();
+  renderizarEjercicioMatematicasActual();
+  refrescarIconos();
+}
+
+function iniciarTemporizadorVideojuego() {
+  if (vjIntervaloTimer) clearInterval(vjIntervaloTimer);
+  actualizarVistaTimer();
+
+  vjIntervaloTimer = setInterval(() => {
+    vjTiempoRestante--;
+    actualizarVistaTimer();
+
+    if (vjTiempoRestante <= 0) {
+      clearInterval(vjIntervaloTimer);
+      mostrarToast('⏱️ ¡Tiempo agotado en la actividad matemática!', 'advertencia');
+      enviarRespuestasVideojuegoMatematicas();
+    }
+  }, 1000);
+}
+
+function actualizarVistaTimer() {
+  const el = document.getElementById('vj-arena-timer');
+  if (!el) return;
+  const mins = Math.floor(Math.max(0, vjTiempoRestante) / 60);
+  const secs = Math.max(0, vjTiempoRestante) % 60;
+  el.innerText = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  if (vjTiempoRestante <= 30) {
+    el.className = 'text-sm text-rose-600 dark:text-rose-400 animate-pulse font-black';
+  } else {
+    el.className = 'text-sm text-cyan-700 dark:text-cyan-400 font-black';
+  }
+}
+
+function renderizarEjercicioMatematicasActual() {
+  vjOpcionSeleccionadaTemporal = null;
+  const ej = vjEjerciciosNivel[vjIndiceActual];
+  if (!ej) return;
+
+  const total = vjEjerciciosNivel.length;
+  const pct = Math.round(((vjIndiceActual + 1) / total) * 100);
+
+  const vidasEl = document.getElementById('vj-arena-vidas');
+  const puntosEl = document.getElementById('vj-arena-puntaje-actual');
+  const progTxtEl = document.getElementById('vj-arena-progreso-texto');
+  const catEl = document.getElementById('vj-arena-categoria-badge');
+  const barEl = document.getElementById('vj-arena-barra-progreso');
+
+  if (vidasEl) vidasEl.innerText = '❤️'.repeat(Math.max(0, vjVidasRestantes));
+  if (puntosEl) puntosEl.innerText = `${vjPuntajeAcumulado}`;
+  if (progTxtEl) progTxtEl.innerText = `Ejercicio ${vjIndiceActual + 1} de ${total}`;
+  if (catEl) catEl.innerText = (ej.categoria || 'Matemáticas').toUpperCase();
+  if (barEl) barEl.style.width = `${pct}%`;
+
+  const iconoEl = document.getElementById('vj-arena-ejercicio-icono');
+  const titEl = document.getElementById('vj-arena-ejercicio-titulo');
+  const enunEl = document.getElementById('vj-arena-ejercicio-enunciado');
+  const gridOpciones = document.getElementById('vj-arena-grid-opciones');
+  const btnSig = document.getElementById('vj-btn-siguiente-ejercicio');
+  const feedbackEl = document.getElementById('vj-arena-feedback-instantaneo');
+
+  if (iconoEl) iconoEl.innerText = ej.icono || '🔢';
+  if (titEl) titEl.innerText = ej.titulo || 'Ejercicio';
+  if (enunEl) enunEl.innerText = ej.enunciado || '';
+  if (feedbackEl) feedbackEl.classList.add('hidden');
+
+  if (btnSig) {
+    btnSig.disabled = true;
+    btnSig.className = 'px-6 py-2.5 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-400 font-black text-xs transition-all flex items-center gap-2 cursor-not-allowed';
+    btnSig.innerHTML = `<span>${(vjIndiceActual === total - 1) ? 'Finalizar & Evaluar' : 'Continuar'}</span><i data-lucide="chevron-right" class="w-4 h-4"></i>`;
+  }
+
+  if (gridOpciones) {
+    const opciones = ej.opciones || [];
+    gridOpciones.innerHTML = opciones.map((op, idx) => `
+      <button type="button" onclick="seleccionarOpcionMatematicas('${escapeHtml(String(op))}', this)" class="vj-btn-opcion p-4 rounded-2xl border-2 border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 hover:border-emerald-500 text-left font-bold text-xs text-[#0a192f] dark:text-slate-100 flex items-center gap-3 transition-all cursor-pointer">
+        <span class="w-7 h-7 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 flex items-center justify-center font-black text-xs text-slate-700 dark:text-slate-200 shrink-0">
+          ${String.fromCharCode(65 + idx)}
+        </span>
+        <span class="flex-1">${op}</span>
+      </button>
+    `).join('');
+  }
+
+  refrescarIconos();
+}
+
+function seleccionarOpcionMatematicas(opcionTexto, botonElement) {
+  vjOpcionSeleccionadaTemporal = opcionTexto;
+
+  // Actualizar estilos de los botones
+  document.querySelectorAll('.vj-btn-opcion').forEach(btn => {
+    btn.classList.remove('border-emerald-600', 'bg-emerald-50', 'dark:bg-emerald-950/40', 'ring-2', 'ring-emerald-500/50');
+    btn.classList.add('border-slate-200', 'dark:border-slate-800');
+  });
+
+  if (botonElement) {
+    botonElement.classList.remove('border-slate-200', 'dark:border-slate-800');
+    botonElement.classList.add('border-emerald-600', 'bg-emerald-50', 'dark:bg-emerald-950/40', 'ring-2', 'ring-emerald-500/50');
+  }
+
+  const btnSig = document.getElementById('vj-btn-siguiente-ejercicio');
+  if (btnSig) {
+    btnSig.disabled = false;
+    btnSig.className = 'px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs transition-all flex items-center gap-2 shadow-md cursor-pointer';
+  }
+}
+
+function siguienteEjercicioMatematicas() {
+  if (!vjOpcionSeleccionadaTemporal) return;
+
+  const ej = vjEjerciciosNivel[vjIndiceActual];
+  vjRespuestasUsuario.push({
+    ejercicio_id: ej.id,
+    respuesta_seleccionada: vjOpcionSeleccionadaTemporal
+  });
+
+  vjIndiceActual++;
+  if (vjIndiceActual < vjEjerciciosNivel.length) {
+    renderizarEjercicioMatematicasActual();
+  } else {
+    if (vjIntervaloTimer) clearInterval(vjIntervaloTimer);
+    enviarRespuestasVideojuegoMatematicas();
+  }
+}
+
+async function enviarRespuestasVideojuegoMatematicas() {
+  if (vjIntervaloTimer) clearInterval(vjIntervaloTimer);
+
+  const duracionTotal = vjConfiguracionNivel.tiempo_total_segundos || 180;
+  const tiempoEmpleado = Math.max(1, duracionTotal - Math.max(0, vjTiempoRestante));
+
+  const payload = {
+    usuario_id: currentUser ? currentUser.id : 1,
+    nivel: vjNivelActivo,
+    tiempo_segundos: tiempoEmpleado,
+    respuestas: vjRespuestasUsuario
+  };
+
+  try {
+    mostrarToast('⚡ Evaluando respuestas y registrando puntaje...', 'info');
+    const res = await fetch(`${API_BASE}/api/videojuego/matematicas/evaluar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) throw new Error('Error al registrar resultados del videojuego');
+    const resultado = await res.json();
+
+    mostrarFeedbackRecompensasMatematicas(resultado);
+  } catch (err) {
+    mostrarToast(err.message, 'error');
+  }
+}
+
+function mostrarFeedbackRecompensasMatematicas(resultado) {
+  document.getElementById('vj-pantalla-arena-juego')?.classList.add('hidden');
+  document.getElementById('vj-pantalla-recompensas')?.classList.remove('hidden');
+
+  const fb = resultado.feedback || {};
+  const rec = resultado.recompensas || {};
+  const res = resultado.resumen || {};
+
+  const estrellasEl = document.getElementById('vj-recompensas-estrellas');
+  const badgeEl = document.getElementById('vj-recompensas-badge-medalla');
+  const titEl = document.getElementById('vj-recompensas-titulo');
+  const msgEl = document.getElementById('vj-recompensas-mensaje-feedback');
+
+  const ptsEl = document.getElementById('vj-resumen-puntos');
+  const aciEl = document.getElementById('vj-resumen-aciertos');
+  const timEl = document.getElementById('vj-resumen-tiempo');
+
+  const numEstrellas = fb.estrellas || 3;
+  if (estrellasEl) estrellasEl.innerText = '⭐'.repeat(numEstrellas);
+  if (badgeEl) badgeEl.innerText = fb.medalla || 'Medalla Académica';
+  if (titEl) {
+    titEl.innerText = (numEstrellas >= 2) ? '¡Excelente Desempeño Matemático!' : '¡Buen Intento Pedagógico!';
+  }
+  if (msgEl) msgEl.innerText = fb.mensaje || 'Tus resultados han sido confirmados y almacenados con éxito.';
+
+  if (ptsEl) ptsEl.innerText = `${res.puntaje_total || 0}`;
+  if (aciEl) aciEl.innerText = `${res.aciertos || 0} / ${res.total_ejercicios || 0}`;
+  if (timEl) timEl.innerText = `${res.tiempo_segundos || 0}s`;
+
+  mostrarToast(`🎉 ¡Partida guardada en Azure SQL! +${res.puntaje_total} puntos acumulados.`, 'exito');
+  cargarNivelesVideojuegoResumen();
+  refrescarIconos();
+}
+
+function reiniciarNivelMatematicasActual() {
+  if (vjNivelActivo) {
+    seleccionarNivelMatematicas(vjNivelActivo);
+  } else {
+    volverASeleccionNivelMatematicas();
+  }
+}

@@ -34,7 +34,8 @@ from app.core import (
     obtener_ip_local,
     iniciar_tunel_cloudflare,
 )
-from app.routers import auth, usuarios, aprendiz, organizaciones, seguridad
+from app.routers import auth, usuarios, aprendiz, organizaciones, seguridad, videojuego
+from app.middlewares.multitenant import MultiTenantSecurityMiddleware
 
 app = FastAPI(
     title="Consultoría EdTech - Centro de Comando Visual",
@@ -50,6 +51,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(GZipMiddleware, minimum_size=500)
+app.add_middleware(
+    MultiTenantSecurityMiddleware,
+    jwt_secret_key=os.getenv("JWT_SECRET_KEY", "CONSULTORIA_EDTECH_SECRET_2026_PROD_KEY"),
+    enforce_https=(os.getenv("ENFORCE_HTTPS", "false").lower() in ("1", "true", "yes")),
+)
 
 
 @app.exception_handler(core.HTTPException)
@@ -234,6 +240,7 @@ app.include_router(usuarios.router)
 app.include_router(aprendiz.router)
 app.include_router(organizaciones.router)
 app.include_router(seguridad.router)
+app.include_router(videojuego.router)
 
 # Montaje de Frontend Estático
 STATIC_DIR = os.path.join(BASE_DIR, "static")
