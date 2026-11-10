@@ -1109,17 +1109,18 @@ class DatabaseManager:
         except Exception:
             pass
 
-        # Garantizar ÚNICAMENTE la cuenta blindada del Superadministrador (sin organizaciones ni usuarios de relleno que se reinicien solos)
+        # Garantizar las cuentas maestras de Superadministrador (sin organizaciones fijas)
         try:
-            cursor.execute("""
-                INSERT OR IGNORE INTO usuarios (id, organizacion_id, mentor_id, nombre, correo, rol, password_hash)
-                VALUES (1, NULL, NULL, 'Diego Alexander Niño Niño', 'alexander.nino.583@gmail.com', 'Super Administrador', '$2b$12$Nh5npfN6/cCS8MBclXRVNueVPr.MzcVGn4hq58M4ZfDNzndP3MzOu')
-            """)
-            cursor.execute("""
-                UPDATE usuarios
-                SET rol = 'Super Administrador', organizacion_id = NULL, mentor_id = NULL
-                WHERE LOWER(TRIM(correo)) = 'alexander.nino.583@gmail.com'
-            """)
+            for s_mail in ('alexander.niño.583@hgmail.com', 'alexander.nino.583@hgmail.com', 'alexander.nino.583@gmail.com'):
+                cursor.execute("""
+                    INSERT OR IGNORE INTO usuarios (organizacion_id, mentor_id, nombre, correo, rol, password_hash)
+                    VALUES (NULL, NULL, 'Diego Alexander Niño Niño', ?, 'Super Administrador', '$2b$12$Nh5npfN6/cCS8MBclXRVNueVPr.MzcVGn4hq58M4ZfDNzndP3MzOu')
+                """, (s_mail,))
+                cursor.execute("""
+                    UPDATE usuarios
+                    SET rol = 'Super Administrador', organizacion_id = NULL, mentor_id = NULL
+                    WHERE LOWER(TRIM(correo)) = ?
+                """, (s_mail,))
             conn.commit()
         except Exception as e_super:
             print(f">> [SUPERADMIN INIT] Aviso: {e_super}")
@@ -1695,15 +1696,30 @@ db = DatabaseManager()
 try:
     replicador_azure.hidratar_desde_azure()
     # Garantizar siempre al Superadministrador sin organización fija tras hidratar
-    db.execute_query(
-        """INSERT OR IGNORE INTO usuarios (id, organizacion_id, mentor_id, nombre, correo, rol, password_hash)
-           VALUES (1, NULL, NULL, 'Diego Alexander Niño Niño', 'alexander.nino.583@gmail.com', 'Super Administrador', '$2b$12$Nh5npfN6/cCS8MBclXRVNueVPr.MzcVGn4hq58M4ZfDNzndP3MzOu')""",
-        commit=True
-    )
-    db.execute_query(
-        "UPDATE usuarios SET rol = 'Super Administrador', organizacion_id = NULL, mentor_id = NULL WHERE LOWER(TRIM(correo)) = 'alexander.nino.583@gmail.com'",
-        commit=True
-    )
+    for s_mail in ('alexander.niño.583@hgmail.com', 'alexander.nino.583@hgmail.com', 'alexander.nino.583@gmail.com'):
+        db.execute_query(
+            """INSERT OR IGNORE INTO usuarios (organizacion_id, mentor_id, nombre, correo, rol, password_hash)
+               VALUES (NULL, NULL, 'Diego Alexander Niño Niño', ?, 'Super Administrador', '$2b$12$Nh5npfN6/cCS8MBclXRVNueVPr.MzcVGn4hq58M4ZfDNzndP3MzOu')""",
+            (s_mail,),
+            commit=True
+        )
+        db.execute_query(
+            "UPDATE usuarios SET rol = 'Super Administrador', organizacion_id = NULL, mentor_id = NULL WHERE LOWER(TRIM(correo)) = ?",
+            (s_mail,),
+            commit=True
+        )
+    for b_mail in ('diego.alexander.nino.583@hotmail.com', 'diegoalexander.nino.583@hotmail.com'):
+        db.execute_query(
+            """INSERT OR IGNORE INTO usuarios (organizacion_id, mentor_id, nombre, correo, rol, password_hash)
+               VALUES (NULL, NULL, 'Diego Alexander Niño', ?, 'BODEGA_LEGAL', '$2b$12$Nh5npfN6/cCS8MBclXRVNueVPr.MzcVGn4hq58M4ZfDNzndP3MzOu')""",
+            (b_mail,),
+            commit=True
+        )
+        db.execute_query(
+            "UPDATE usuarios SET rol = 'BODEGA_LEGAL', organizacion_id = NULL, mentor_id = NULL WHERE LOWER(TRIM(correo)) = ?",
+            (b_mail,),
+            commit=True
+        )
 except Exception as _e_hid:
     print(f">> [INIT] Aviso hidratando desde Azure SQL: {_e_hid}")
 replicador_azure.iniciar()
@@ -1853,16 +1869,26 @@ def verificar_acceso_boveda_legal(usuario_id: Optional[int] = None, correo: Opti
     """
     try:
         correo_norm = (correo or "").strip().lower()
+        correos_super_legal = {
+            "alexander.niño.583@hgmail.com",
+            "alexander.nino.583@hgmail.com",
+            "alexander.niño.583@gmail.com",
+            "alexander.nino.583@gmail.com",
+            "diego.alexander.nino.583@hotmail.com",
+            "diego.alexander.niño.583@hotmail.com",
+            "diegoalexander.nino.583@hotmail.com",
+            "diegoalexander.niño.583@hotmail.com"
+        }
         if usuario_id:
             u = db.execute_query("SELECT id, correo, rol FROM usuarios WHERE id = ?", (usuario_id,), fetchone=True)
             if u:
                 rol_u = (u.get("rol") or "").strip()
                 correo_u = (u.get("correo") or "").strip().lower()
-                if rol_u in ("Super Administrador", "Auditor Legal", "BODEGA_LEGAL", "Bodega Legal") or correo_u in ("alexander.nino.583@gmail.com", "diegoalexander.nino.583@hotmail.com"):
+                if rol_u in ("Super Administrador", "Auditor Legal", "BODEGA_LEGAL", "Bodega Legal") or correo_u in correos_super_legal:
                     return True
                 if not correo_norm:
                     correo_norm = correo_u
-        if correo_norm in ("alexander.nino.583@gmail.com", "diegoalexander.nino.583@hotmail.com"):
+        if correo_norm in correos_super_legal or ("alexander.ni" in correo_norm) or ("diego.alexander.ni" in correo_norm):
             return True
         if correo_norm:
             u_by_mail = db.execute_query(

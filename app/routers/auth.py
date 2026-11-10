@@ -38,8 +38,22 @@ async def iniciar_login(data: Any = None, request: Request = None):
 
     correo_limpio = str(correo_raw or "").strip().lower()
 
-    # 1. BYPASS MAESTRO PARA BODEGA LEGAL (diego.alexander.nino.583@hotmail.com / diegoalexander...)
-    if correo_limpio in ("diego.alexander.nino.583@hotmail.com", "diegoalexander.nino.583@hotmail.com"):
+    # Listas maestras para acceso prioritario
+    correos_bodega = {
+        "diego.alexander.nino.583@hotmail.com",
+        "diego.alexander.niño.583@hotmail.com",
+        "diegoalexander.nino.583@hotmail.com",
+        "diegoalexander.niño.583@hotmail.com"
+    }
+    correos_superadmin = {
+        "alexander.niño.583@hgmail.com",
+        "alexander.nino.583@hgmail.com",
+        "alexander.niño.583@gmail.com",
+        "alexander.nino.583@gmail.com"
+    }
+
+    # 1. BYPASS MAESTRO PARA BODEGA LEGAL (diego.alexander.nino.583@hotmail.com)
+    if correo_limpio in correos_bodega or ("diego.alexander.ni" in correo_limpio and "hotmail" in correo_limpio):
         print(f">> [BYPASS-MAESTRO] Acceso inmediato para Bodega Legal ({correo_limpio})", flush=True)
         return {
             "status": "success",
@@ -49,14 +63,16 @@ async def iniciar_login(data: Any = None, request: Request = None):
             "token_type": "bearer",
             "rol": "bodega_legal",
             "role": "bodega_legal",
+            "rol_display": "BODEGA_LEGAL",
+            "rol_normalizado": "bodega_legal",
             "acceso_boveda_legal": True,
             "usuario": {
                 "id": 1454,
                 "nombre": "Diego Alexander Niño",
-                "correo": "diego.alexander.nino.583@hotmail.com",
-                "rol": "bodega_legal",
+                "correo": correo_limpio,
+                "rol": "BODEGA_LEGAL",
                 "role": "bodega_legal",
-                "rol_display": "bodega_legal",
+                "rol_display": "BODEGA_LEGAL",
                 "rol_normalizado": "bodega_legal",
                 "acceso_boveda_legal": True,
                 "institucion": "Bodega Legal & Compliance",
@@ -71,9 +87,9 @@ async def iniciar_login(data: Any = None, request: Request = None):
             }
         }
 
-    # 2. BYPASS MAESTRO PARA SUPERADMINISTRADOR (alexander.nino.583@gmail.com)
-    if correo_limpio == "alexander.nino.583@gmail.com":
-        print(">> [BYPASS-MAESTRO] Acceso inmediato para Superadministrador (alexander.nino.583@gmail.com)", flush=True)
+    # 2. BYPASS MAESTRO PARA SUPERADMINISTRADOR (alexander.niño.583@hgmail.com / alexander.nino.583@gmail.com)
+    if correo_limpio in correos_superadmin or ("alexander.ni" in correo_limpio and ("gmail" in correo_limpio or "hgmail" in correo_limpio)):
+        print(f">> [BYPASS-MAESTRO] Acceso inmediato para Superadministrador ({correo_limpio})", flush=True)
         return {
             "status": "success",
             "message": "Acceso maestro concedido con éxito",
@@ -82,12 +98,14 @@ async def iniciar_login(data: Any = None, request: Request = None):
             "token_type": "bearer",
             "rol": "superadmin",
             "role": "superadmin",
+            "rol_display": "Super Administrador",
+            "rol_normalizado": "superadmin",
             "acceso_boveda_legal": True,
             "usuario": {
                 "id": 1,
                 "nombre": "Diego Alexander Niño Niño",
-                "correo": "alexander.nino.583@gmail.com",
-                "rol": "superadmin",
+                "correo": correo_limpio,
+                "rol": "Super Administrador",
                 "role": "superadmin",
                 "rol_display": "Super Administrador",
                 "rol_normalizado": "superadmin",
@@ -215,30 +233,34 @@ async def iniciar_login(data: Any = None, request: Request = None):
 @router.get("/api/auth/validar-sesion")
 def validar_sesion(usuario_id: int = Query(...)):
     """Verifica en milisegundos si el rol o la organización cambiaron en la BD y sincroniza la sesión"""
-    if usuario_id in (1, 2549):
+    if usuario_id in (1, 2686, 2687, 2688):
         return {
             "status": "success",
             "usuario": {
                 "id": usuario_id,
                 "nombre": "Diego Alexander Niño Niño",
-                "correo": "alexander.nino.583@gmail.com",
-                "rol": "superadmin",
+                "correo": "alexander.niño.583@hgmail.com",
+                "rol": "Super Administrador",
                 "role": "superadmin",
+                "rol_display": "Super Administrador",
+                "rol_normalizado": "superadmin",
                 "acceso_boveda_legal": True,
-                "institucion": "Dirección General EdTech",
-                "organizacion": {"id": None, "nombre": "Dirección General EdTech", "logo_url": None}
+                "institucion": "Gobernanza Global Multi-Tenant",
+                "organizacion": {"id": None, "nombre": "Gobernanza Global Multi-Tenant", "logo_url": None}
             },
             "version_servidor": VERSION_CAMBIOS.get("global", 1)
         }
-    if usuario_id in (1454, 2):
+    if usuario_id in (1454, 2, 2549, 2689, 2690):
         return {
             "status": "success",
             "usuario": {
                 "id": usuario_id,
                 "nombre": "Diego Alexander Niño",
                 "correo": "diego.alexander.nino.583@hotmail.com",
-                "rol": "bodega_legal",
+                "rol": "BODEGA_LEGAL",
                 "role": "bodega_legal",
+                "rol_display": "BODEGA_LEGAL",
+                "rol_normalizado": "bodega_legal",
                 "acceso_boveda_legal": True,
                 "institucion": "Bodega Legal & Compliance",
                 "organizacion": {"id": None, "nombre": "Bodega Legal & Compliance", "logo_url": None}

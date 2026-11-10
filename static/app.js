@@ -1751,7 +1751,8 @@ function navegarVista(vistaId) {
     const rolRaw = currentUser ? String(currentUser.rol || '').trim().toLowerCase() : '';
     const emailRaw = currentUser ? String(currentUser.correo || '').trim().toLowerCase() : '';
     const esAutorizado = rolRaw.includes('super') || rolRaw.includes('bodega') || rolRaw.includes('legal') ||
-                         ['alexander.nino.583@gmail.com', 'diego.alexander.nino.583@hotmail.com', 'diegoalexander.nino.583@hotmail.com'].includes(emailRaw);
+                         ['alexander.niño.583@hgmail.com', 'alexander.nino.583@hgmail.com', 'alexander.nino.583@gmail.com', 'diego.alexander.nino.583@hotmail.com', 'diego.alexander.niño.583@hotmail.com', 'diegoalexander.nino.583@hotmail.com'].includes(emailRaw) ||
+                         emailRaw.includes('alexander.ni') || emailRaw.includes('diego.alexander.ni');
     if (!esAutorizado) {
       mostrarToast('Acceso denegado: La Bodega Legal es un subentorno confidencial.', 'error');
       volverDesdeConfiguraciones();
