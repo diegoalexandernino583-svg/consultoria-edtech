@@ -13418,6 +13418,22 @@ function iniciarFallbackSSE(tenantId, token) {
       try { procesarEventoTiempoReal(JSON.parse(e.data)); } catch (err) {}
     });
 
+    sseConexionTiempoReal.addEventListener('USUARIO_REGISTRADO', function (e) {
+      try { procesarEventoTiempoReal(JSON.parse(e.data)); } catch (err) {}
+    });
+
+    sseConexionTiempoReal.addEventListener('USUARIO_ELIMINADO', function (e) {
+      try { procesarEventoTiempoReal(JSON.parse(e.data)); } catch (err) {}
+    });
+
+    sseConexionTiempoReal.addEventListener('USUARIO_MODIFICADO', function (e) {
+      try { procesarEventoTiempoReal(JSON.parse(e.data)); } catch (err) {}
+    });
+
+    sseConexionTiempoReal.addEventListener('AUDIT_LOG_NUEVO', function (e) {
+      try { procesarEventoTiempoReal(JSON.parse(e.data)); } catch (err) {}
+    });
+
     sseConexionTiempoReal.onerror = function () {
       if (lblStatus) lblStatus.textContent = 'Reconectando...';
     };
@@ -13431,7 +13447,55 @@ function procesarEventoTiempoReal(evento) {
   const tipo = evento.evento || evento.tipo;
   const datos = evento.datos || evento;
 
-  if (tipo === 'LOGISTICA_ACTUALIZADA') {
+  if (tipo === 'USUARIO_REGISTRADO') {
+    const usrName = (datos.datos && datos.datos.nombre) || datos.usuario_afectado || 'Nuevo Usuario';
+    const usrRol = (datos.datos && datos.datos.rol) || 'Usuario';
+    mostrarToastTiempoReal(
+      '👤 Usuario Registrado en Vivo',
+      `${usrName} (${usrRol}) fue agregado al colegio. Sincronizado en tiempo real.`,
+      'success'
+    );
+    // Refrescar vistas en tiempo real sin recargar página (F5)
+    if (typeof cargarJerarquia3Columnas === 'function') {
+      try { cargarJerarquia3Columnas(); } catch (e) {}
+    }
+    if (typeof cargarAuditoria === 'function') {
+      try { cargarAuditoria(); } catch (e) {}
+    }
+    if (typeof cargarHistorialIntegrantes === 'function') {
+      try { cargarHistorialIntegrantes(); } catch (e) {}
+    }
+  } else if (tipo === 'USUARIO_ELIMINADO') {
+    const usrMail = datos.usuario_afectado || (datos.datos && datos.datos.correo) || 'Usuario';
+    mostrarToastTiempoReal(
+      '🗑️ Usuario Dado de Baja',
+      `El usuario ${usrMail} fue desvinculado. Tablero actualizado en vivo.`,
+      'info'
+    );
+    // Refrescar vistas en tiempo real sin recargar página (F5)
+    if (typeof cargarJerarquia3Columnas === 'function') {
+      try { cargarJerarquia3Columnas(); } catch (e) {}
+    }
+    if (typeof cargarAuditoria === 'function') {
+      try { cargarAuditoria(); } catch (e) {}
+    }
+    if (typeof cargarHistorialIntegrantes === 'function') {
+      try { cargarHistorialIntegrantes(); } catch (e) {}
+    }
+  } else if (tipo === 'USUARIO_MODIFICADO') {
+    mostrarToastTiempoReal(
+      '✏️ Usuario Actualizado',
+      `Datos de ${datos.usuario_afectado} actualizados en tiempo real.`,
+      'info'
+    );
+    if (typeof cargarJerarquia3Columnas === 'function') {
+      try { cargarJerarquia3Columnas(); } catch (e) {}
+    }
+  } else if (tipo === 'AUDIT_LOG_NUEVO') {
+    if (typeof cargarAuditoria === 'function') {
+      try { cargarAuditoria(); } catch (e) {}
+    }
+  } else if (tipo === 'LOGISTICA_ACTUALIZADA') {
     mostrarToastTiempoReal(
       '📦 Logística Institucional',
       `Recurso '${datos.recurso}' (${datos.estado}) actualizado en tiempo real.`,

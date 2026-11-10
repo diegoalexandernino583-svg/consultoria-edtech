@@ -1535,6 +1535,23 @@ class DatabaseManager:
                 (1, 1, 1, 1, "Ciencias y Tecnología Aplicada", "Periodo 1 - 2026", 4.8, "Participación sobresaliente en proyectos de innovación.")
             ])
 
+        # Tabla de Auditoría en Tiempo Real (audit_logs / registro_actividad)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS audit_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tenant_id INTEGER NOT NULL,
+                usuario_afectado TEXT NOT NULL,
+                accion TEXT NOT NULL,
+                detalles TEXT,
+                ip_origen TEXT DEFAULT '127.0.0.1',
+                origen TEXT DEFAULT 'SISTEMA',
+                timestamp TEXT DEFAULT (DATETIME('now', 'localtime')),
+                FOREIGN KEY (tenant_id) REFERENCES organizaciones(id)
+            );
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_audit_logs_tenant_ts ON audit_logs(tenant_id, timestamp DESC);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_audit_logs_tenant_acc ON audit_logs(tenant_id, accion);")
+
         conn.commit()
         conn.close()
 

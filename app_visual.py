@@ -34,7 +34,7 @@ from app.core import (
     obtener_ip_local,
     iniciar_tunel_cloudflare,
 )
-from app.routers import auth, usuarios, aprendiz, organizaciones, seguridad, videojuego, realtime
+from app.routers import auth, usuarios, aprendiz, organizaciones, seguridad, videojuego, realtime, webhooks
 from app.middlewares.multitenant import MultiTenantSecurityMiddleware
 
 app = FastAPI(
@@ -249,6 +249,7 @@ app.include_router(organizaciones.router)
 app.include_router(seguridad.router)
 app.include_router(videojuego.router)
 app.include_router(realtime.router)
+app.include_router(webhooks.router)
 
 # Montaje de Frontend Estático
 STATIC_DIR = os.path.join(BASE_DIR, "static")

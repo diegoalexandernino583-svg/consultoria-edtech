@@ -269,3 +269,33 @@ class ProgresoVideojuegoMatematicas(Base):
     @tenant_id.setter
     def tenant_id(self, val):
         self.organizacion_id = val
+
+
+class AuditLog(Base):
+    """
+    Tabla de Auditoría en Tiempo Real (audit_logs / registro_actividad).
+    Registra cada inserción, modificación o eliminación de usuarios dentro de cualquier institución (tenant_id).
+    """
+    __tablename__ = "audit_logs"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True, index=True)
+    tenant_id = Column(BigInteger, ForeignKey("organizaciones.id"), nullable=False, index=True)
+    usuario_afectado = Column(String(255), nullable=False, index=True)
+    accion = Column(String(50), nullable=False, index=True)  # REGISTRO, MODIFICACION, ELIMINACION, ALTA, BAJA
+    detalles = Column(Text, nullable=True)
+    ip_origen = Column(String(50), default="127.0.0.1")
+    origen = Column(String(50), default="SISTEMA")  # WEBHOOK_MAKE, INTERFAZ, API
+    timestamp = Column(String(100), default=func.datetime('now', 'localtime'))
+
+    __table_args__ = (
+        Index("ix_audit_logs_tenant_timestamp", "tenant_id", "timestamp"),
+        Index("ix_audit_logs_tenant_accion", "tenant_id", "accion"),
+    )
+
+    @property
+    def fecha_hora(self):
+        return self.timestamp
+
+
+# Alias para compatibilidad semántica
+RegistroActividad = AuditLog

@@ -85,6 +85,36 @@ def registrar_usuario(datos: RegistroUsuarioRequest, background_tasks: Backgroun
 
     registrar_movimiento(correo_limpio, "Registro", "Registro_Usuario", "EXITO", f"Rol: {rol_elegido} · Org: {org_nombre}")
 
+    # Auditoría en Tiempo Real y Emisión WebSocket/SSE Multi-Tenant
+    try:
+        import asyncio
+        from datetime import datetime
+        from app.realtime import ws_manager
+        t_id = org_id_real or 1
+        ahora_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        db.execute_query("""
+            INSERT INTO audit_logs (tenant_id, usuario_afectado, accion, detalles, ip_origen, origen, timestamp)
+            VALUES (?, ?, 'REGISTRO', ?, '127.0.0.1', 'INTERFAZ_WEB', ?)
+        """, (t_id, correo_limpio, f"Usuario {nom_elegido} ({rol_elegido}) creado en {org_nombre}", ahora_str), commit=True)
+
+        async def _notificar_ins():
+            ev = {
+                "tenant_id": t_id,
+                "usuario_afectado": correo_limpio,
+                "accion": "REGISTRO",
+                "detalles": f"Usuario {nom_elegido} ({rol_elegido}) registrado",
+                "timestamp": ahora_str,
+                "datos": {"id": u_id, "nombre": nom_elegido, "correo": correo_limpio, "rol": rol_elegido}
+            }
+            await ws_manager.broadcast_tenant(str(t_id), "USUARIO_REGISTRADO", ev)
+            await ws_manager.broadcast_tenant(str(t_id), "AUDIT_LOG_NUEVO", ev)
+        
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            asyncio.create_task(_notificar_ins())
+    except Exception as e_aud_reg:
+        print(f">> [AUDIT REG] Aviso: {e_aud_reg}")
+
     return {
         "status": "success",
         "mensaje": f"¡Cuenta creada con éxito para {nom_elegido} ({rol_elegido}) en {org_nombre}! Acceso directo habilitado.",
@@ -437,6 +467,37 @@ def eliminar_usuario(usuario_id: int, request: Request):
         pass
 
     registrar_movimiento("Administrador", "Usuarios", "Eliminar_Usuario_Con_Respaldo", "EXITO", f"Usuario respaldado en papelera y Bóveda Legal: {u['nombre']} ({u['correo']}) - Org: {org_nom}", organizacion_id=u.get("organizacion_id"), organizacion_nombre=org_nom)
+
+    # Auditoría en Tiempo Real y Emisión WebSocket/SSE Multi-Tenant
+    try:
+        import asyncio
+        from datetime import datetime
+        from app.realtime import ws_manager
+        t_id = u.get("organizacion_id") or 1
+        ahora_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        db.execute_query("""
+            INSERT INTO audit_logs (tenant_id, usuario_afectado, accion, detalles, ip_origen, origen, timestamp)
+            VALUES (?, ?, 'ELIMINACION', ?, '127.0.0.1', 'INTERFAZ_WEB', ?)
+        """, (t_id, u["correo"], f"Usuario {u['nombre']} eliminado desde panel institucional", ahora_str), commit=True)
+
+        async def _notificar_del():
+            ev = {
+                "tenant_id": t_id,
+                "usuario_afectado": u["correo"],
+                "accion": "ELIMINACION",
+                "detalles": f"Usuario {u['nombre']} eliminado de la plataforma",
+                "timestamp": ahora_str,
+                "datos": {"id": usuario_id, "correo": u["correo"]}
+            }
+            await ws_manager.broadcast_tenant(str(t_id), "USUARIO_ELIMINADO", ev)
+            await ws_manager.broadcast_tenant(str(t_id), "AUDIT_LOG_NUEVO", ev)
+
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            asyncio.create_task(_notificar_del())
+    except Exception as e_aud_del:
+        print(f">> [AUDIT DEL] Aviso: {e_aud_del}")
+
     return {"status": "success", "mensaje": f"Integrante '{u['nombre']}' eliminado de Azure SQL y respaldado en Papelera y Bóveda Legal."}
 
 

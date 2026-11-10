@@ -202,6 +202,18 @@ def ejecutar_migraciones_automaticas():
                         observaciones NVARCHAR(MAX) NULL,
                         fecha_registro NVARCHAR(100) DEFAULT CONVERT(VARCHAR, GETDATE(), 120)
                     );
+
+                    IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='audit_logs' AND xtype='U')
+                    CREATE TABLE [audit_logs] (
+                        id BIGINT IDENTITY(1,1) PRIMARY KEY,
+                        tenant_id BIGINT NOT NULL,
+                        usuario_afectado NVARCHAR(255) NOT NULL,
+                        accion NVARCHAR(50) NOT NULL,
+                        detalles NVARCHAR(MAX) NULL,
+                        ip_origen NVARCHAR(50) DEFAULT '127.0.0.1',
+                        origen NVARCHAR(50) DEFAULT 'SISTEMA',
+                        timestamp NVARCHAR(100) DEFAULT CONVERT(VARCHAR, GETDATE(), 120)
+                    );
                 """)
                 az_conn.commit()
             except Exception as e_lt:
