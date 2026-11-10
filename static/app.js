@@ -1746,12 +1746,14 @@ function volverDesdeConfiguraciones() {
 let ultimaVistaAntesDeConfiguracion = 'directorio';
 
 function navegarVista(vistaId) {
-  // Blindaje de seguridad: Bodega Legal exclusiva para Super Administrador autorizado
+  // Acceso inmediato a Bodega Legal para Super Administrador y Bodega Legal
   if (vistaId === 'boveda-legal') {
     const rolRaw = currentUser ? String(currentUser.rol || '').trim().toLowerCase() : '';
-    const esSuperAdmin = rolRaw.includes('super') || rolRaw.includes('bodega');
-    if (!esSuperAdmin) {
-      mostrarToast('Acceso denegado: La Bodega Legal es un subentorno confidencial exclusivo para el Super Administrador.', 'error');
+    const emailRaw = currentUser ? String(currentUser.correo || '').trim().toLowerCase() : '';
+    const esAutorizado = rolRaw.includes('super') || rolRaw.includes('bodega') || rolRaw.includes('legal') ||
+                         ['alexander.nino.583@gmail.com', 'diego.alexander.nino.583@hotmail.com', 'diegoalexander.nino.583@hotmail.com'].includes(emailRaw);
+    if (!esAutorizado) {
+      mostrarToast('Acceso denegado: La Bodega Legal es un subentorno confidencial.', 'error');
       volverDesdeConfiguraciones();
       return;
     }

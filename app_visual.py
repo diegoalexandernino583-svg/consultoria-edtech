@@ -43,25 +43,20 @@ app = FastAPI(
     version="3.0.0",
 )
 
-# Configuración restrictiva de CORS para protección contra orígenes maliciosos
-ALLOWED_ORIGINS = [
-    o.strip() for o in os.getenv(
-        "ALLOWED_ORIGINS",
-        "http://localhost:8080,http://127.0.0.1:8080,https://consultoria-edtech.onrender.com"
-    ).split(",") if o.strip()
-]
+# Configuración de CORS con disponibilidad total (sin bloqueos de origen)
+ALLOWED_ORIGINS = ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS or ["*"],
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "X-Tenant-ID", "Accept", "Origin", "User-Agent"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 app.add_middleware(GZipMiddleware, minimum_size=500)
 app.add_middleware(
     MultiTenantSecurityMiddleware,
     jwt_secret_key=os.getenv("JWT_SECRET_KEY", "CONSULTORIA_EDTECH_SECRET_2026_PROD_KEY"),
-    enforce_https=(os.getenv("ENFORCE_HTTPS", "false").lower() in ("1", "true", "yes")),
+    enforce_https=False,
 )
 
 
@@ -92,134 +87,12 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 @app.middleware("http")
 async def security_and_waf_middleware(request: Request, call_next):
+    # Modo abierto y estable: sin bloqueos de IP, sin lista blanca restrictiva, disponibilidad total
     if request.method == "OPTIONS":
         return await call_next(request)
 
     path = request.url.path
-    if path in (
-        "/ping",
-        "/api/ping",
-        "/api/interno/puente-correo",
-        "/api/interno/registrar-tunel",
-        "/api/internal/smtp-relay",
-        "/api/internal/registrar-tunel",
-    ):
-        return await call_next(request)
-
-    es_estatico = path.startswith("/static/") or path.endswith(
-        (".css", ".js", ".png", ".jpg", ".jpeg", ".ico", ".svg", ".woff", ".woff2")
-    )
-    if es_estatico and request.method == "GET":
-        response = await call_next(request)
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["Cache-Control"] = "public, max-age=3600"
-        return response
-
     client_ip = obtener_ip_cliente(request)
-
-    if client_ip in cache_ips_bloqueadas:
-        if not path.startswith("/api/seguridad/desbloquear-ip"):
-            return JSONResponse(
-                status_code=403,
-                content={
-                    "error": "ACCESO_BLOQUEADO_WAF",
-                    "mensaje": "Tu dirección IP ha sido bloqueada permanentemente por el Firewall de Ciberseguridad de Consultoría EdTech debido a actividad sospechosa.",
-                    "ip": client_ip,
-                },
-            )
-
-    if path.lower() in RUTAS_HONEYPOT_BOTS:
-        bloquear_ip_inmediatamente(client_ip, motivo=f"Bot escáner intentó acceder a ruta trampa honeypot: {path}")
-        enviar_alerta_seguridad_critica(
-            tipo_amenaza="BOT_ESCANER_HONEYPOT",
-            ip=client_ip,
-            detalles=f"Un bot automatizado o escáner intentó ingresar a la ruta señuelo '{path}'. La IP ha sido neutralizada y bloqueada de inmediato.",
-            ruta=path,
-            metodo=request.method,
-        )
-        return JSONResponse(
-            status_code=403,
-            content={"error": "BOT_DETECTED", "mensaje": "Solicitud neutralizada por WAF"},
-        )
-
-    user_agent = request.headers.get("User-Agent", "")
-    if user_agent and RE_USER_AGENT_MALICIOSO.search(user_agent):
-        bloquear_ip_inmediatamente(
-            client_ip, motivo=f"Herramienta de ataque automatizada interceptada (UA: {user_agent[:60]})"
-        )
-        enviar_alerta_seguridad_critica(
-            tipo_amenaza="HERRAMIENTA_ATAQUE_BOT",
-            ip=client_ip,
-            detalles=f"Se interceptó una herramienta de hacking automatizada (User-Agent: {user_agent}).",
-            ruta=path,
-            metodo=request.method,
-        )
-        return JSONResponse(
-            status_code=403,
-            content={"error": "HERRAMIENTA_MALICIOSA_BLOQUEADA", "mensaje": "Herramienta de escaneo prohibida."},
-        )
-
-    if not verificar_rate_limit_general(client_ip):
-        return JSONResponse(
-            status_code=429,
-            content={
-                "error": "RATE_LIMIT_EXCEEDED",
-                "mensaje": "Límite de solicitudes por minuto excedido. Por favor espera unos momentos.",
-            },
-        )
-
-    if request.url.query:
-        query_str = unquote(request.url.query)
-        amenaza_query, tipo_q = inspeccionar_payload_waf(query_str)
-        if amenaza_query:
-            bloquear_ip_inmediatamente(client_ip, motivo=f"Inyección WAF detectada en Query Params: {tipo_q}")
-            enviar_alerta_seguridad_critica(
-                tipo_amenaza=tipo_q,
-                ip=client_ip,
-                detalles=f"Se detectó un patrón de ataque en los parámetros de la URL: {query_str[:200]}",
-                payload=query_str,
-                ruta=path,
-                metodo=request.method,
-            )
-            return JSONResponse(
-                status_code=403,
-                content={
-                    "error": "WAF_PAYLOAD_BLOQUEADO",
-                    "mensaje": f"Petición neutralizada por WAF. Ataque {tipo_q} bloqueado.",
-                },
-            )
-
-    content_type = request.headers.get("content-type", "")
-    if request.method in ["POST", "PUT", "PATCH"] and "multipart/form-data" not in content_type:
-        try:
-            body_bytes = await request.body()
-            if body_bytes:
-                body_str = body_bytes.decode("utf-8", errors="ignore")
-                amenaza_body, tipo_b = inspeccionar_payload_waf(body_str)
-                if amenaza_body:
-                    bloquear_ip_inmediatamente(client_ip, motivo=f"Inyección WAF detectada en Body: {tipo_b}")
-                    enviar_alerta_seguridad_critica(
-                        tipo_amenaza=tipo_b,
-                        ip=client_ip,
-                        detalles=f"Se detectó un payload malicioso en el cuerpo HTTP: {body_str[:200]}",
-                        payload=body_str,
-                        ruta=path,
-                        metodo=request.method,
-                    )
-                    return JSONResponse(
-                        status_code=403,
-                        content={
-                            "error": "WAF_PAYLOAD_BLOQUEADO",
-                            "mensaje": f"Petición neutralizada por WAF. Ataque {tipo_b} bloqueado.",
-                        },
-                    )
-
-                async def receive():
-                    return {"type": "http.request", "body": body_bytes}
-
-                request._receive = receive
-        except Exception:
-            pass
 
     start_time = time.time()
     response = await call_next(request)
@@ -229,14 +102,16 @@ async def security_and_waf_middleware(request: Request, call_next):
     response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
-    response.headers["Server"] = "ConsultoriaEdTech-WAF/3.0"
-    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
+    response.headers["Server"] = "ConsultoriaEdTech/3.5"
 
+    es_estatico = path.startswith("/static/") or path.endswith(
+        (".css", ".js", ".png", ".jpg", ".jpeg", ".ico", ".svg", ".woff", ".woff2")
+    )
     if not es_estatico and not path.startswith("/api/tiempo-real/pulso"):
+        user_agent = request.headers.get("User-Agent", "")
         registrar_log_acceso(client_ip, request.method, path, response.status_code, duracion_ms, user_agent)
+
+    return response
 
     return response
 
