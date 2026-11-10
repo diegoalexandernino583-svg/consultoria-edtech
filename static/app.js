@@ -211,8 +211,15 @@ async function validarSesionConServidor() {
       const nuevoRol = data.usuario.rol;
 
       currentUser = { ...currentUser, ...data.usuario };
+      if (data.token || data.access_token) {
+        currentUser.token = data.token || data.access_token;
+        localStorage.setItem('auth_token', currentUser.token);
+      }
       localStorage.setItem('edtech_usuario', JSON.stringify(currentUser));
       sessionStorage.setItem('edtech_usuario', JSON.stringify(currentUser));
+      if (typeof conectarTiempoReal === 'function') {
+        conectarTiempoReal(currentUser.organizacion_id || currentUser.tenant_id, currentUser.token);
+      }
       versionDatosServidor = data.version_servidor || 0;
 
       if (rolAnterior !== nuevoRol) {
@@ -13315,3 +13322,181 @@ function reiniciarNivelMatematicasActual() {
     volverASeleccionNivelMatematicas();
   }
 }
+
+
+// ============================================================================
+// CAPA DE SINCRONIZACIÓN EN TIEMPO REAL MULTI-TENANT (WebSockets & SSE)
+// Education Technology SaaS Platform
+// ============================================================================
+
+let wsConexionTiempoReal = null;
+let sseConexionTiempoReal = null;
+let reconexionTimerTiempoReal = null;
+
+function conectarTiempoReal(tenantId, token) {
+  if (!tenantId) {
+    tenantId = (currentUser && (currentUser.organizacion_id || currentUser.tenant_id)) || 1;
+  }
+  if (!token) {
+    token = (currentUser && currentUser.token) || localStorage.getItem('auth_token') || '';
+  }
+
+  // Cerrar conexiones previas limpiamente
+  if (wsConexionTiempoReal) {
+    try { wsConexionTiempoReal.close(); } catch (e) {}
+    wsConexionTiempoReal = null;
+  }
+  if (sseConexionTiempoReal) {
+    try { sseConexionTiempoReal.close(); } catch (e) {}
+    sseConexionTiempoReal = null;
+  }
+  if (reconexionTimerTiempoReal) {
+    clearTimeout(reconexionTimerTiempoReal);
+  }
+
+  const badge = document.getElementById('badge-tiempo-real-saas');
+  const lblStatus = document.getElementById('lbl-status-tiempo-real');
+
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${window.location.host}/api/realtime/ws/${tenantId}?token=${encodeURIComponent(token)}`;
+
+  try {
+    wsConexionTiempoReal = new WebSocket(wsUrl);
+
+    wsConexionTiempoReal.onopen = function () {
+      console.log(`>> [REALTIME] Conexión WebSocket establecida con Tenant ${tenantId}`);
+      if (badge) badge.classList.remove('hidden');
+      if (lblStatus) lblStatus.textContent = 'En Vivo (WS)';
+    };
+
+    wsConexionTiempoReal.onmessage = function (event) {
+      try {
+        const msg = JSON.parse(event.data);
+        procesarEventoTiempoReal(msg);
+      } catch (e) {
+        console.warn('>> [REALTIME] Error parseando mensaje WS:', e);
+      }
+    };
+
+    wsConexionTiempoReal.onerror = function (err) {
+      console.warn('>> [REALTIME] WebSocket no disponible o interrumpido. Activando fallback SSE...', err);
+      iniciarFallbackSSE(tenantId, token);
+    };
+
+    wsConexionTiempoReal.onclose = function () {
+      console.log('>> [REALTIME] WebSocket cerrado. Reintentando reconexión en 5s...');
+      reconexionTimerTiempoReal = setTimeout(() => {
+        conectarTiempoReal(tenantId, token);
+      }, 5000);
+    };
+  } catch (errWs) {
+    console.warn('>> [REALTIME] Error inicializando WebSocket:', errWs);
+    iniciarFallbackSSE(tenantId, token);
+  }
+}
+
+function iniciarFallbackSSE(tenantId, token) {
+  if (typeof EventSource === 'undefined') return;
+  const sseUrl = `/api/realtime/sse/${tenantId}?token=${encodeURIComponent(token)}`;
+  const badge = document.getElementById('badge-tiempo-real-saas');
+  const lblStatus = document.getElementById('lbl-status-tiempo-real');
+
+  try {
+    sseConexionTiempoReal = new EventSource(sseUrl);
+
+    sseConexionTiempoReal.onopen = function () {
+      console.log(`>> [REALTIME] Fallback Server-Sent Events (SSE) activo para Tenant ${tenantId}`);
+      if (badge) badge.classList.remove('hidden');
+      if (lblStatus) lblStatus.textContent = 'En Vivo (SSE)';
+    };
+
+    sseConexionTiempoReal.addEventListener('LOGISTICA_ACTUALIZADA', function (e) {
+      try { procesarEventoTiempoReal(JSON.parse(e.data)); } catch (err) {}
+    });
+
+    sseConexionTiempoReal.addEventListener('NOTA_CALIFICADA', function (e) {
+      try { procesarEventoTiempoReal(JSON.parse(e.data)); } catch (err) {}
+    });
+
+    sseConexionTiempoReal.onerror = function () {
+      if (lblStatus) lblStatus.textContent = 'Reconectando...';
+    };
+  } catch (errSse) {
+    console.warn('>> [REALTIME] Error inicializando SSE:', errSse);
+  }
+}
+
+function procesarEventoTiempoReal(evento) {
+  if (!evento) return;
+  const tipo = evento.evento || evento.tipo;
+  const datos = evento.datos || evento;
+
+  if (tipo === 'LOGISTICA_ACTUALIZADA') {
+    mostrarToastTiempoReal(
+      '📦 Logística Institucional',
+      `Recurso '${datos.recurso}' (${datos.estado}) actualizado en tiempo real.`,
+      'info'
+    );
+    // Si la vista actual contiene elementos de logística, refrescarlos dinámicamente
+    const containerLogistica = document.getElementById('contenedor-logistica-tiempo-real');
+    if (containerLogistica) {
+      cargarEstadoLogisticaRealtime();
+    }
+  } else if (tipo === 'NOTA_CALIFICADA') {
+    mostrarToastTiempoReal(
+      '🎓 Nueva Calificación Académica',
+      `Se registró una nota de ${datos.nota} en ${datos.materia} para ${datos.estudiante_nombre}.`,
+      'success'
+    );
+    // Si la vista de notas o cursos del aprendiz está visible, actualizar métricas
+    if (typeof cargarCursosAprendiz === 'function') {
+      try { cargarCursosAprendiz(); } catch (e) {}
+    }
+  }
+}
+
+function mostrarToastTiempoReal(titulo, mensaje, tipo = 'info') {
+  let toastContainer = document.getElementById('contenedor-toasts-tiempo-real');
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.id = 'contenedor-toasts-tiempo-real';
+    toastContainer.className = 'fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm pointer-events-none';
+    document.body.appendChild(toastContainer);
+  }
+
+  const toast = document.createElement('div');
+  const colorBorde = tipo === 'success' ? 'border-emerald-500 bg-emerald-950/90 text-emerald-100' : 'border-sky-500 bg-slate-900/90 text-sky-100';
+  toast.className = `pointer-events-auto p-3.5 rounded-xl border shadow-xl backdrop-blur-md transition-all duration-300 transform translate-y-2 opacity-0 flex items-start gap-3 ${colorBorde}`;
+  toast.innerHTML = `
+    <div class="text-xl">${tipo === 'success' ? '⭐' : '🔔'}</div>
+    <div class="flex-1 text-xs">
+      <p class="font-extrabold tracking-wide">${titulo}</p>
+      <p class="opacity-90 mt-0.5 leading-snug">${mensaje}</p>
+    </div>
+  `;
+
+  toastContainer.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.remove('translate-y-2', 'opacity-0');
+  }, 50);
+
+  setTimeout(() => {
+    toast.classList.add('opacity-0', 'translate-y-2');
+    setTimeout(() => { toast.remove(); }, 350);
+  }, 4500);
+}
+
+// Iniciar automáticamente sincronización si el usuario ya está autenticado en localStorage
+document.addEventListener('DOMContentLoaded', function () {
+  try {
+    const rawUser = localStorage.getItem('edtech_usuario');
+    if (rawUser) {
+      const u = JSON.parse(rawUser);
+      if (u && (u.id || u.correo)) {
+        setTimeout(() => {
+          conectarTiempoReal(u.organizacion_id || u.tenant_id, u.token);
+        }, 1200);
+      }
+    }
+  } catch (e) {}
+});

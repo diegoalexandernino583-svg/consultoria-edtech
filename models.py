@@ -1,7 +1,9 @@
 """
+models.py
 Modelos de Datos Relacionales (SQLAlchemy / Azure SQL Database).
-Estructura relacional optimizada con tipos e índices compuestos.
+Estructura desacoplada para arquitectura SaaS Multi-Tenant con tenant_id obligatorio e índices compuestos.
 """
+
 from sqlalchemy import (
     Column,
     BigInteger,
@@ -18,6 +20,7 @@ from database import Base
 
 
 class Organizacion(Base):
+    """Entidad raíz del Tenant (Colegio / Institución Educativa)."""
     __tablename__ = "organizaciones"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, index=True)
@@ -30,7 +33,10 @@ class Organizacion(Base):
     fecha_creacion = Column(String(100), default=func.datetime('now', 'localtime'))
     estado_activo = Column(Integer, default=1)
 
-    # Alias semántico para compatibilidad institucional
+    @property
+    def tenant_id(self):
+        return self.id
+
     @property
     def cupos_contratados(self):
         return self.licencias_asignadas
@@ -40,11 +46,11 @@ class Organizacion(Base):
         self.licencias_asignadas = val
 
 
-# Alias de clase para interoperabilidad
 Institucion = Organizacion
 
 
 class Usuario(Base):
+    """Usuarios pertenecientes a una institución educativa (RBAC)."""
     __tablename__ = "usuarios"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, index=True)
@@ -55,11 +61,18 @@ class Usuario(Base):
     rol = Column(String(100), nullable=False, index=True)
     password_hash = Column(String(255), nullable=True)
 
-    # Índices compuestos para responder búsquedas y conteos masivos en milisegundos
     __table_args__ = (
         Index("ix_usuarios_org_rol", "organizacion_id", "rol"),
         Index("ix_usuarios_org_correo", "organizacion_id", "correo"),
     )
+
+    @property
+    def tenant_id(self):
+        return self.organizacion_id
+
+    @tenant_id.setter
+    def tenant_id(self, val):
+        self.organizacion_id = val
 
     @property
     def institucion_id(self):
@@ -82,14 +95,24 @@ class CatalogoCursos(Base):
     __tablename__ = "catalogo_cursos"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, index=True)
+    organizacion_id = Column(BigInteger, ForeignKey("organizaciones.id"), nullable=True, index=True)
     nombre_curso = Column(String(255), nullable=False)
     descripcion = Column(Text, nullable=True)
+
+    @property
+    def tenant_id(self):
+        return self.organizacion_id
+
+    @tenant_id.setter
+    def tenant_id(self, val):
+        self.organizacion_id = val
 
 
 class ProgresoCursos(Base):
     __tablename__ = "progreso_cursos"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, index=True)
+    organizacion_id = Column(BigInteger, ForeignKey("organizaciones.id"), nullable=True, index=True)
     usuario_id = Column(BigInteger, ForeignKey("usuarios.id"), index=True)
     curso_id = Column(BigInteger, ForeignKey("catalogo_cursos.id"), index=True)
     porcentaje_avance = Column(Float, default=0.0)
@@ -98,6 +121,78 @@ class ProgresoCursos(Base):
     __table_args__ = (
         Index("ix_progreso_usr_curso", "usuario_id", "curso_id"),
     )
+
+    @property
+    def tenant_id(self):
+        return self.organizacion_id
+
+    @tenant_id.setter
+    def tenant_id(self, val):
+        self.organizacion_id = val
+
+
+class RegistroLogistica(Base):
+    """
+    Control y seguimiento de recursos logísticos del colegio (aulas, cómputo, despachos).
+    Sincronizado en tiempo real vía WebSockets / SSE.
+    """
+    __tablename__ = "registro_logistica"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True, index=True)
+    tenant_id = Column(BigInteger, ForeignKey("organizaciones.id"), nullable=False, index=True)
+    categoria = Column(String(100), nullable=False)  # AULAS, EQUIPOS, MATERIAL_PEDAGOGICO, INFRAESTRUCTURA
+    recurso = Column(String(255), nullable=False)
+    cantidad = Column(Integer, default=1)
+    estado = Column(String(50), default="DISPONIBLE")  # DISPONIBLE, ASIGNADO, EN_MANTENIMIENTO
+    ubicacion = Column(String(255), nullable=True)
+    observaciones = Column(Text, nullable=True)
+    responsable_id = Column(BigInteger, ForeignKey("usuarios.id"), nullable=True)
+    fecha_actualizacion = Column(String(100), default=func.datetime('now', 'localtime'))
+
+    __table_args__ = (
+        Index("ix_logistica_tenant_estado", "tenant_id", "estado"),
+        Index("ix_logistica_tenant_categoria", "tenant_id", "categoria"),
+    )
+
+    @property
+    def organizacion_id(self):
+        return self.tenant_id
+
+    @organizacion_id.setter
+    def organizacion_id(self, val):
+        self.tenant_id = val
+
+
+class CalificacionNota(Base):
+    """
+    Registro y seguimiento de notas académicas por periodo y materia.
+    Sincronizado en tiempo real vía WebSockets / SSE.
+    """
+    __tablename__ = "calificaciones_notas"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True, index=True)
+    tenant_id = Column(BigInteger, ForeignKey("organizaciones.id"), nullable=False, index=True)
+    estudiante_id = Column(BigInteger, ForeignKey("usuarios.id"), nullable=False, index=True)
+    docente_id = Column(BigInteger, ForeignKey("usuarios.id"), nullable=True, index=True)
+    curso_id = Column(BigInteger, ForeignKey("catalogo_cursos.id"), nullable=True)
+    materia = Column(String(200), nullable=False)
+    periodo = Column(String(100), nullable=False)
+    nota = Column(Float, nullable=False)
+    observaciones = Column(Text, nullable=True)
+    fecha_registro = Column(String(100), default=func.datetime('now', 'localtime'))
+
+    __table_args__ = (
+        Index("ix_calificaciones_tenant_estudiante", "tenant_id", "estudiante_id"),
+        Index("ix_calificaciones_tenant_materia", "tenant_id", "materia"),
+    )
+
+    @property
+    def organizacion_id(self):
+        return self.tenant_id
+
+    @organizacion_id.setter
+    def organizacion_id(self, val):
+        self.tenant_id = val
 
 
 class BodegaLegalArchivo(Base):
@@ -112,6 +207,14 @@ class BodegaLegalArchivo(Base):
     contenido_b64 = Column(Text, nullable=True)
     subido_por = Column(String(255), default="diegoalexander.nino.583@hotmail.com")
     fecha_subida = Column(String(100), default=func.datetime('now', 'localtime'))
+
+    @property
+    def tenant_id(self):
+        return self.organizacion_id
+
+    @tenant_id.setter
+    def tenant_id(self, val):
+        self.organizacion_id = val
 
 
 class ConfiguracionBodegaLegal(Base):
@@ -131,8 +234,8 @@ class VideojuegoMatematicasEjercicios(Base):
     __tablename__ = "videojuego_matematicas_ejercicios"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, index=True)
-    nivel = Column(String(50), nullable=False, index=True)  # escolarizado, educativo, vocacional
-    categoria = Column(String(50), nullable=False)  # conteo, problema, finanzas, etc.
+    nivel = Column(String(50), nullable=False, index=True)
+    categoria = Column(String(50), nullable=False)
     titulo = Column(String(255), nullable=False)
     enunciado = Column(Text, nullable=False)
     imagen_o_icono = Column(String(100), nullable=True)
@@ -159,3 +262,10 @@ class ProgresoVideojuegoMatematicas(Base):
     feedback_mensaje = Column(Text, nullable=True)
     fecha_registro = Column(String(100), default=func.datetime('now', 'localtime'))
 
+    @property
+    def tenant_id(self):
+        return self.organizacion_id
+
+    @tenant_id.setter
+    def tenant_id(self, val):
+        self.organizacion_id = val

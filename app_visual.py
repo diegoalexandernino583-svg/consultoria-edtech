@@ -34,7 +34,7 @@ from app.core import (
     obtener_ip_local,
     iniciar_tunel_cloudflare,
 )
-from app.routers import auth, usuarios, aprendiz, organizaciones, seguridad, videojuego
+from app.routers import auth, usuarios, aprendiz, organizaciones, seguridad, videojuego, realtime
 from app.middlewares.multitenant import MultiTenantSecurityMiddleware
 
 app = FastAPI(
@@ -43,12 +43,19 @@ app = FastAPI(
     version="3.0.0",
 )
 
+# Configuración restrictiva de CORS para protección contra orígenes maliciosos
+ALLOWED_ORIGINS = [
+    o.strip() for o in os.getenv(
+        "ALLOWED_ORIGINS",
+        "http://localhost:8080,http://127.0.0.1:8080,https://consultoria-edtech.onrender.com"
+    ).split(",") if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS or ["*"],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Tenant-ID", "Accept", "Origin", "User-Agent"],
 )
 app.add_middleware(GZipMiddleware, minimum_size=500)
 app.add_middleware(
@@ -241,6 +248,7 @@ app.include_router(aprendiz.router)
 app.include_router(organizaciones.router)
 app.include_router(seguridad.router)
 app.include_router(videojuego.router)
+app.include_router(realtime.router)
 
 # Montaje de Frontend Estático
 STATIC_DIR = os.path.join(BASE_DIR, "static")

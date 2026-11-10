@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File,
 from fastapi.responses import FileResponse, StreamingResponse, Response, JSONResponse
 from app.core import *
 from app.core import _empujar_cambio_usuario_remoto
+from app.security import crear_token_acceso, hash_password, verify_password, normalizar_rol
 
 router = APIRouter(tags=["Autenticaci?n y Sesiones"])
 
@@ -207,6 +208,16 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
     registrar_movimiento(correo_limpio, "Autenticacion", "Inicio_Sesion_Completo", "EXITO", f"Rol: {rol_usuario} (Acceso directo)")
     print(f">> [LOGIN-DIRECTO] Acceso inmediato para {correo_limpio} ({rol_usuario})", flush=True)
 
+    # Generar Token JWT con Tenant_ID integrado para aislamiento Multi-Tenant estricto
+    token_jwt = crear_token_acceso(
+        usuario_id=user["id"],
+        correo=correo_limpio,
+        rol=rol_usuario,
+        tenant_id=org_id_val,
+        nombre=nombre_raw
+    )
+    usuario_dict["token"] = token_jwt
+
     return {
         "status": "success",
         "mensaje": f"¡Bienvenido(a), {nombre_raw}! Acceso directo autorizado.",
@@ -216,6 +227,9 @@ def iniciar_login(datos: IniciarLoginRequest, request: Request):
         "institucion": institucion_nombre,
         "organizacion_id": org_id_val,
         "acceso_boveda_legal": acceso_legal,
+        "token": token_jwt,
+        "access_token": token_jwt,
+        "token_type": "bearer",
         "usuario": usuario_dict
     }
 

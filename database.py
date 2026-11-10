@@ -172,6 +172,41 @@ def ejecutar_migraciones_automaticas():
             except Exception:
                 pass
 
+            # Asegurar tablas de Logística y Calificaciones Multi-Tenant en Azure SQL
+            try:
+                az_cur.execute("""
+                    IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='registro_logistica' AND xtype='U')
+                    CREATE TABLE [registro_logistica] (
+                        id BIGINT IDENTITY(1,1) PRIMARY KEY,
+                        tenant_id BIGINT NOT NULL,
+                        categoria NVARCHAR(100) NOT NULL,
+                        recurso NVARCHAR(255) NOT NULL,
+                        cantidad INT DEFAULT 1,
+                        estado NVARCHAR(50) DEFAULT 'DISPONIBLE',
+                        ubicacion NVARCHAR(255) NULL,
+                        observaciones NVARCHAR(MAX) NULL,
+                        responsable_id BIGINT NULL,
+                        fecha_actualizacion NVARCHAR(100) DEFAULT CONVERT(VARCHAR, GETDATE(), 120)
+                    );
+
+                    IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='calificaciones_notas' AND xtype='U')
+                    CREATE TABLE [calificaciones_notas] (
+                        id BIGINT IDENTITY(1,1) PRIMARY KEY,
+                        tenant_id BIGINT NOT NULL,
+                        estudiante_id BIGINT NOT NULL,
+                        docente_id BIGINT NULL,
+                        curso_id BIGINT NULL,
+                        materia NVARCHAR(200) NOT NULL,
+                        periodo NVARCHAR(100) NOT NULL,
+                        nota FLOAT NOT NULL,
+                        observaciones NVARCHAR(MAX) NULL,
+                        fecha_registro NVARCHAR(100) DEFAULT CONVERT(VARCHAR, GETDATE(), 120)
+                    );
+                """)
+                az_conn.commit()
+            except Exception as e_lt:
+                pass
+
             # Asegurar columna clave_plana en configuracion_boveda_legal
             try:
                 az_cur.execute("""

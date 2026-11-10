@@ -1471,6 +1471,70 @@ class DatabaseManager:
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, ejercicios_semilla)
 
+        # Tabla de Registro de Logística Multi-Tenant con sincronización en tiempo real
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS registro_logistica (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tenant_id INTEGER NOT NULL,
+                categoria TEXT NOT NULL,
+                recurso TEXT NOT NULL,
+                cantidad INTEGER DEFAULT 1,
+                estado TEXT DEFAULT 'DISPONIBLE',
+                ubicacion TEXT,
+                observaciones TEXT,
+                responsable_id INTEGER,
+                fecha_actualizacion TEXT DEFAULT (DATETIME('now', 'localtime')),
+                FOREIGN KEY (tenant_id) REFERENCES organizaciones(id)
+            );
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_logistica_tenant_estado ON registro_logistica(tenant_id, estado);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_logistica_tenant_cat ON registro_logistica(tenant_id, categoria);")
+
+        # Sembrar logística inicial si está vacía
+        cursor.execute("SELECT COUNT(*) FROM registro_logistica")
+        if cursor.fetchone()[0] == 0:
+            cursor.executemany("""
+                INSERT INTO registro_logistica (tenant_id, categoria, recurso, cantidad, estado, ubicacion, observaciones)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, [
+                (1, "AULAS", "Laboratorio STEM & Robótica", 1, "DISPONIBLE", "Edificio Central - Piso 2", "Equipado con 30 puestos y kits Arduino."),
+                (1, "EQUIPOS", "Tablets para Aprendizaje Adaptativo", 45, "DISPONIBLE", "Armario Blindado A-3", "Actualizadas con app de matemáticas v3."),
+                (1, "EQUIPOS", "Proyector Láser Interactivo 4K", 2, "EN_MANTENIMIENTO", "Taller Técnico", "En calibración de lámpara óptica."),
+                (1, "MATERIAL_PEDAGOGICO", "Kits Didácticos de Geometría y Razonamiento", 20, "DISPONIBLE", "Bodega de Materiales", "Completos con guías docentes.")
+            ])
+
+        # Tabla de Calificaciones y Notas Multi-Tenant con sincronización en tiempo real
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS calificaciones_notas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tenant_id INTEGER NOT NULL,
+                estudiante_id INTEGER NOT NULL,
+                docente_id INTEGER,
+                curso_id INTEGER,
+                materia TEXT NOT NULL,
+                periodo TEXT NOT NULL,
+                nota REAL NOT NULL,
+                observaciones TEXT,
+                fecha_registro TEXT DEFAULT (DATETIME('now', 'localtime')),
+                FOREIGN KEY (tenant_id) REFERENCES organizaciones(id),
+                FOREIGN KEY (estudiante_id) REFERENCES usuarios(id)
+            );
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_notas_tenant_est ON calificaciones_notas(tenant_id, estudiante_id);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_notas_tenant_mat ON calificaciones_notas(tenant_id, materia);")
+
+        # Sembrar notas iniciales si está vacía
+        cursor.execute("SELECT COUNT(*) FROM calificaciones_notas")
+        if cursor.fetchone()[0] == 0:
+            cursor.executemany("""
+                INSERT INTO calificaciones_notas (tenant_id, estudiante_id, docente_id, curso_id, materia, periodo, nota, observaciones)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, [
+                (1, 1, 1, 1, "Matemáticas & Razonamiento Cuantitativo", "Periodo 1 - 2026", 4.9, "Excelente dominio del pensamiento analítico y conteo."),
+                (1, 1, 1, 1, "Fundamentos de Algoritmia y Lógica", "Periodo 1 - 2026", 4.7, "Destacada resolución de problemas computacionales."),
+                (1, 1, 1, 1, "Ciencias y Tecnología Aplicada", "Periodo 1 - 2026", 4.8, "Participación sobresaliente en proyectos de innovación.")
+            ])
+
         conn.commit()
         conn.close()
 

@@ -330,6 +330,15 @@
             <span data-i18n="btn_modo_pruebas">🎛️ Control de Avance / Pruebas</span>
           </button>
 
+          <!-- Indicador de Sincronización en Tiempo Real Multi-Tenant (WebSockets / SSE) -->
+          <div id="badge-tiempo-real-saas" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-2xs" title="Sincronización en Tiempo Real Activa con Aislamiento Multi-Tenant">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span id="lbl-status-tiempo-real">Enlace en Vivo</span>
+          </div>
+
           <!-- Botón Rápido de Modo Oscuro / Claro en Barra Superior (Luna en Claro / Sol en Oscuro) -->
           <button id="btn-header-modo-toggle" onclick="alternarTemaVisualRapido()" class="px-2.5 sm:px-3 py-1.5 rounded-xl border border-slate-200/80 hover:border-slate-300 text-slate-700 hover:text-slate-900 font-bold text-xs flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer" title="Alternar entre Modo Claro (Blanco) y Modo Oscuro (Negro)">
             <span id="lbl-header-modo-icono" class="text-sm">🌙</span>
