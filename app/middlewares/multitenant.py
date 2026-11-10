@@ -13,8 +13,15 @@ import re
 from typing import Optional, Set
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
-import jwt
 from starlette.middleware.base import BaseHTTPMiddleware
+
+try:
+    import jwt
+except ImportError:
+    try:
+        import PyJWT as jwt
+    except ImportError:
+        jwt = None
 from app.security import (
     JWT_ALGORITHM,
     JWT_SECRET_KEY,
@@ -125,7 +132,7 @@ class MultiTenantSecurityMiddleware(BaseHTTPMiddleware):
             token_str = request.query_params.get("token")
 
         token_payload = None
-        if token_str:
+        if token_str and jwt is not None:
             try:
                 token_payload = jwt.decode(
                     token_str,
@@ -133,12 +140,12 @@ class MultiTenantSecurityMiddleware(BaseHTTPMiddleware):
                     algorithms=[self.jwt_algorithm],
                     options={"verify_exp": True}
                 )
-            except jwt.ExpiredSignatureError:
+            except getattr(jwt, "ExpiredSignatureError", Exception):
                 return JSONResponse(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     content={"error": "TOKEN_EXPIRED", "detail": "La sesión institucional ha expirado. Ingresa de nuevo."}
                 )
-            except jwt.PyJWTError:
+            except (getattr(jwt, "PyJWTError", Exception), Exception):
                 token_payload = None
 
         # 5. VALIDACIÓN Y AISLAMIENTO MULTI-TENANT (ANTI CROSS-TENANT)

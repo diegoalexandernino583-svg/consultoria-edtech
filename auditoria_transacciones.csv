@@ -1320,3 +1320,4 @@ Fecha_Hora,Correo_Usuario,Modulo,Operacion,Estado,Detalles_Error
 2026-11-09 21:52:28,test@bot.com,Autenticacion,Validacion_Credenciales,FALLO,Correo no registrado o no provisionado
 2026-11-09 21:52:28,test@bot.com,Autenticacion,Validacion_Credenciales,FALLO,Correo no registrado o no provisionado
 2026-11-09 21:52:28,test@bot.com,Autenticacion,Validacion_Credenciales,FALLO,Correo no registrado o no provisionado
+2026-11-09 22:18:34,alexander.nino.583@gmail.com,Autenticacion,Inicio_Sesion_Completo,EXITO,Rol: Super Administrador (Acceso directo)
