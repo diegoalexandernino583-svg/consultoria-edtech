@@ -2922,14 +2922,17 @@ html.dark #pantalla-auth-fullscreen,
 body.tema-oscuro #pantalla-auth-fullscreen {
   background-color: #090d16 !important;
   color: #f8fafc !important;
-  width: 100vw !important;
+  width: 100% !important;
+  max-width: 100% !important;
   min-height: 100vh !important;
+  overflow-x: hidden !important;
 }
 
 html.dark #pantalla-auth-fullscreen > div:last-child,
 body.tema-oscuro #pantalla-auth-fullscreen > div:last-child {
-  background-color: #0b0f19 !important;
+  background-color: #0b1329 !important;
   color: #f8fafc !important;
+  border-color: #1e293b !important;
 }
 
 html.dark #panel-auth-recuperar,
@@ -2938,12 +2941,21 @@ html.dark #panel-auth-login,
 body.tema-oscuro #panel-auth-login,
 html.dark #panel-auth-registro,
 body.tema-oscuro #panel-auth-registro,
-html.dark #recuperar-paso-1,
-body.tema-oscuro #recuperar-paso-1,
-html.dark #recuperar-paso-2,
-body.tema-oscuro #recuperar-paso-2 {
+html.dark #form-recuperar-paso1,
+body.tema-oscuro #form-recuperar-paso1,
+html.dark #form-recuperar-paso2,
+body.tema-oscuro #form-recuperar-paso2 {
   background-color: transparent !important;
   color: #f8fafc !important;
+}
+
+html.dark #panel-auth-recuperar .bg-sky-50,
+body.tema-oscuro #panel-auth-recuperar .bg-sky-50,
+html.dark #panel-auth-recuperar .bg-slate-50,
+body.tema-oscuro #panel-auth-recuperar .bg-slate-50 {
+  background-color: #111c33 !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
 }
 
 html.dark #modal-editar-usuario > div,

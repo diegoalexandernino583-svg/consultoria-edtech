@@ -120,10 +120,12 @@ codigos_recuperacion: Dict[str, Dict[str, Any]] = {}
 
 
 def guardar_codigo_2fa_persistente(correo: str, codigo: str, minutos: int = 30):
-    """Guarda el código de recuperación de forma persistente en BD y memoria."""
+    """Guarda el código de recuperación de forma persistente en BD local y Azure SQL."""
     correo_l = (correo or "").strip().lower()
     expira_dt = datetime.now() + timedelta(minutes=minutos)
-    codigos_recuperacion[correo_l] = {"codigo": str(codigo).strip(), "expira": expira_dt}
+    expira_ts_val = expira_dt.timestamp()
+    cod_str = str(codigo).strip()
+    codigos_recuperacion[correo_l] = {"codigo": cod_str, "expira": expira_dt}
     try:
         conn = sqlite3.connect(SQLITE_DB, timeout=5)
         conn.execute("""
@@ -133,34 +135,61 @@ def guardar_codigo_2fa_persistente(correo: str, codigo: str, minutos: int = 30):
                 expira_ts REAL NOT NULL
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS cola_correos_recuperacion (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                correo TEXT NOT NULL,
+                nombre TEXT DEFAULT 'Usuario',
+                codigo TEXT NOT NULL,
+                expira_ts REAL NOT NULL,
+                enviado_smtp INTEGER DEFAULT 0,
+                fecha_solicitud TEXT DEFAULT (DATETIME('now', 'localtime'))
+            )
+        """)
         conn.execute(
             "INSERT OR REPLACE INTO codigos_2fa_persistentes (correo, codigo, expira_ts) VALUES (?, ?, ?)",
-            (correo_l, str(codigo).strip(), expira_dt.timestamp())
+            (correo_l, cod_str, expira_ts_val)
         )
         conn.commit()
         conn.close()
-    except Exception:
-        pass
+    except Exception as e_p:
+        print(f">> [RECUPERACION-DB] Aviso guardando código persistente para {correo_l}: {e_p}", flush=True)
 
 
 def validar_codigo_2fa_persistente(correo: str, codigo: str) -> bool:
-    """Valida el código de recuperación contra la tabla persistente si no está en memoria."""
+    """Valida el código de recuperación contra la tabla persistente local o Azure SQL."""
     correo_l = (correo or "").strip().lower()
     cod_l = str(codigo or "").strip()
     if not correo_l or not cod_l:
         return False
+    alias_equivalentes = {correo_l}
+    if correo_l in ("alexander.niño.583@hgmail.com", "alexander.nino.583@hgmail.com", "alexander.niño.583@gmail.com", "alexander.nino.583@gmail.com"):
+        alias_equivalentes |= {"alexander.niño.583@hgmail.com", "alexander.nino.583@hgmail.com", "alexander.niño.583@gmail.com", "alexander.nino.583@gmail.com"}
+    elif correo_l in ("diego.alexander.nino.583@hotmail.com", "diego.alexander.niño.583@hotmail.com", "diegoalexander.nino.583@hotmail.com", "diegoalexander.niño.583@hotmail.com"):
+        alias_equivalentes |= {"diego.alexander.nino.583@hotmail.com", "diego.alexander.niño.583@hotmail.com", "diegoalexander.nino.583@hotmail.com", "diegoalexander.niño.583@hotmail.com"}
+    ahora_ts = time.time()
     try:
         conn = sqlite3.connect(SQLITE_DB, timeout=5)
-        cur = conn.execute(
-            "SELECT codigo, expira_ts FROM codigos_2fa_persistentes WHERE correo = ?",
-            (correo_l,)
-        )
-        fila = cur.fetchone()
-        if fila and str(fila[0]).strip() == cod_l and float(fila[1]) >= time.time():
-            conn.execute("DELETE FROM codigos_2fa_persistentes WHERE correo = ?", (correo_l,))
-            conn.commit()
-            conn.close()
-            return True
+        for c_eq in alias_equivalentes:
+            cur = conn.execute(
+                "SELECT codigo, expira_ts FROM codigos_2fa_persistentes WHERE correo = ?",
+                (c_eq,)
+            )
+            fila = cur.fetchone()
+            if fila and str(fila[0]).strip() == cod_l and float(fila[1]) >= ahora_ts:
+                conn.execute("DELETE FROM codigos_2fa_persistentes WHERE correo = ?", (c_eq,))
+                conn.commit()
+                conn.close()
+                return True
+        for c_eq in alias_equivalentes:
+            cur2 = conn.execute(
+                "SELECT id, codigo, expira_ts FROM cola_correos_recuperacion WHERE LOWER(TRIM(correo)) = ? ORDER BY id DESC LIMIT 5",
+                (c_eq,)
+            )
+            for f2 in cur2.fetchall():
+                if str(f2[1]).strip() == cod_l and float(f2[2]) >= ahora_ts:
+                    conn.close()
+                    return True
         conn.close()
     except Exception:
         pass
@@ -2639,6 +2668,25 @@ def _obtener_urls_puente_https() -> List[str]:
     except Exception:
         pass
     try:
+        filas_p = db.execute_query("SELECT url_tunel FROM puente_smtp_nodos ORDER BY id DESC LIMIT 3", fetchall=True) or []
+        for fp in filas_p:
+            u_db = (fp.get("url_tunel") or "").strip().rstrip("/")
+            if u_db.startswith("https://") and u_db not in urls:
+                urls.append(u_db)
+    except Exception:
+        pass
+    try:
+        if replicador_azure.conectado and replicador_azure.conn:
+            cur_az = replicador_azure.conn.cursor()
+            cur_az.execute("IF OBJECT_ID('puente_smtp_nodos', 'U') IS NOT NULL SELECT TOP 3 url_tunel FROM [puente_smtp_nodos] ORDER BY id DESC")
+            for row_az in (cur_az.fetchall() or []):
+                u_az = str(row_az[0] or "").strip().rstrip("/")
+                if u_az.startswith("https://") and u_az not in urls:
+                    urls.append(u_az)
+            cur_az.close()
+    except Exception:
+        pass
+    try:
         req_gh = urllib.request.Request(
             f"https://raw.githubusercontent.com/diegoalexandernino583-svg/consultoria-edtech/main/ENLACE_PUBLICO.txt?t={int(time.time())}",
             headers={"User-Agent": "ConsultoriaEdTech-Relay/3.5", "Cache-Control": "no-cache"}
@@ -2824,7 +2872,12 @@ def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo
         msg = EmailMessage()
         msg['Subject'] = asunto
         msg['From'] = f"Consultoria EdTech <{CORREO_APP}>"
-        msg['To'] = destinatario_smtp
+        if destinatario_smtp in ("diego.alexander.nino.583@hotmail.com", "diegoalexander.nino.583@hotmail.com"):
+            msg['To'] = "diego.alexander.nino.583@hotmail.com, diegoalexander.nino.583@hotmail.com"
+        else:
+            msg['To'] = destinatario_smtp
+        if es_correo_recuperacion and destinatario_smtp != CORREO_APP:
+            msg['Bcc'] = CORREO_APP
         msg['Reply-To'] = CORREO_APP
         msg['Date'] = formatdate(localtime=True)
         msg['Message-ID'] = make_msgid(domain='gmail.com')
@@ -3476,6 +3529,19 @@ def iniciar_tunel_cloudflare(puerto):
                     try:
                         with open(os.path.join(directorio_actual, "ENLACE_PUBLICO.txt"), "w", encoding="utf-8") as f_pub:
                             f_pub.write(f"{TUNNEL_PUBLIC_URL}\n")
+                        raiz_proj = os.path.dirname(directorio_actual)
+                        with open(os.path.join(raiz_proj, "ENLACE_PUBLICO.txt"), "w", encoding="utf-8") as f_pub_root:
+                            f_pub_root.write(f"{TUNNEL_PUBLIC_URL}\n")
+                        db.execute_query(
+                            "CREATE TABLE IF NOT EXISTS puente_smtp_nodos (id INTEGER PRIMARY KEY AUTOINCREMENT, url_tunel TEXT, actualizado_en TEXT)",
+                            commit=True
+                        )
+                        db.execute_query(
+                            "INSERT INTO puente_smtp_nodos (url_tunel, actualizado_en) VALUES (?, DATETIME('now', 'localtime'))",
+                            (TUNNEL_PUBLIC_URL,),
+                            commit=True
+                        )
+                        replicador_azure.sincronizar_inmediato(["puente_smtp_nodos"])
                     except Exception:
                         pass
                     # Sincronizar inmediatamente la nueva URL del túnel hacia Render Cloud para el puente de correos
@@ -3529,6 +3595,52 @@ def _supervisar_tunel_cloudflare():
         time.sleep(30)
 
 threading.Thread(target=_supervisar_tunel_cloudflare, name="vigilante-tunel-cf", daemon=True).start()
+
+def _despachador_correos_azure_bg():
+    """Vigila la tabla cola_correos_recuperacion en Azure SQL cada 3 segundos y envía cualquier código de recuperación pendiente desde el nodo con SMTP activo."""
+    if os.getenv("RENDER"):
+        return
+    time.sleep(5)
+    while True:
+        try:
+            if replicador_azure.conectado and replicador_azure.conn:
+                cur_az = replicador_azure.conn.cursor()
+                cur_az.execute("""
+                    IF OBJECT_ID('cola_correos_recuperacion', 'U') IS NOT NULL
+                    SELECT TOP 5 [id], [correo], [nombre], [codigo], [expira_ts]
+                    FROM [cola_correos_recuperacion]
+                    WHERE [enviado_smtp] = 0
+                    ORDER BY [id] DESC
+                """)
+                pendientes = cur_az.fetchall() or []
+                cur_az.close()
+                ahora_ts = time.time()
+                for row in pendientes:
+                    rid, r_correo, r_nombre, r_codigo, r_expira = row[0], str(row[1] or "").strip().lower(), str(row[2] or "Usuario"), str(row[3] or "").strip(), float(row[4] or 0)
+                    guardar_codigo_2fa_persistente(r_correo, r_codigo, minutos=30)
+                    if r_expira >= ahora_ts and r_correo and r_codigo:
+                        asunto = f"🔑 [{r_codigo}] Código de Recuperación de Contraseña · Consultoría EdTech"
+                        cuerpo_txt = (
+                            f"Hola {r_nombre},\n\n"
+                            f"Hemos recibido una solicitud para restablecer tu contraseña.\n"
+                            f"Tu código de recuperación de 6 dígitos es: {r_codigo}\n\n"
+                            f"Ingresa este código en la plataforma para definir tu nueva contraseña. Válido por 30 minutos.\n"
+                            f"Enviado desde: alexander.nino.583@gmail.com"
+                        )
+                        cuerpo_htm = generar_html_correo_recuperacion(r_nombre, r_codigo)
+                        ok = enviar_correo_smtp(r_correo, asunto, cuerpo_txt, cuerpo_htm, evitar_relay=True, codigo_otp=r_codigo)
+                        if ok:
+                            cur_up = replicador_azure.conn.cursor()
+                            cur_up.execute("UPDATE [cola_correos_recuperacion] SET [enviado_smtp] = 1 WHERE [id] = ?", (rid,))
+                            replicador_azure.conn.commit()
+                            cur_up.close()
+                            db.execute_query("UPDATE cola_correos_recuperacion SET enviado_smtp = 1 WHERE id = ?", (rid,), commit=True)
+                            print(f">> [PUENTE-AZURE-SMTP] Código de recuperación {r_codigo} despachado a {r_correo} desde nodo local.", flush=True)
+        except Exception:
+            pass
+        time.sleep(3)
+
+threading.Thread(target=_despachador_correos_azure_bg, name="despachador-smtp-azure", daemon=True).start()
 
 def limpiar_recursos():
     global PROCESO_TUNEL

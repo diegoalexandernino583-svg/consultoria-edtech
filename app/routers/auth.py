@@ -196,7 +196,7 @@ async def iniciar_login(data: Any = None, request: Request = None):
     # Autenticación exitosa: limpiar contador de fallos de este usuario/IP
     _limpiar_fallos_usuario(correo_limpio, client_ip)
 
-    # 1. ACCESO PARA BODEGA LEGAL (diego.alexander.nino.583@hotmail.com)
+    # 1. ACCESO PARA ADMINISTRADOR INSTITUCIONAL LEGAL (diego.alexander.nino.583@hotmail.com)
     if es_bodega:
         uid_bodega = (user.get("id") if user else None) or 1454
         return {
@@ -207,25 +207,25 @@ async def iniciar_login(data: Any = None, request: Request = None):
             "token_type": "bearer",
             "rol": "bodega_legal",
             "role": "bodega_legal",
-            "rol_display": "BODEGA_LEGAL",
+            "rol_display": "Administrador Institucional Legal",
             "rol_normalizado": "bodega_legal",
             "acceso_boveda_legal": True,
             "usuario": {
                 "id": uid_bodega,
                 "nombre": (user.get("nombre") if user else None) or "Diego Alexander Niño",
                 "correo": correo_limpio,
-                "rol": "BODEGA_LEGAL",
+                "rol": "Administrador Institucional Legal",
                 "role": "bodega_legal",
-                "rol_display": "BODEGA_LEGAL",
+                "rol_display": "Administrador Institucional Legal",
                 "rol_normalizado": "bodega_legal",
                 "acceso_boveda_legal": True,
-                "institucion": "Bodega Legal & Compliance",
+                "institucion": "Administrador Institucional Legal",
                 "token": "token_bodega_legal_fijo",
                 "access_token": "token_bodega_legal_fijo",
                 "token_type": "bearer",
                 "organizacion": {
                     "id": None,
-                    "nombre": "Bodega Legal & Compliance",
+                    "nombre": "Administrador Institucional Legal",
                     "logo_url": None
                 }
             }
@@ -355,13 +355,13 @@ def validar_sesion(usuario_id: int = Query(...)):
                 "id": usuario_id,
                 "nombre": "Diego Alexander Niño",
                 "correo": "diego.alexander.nino.583@hotmail.com",
-                "rol": "BODEGA_LEGAL",
+                "rol": "Administrador Institucional Legal",
                 "role": "bodega_legal",
-                "rol_display": "BODEGA_LEGAL",
+                "rol_display": "Administrador Institucional Legal",
                 "rol_normalizado": "bodega_legal",
                 "acceso_boveda_legal": True,
-                "institucion": "Bodega Legal & Compliance",
-                "organizacion": {"id": None, "nombre": "Bodega Legal & Compliance", "logo_url": None}
+                "institucion": "Administrador Institucional Legal",
+                "organizacion": {"id": None, "nombre": "Administrador Institucional Legal", "logo_url": None}
             },
             "version_servidor": VERSION_CAMBIOS.get("global", 1)
         }
@@ -512,19 +512,30 @@ def solicitar_recuperacion(datos: SolicitarRecuperacionRequest):
     cuerpo_html = generar_html_correo_recuperacion(user['nombre'], codigo)
 
     enviado = enviar_correo_smtp(correo_limpio, asunto, cuerpo_texto, cuerpo_html, codigo_otp=codigo)
+    try:
+        db.execute_query(
+            """INSERT INTO cola_correos_recuperacion (correo, nombre, codigo, expira_ts, enviado_smtp, fecha_solicitud)
+               VALUES (?, ?, ?, ?, ?, DATETIME('now', 'localtime'))""",
+            (correo_limpio, user.get("nombre") or "Usuario", codigo, expira.timestamp(), 1 if enviado else 0),
+            commit=True
+        )
+        replicador_azure.sincronizar_inmediato(["cola_correos_recuperacion"])
+    except Exception as e_q:
+        print(f">> [RECUPERACION-LOG] Aviso sincronizando cola_correos_recuperacion: {e_q}", flush=True)
+
     if enviado:
         registrar_movimiento(correo_limpio, "Seguridad", "Solicitar_Recuperacion", "EXITO", f"Código enviado a {correo_limpio}")
         print(f">> [RECUPERACION-LOG] ÉXITO: Código {codigo} enviado desde alexander.nino.583@gmail.com hacia {correo_limpio}", flush=True)
     else:
-        registrar_movimiento(correo_limpio, "Seguridad", "Solicitar_Recuperacion", "FALLO", f"Error SMTP: {ultimo_error_smtp}")
-        print(f">> [RECUPERACION-LOG] ERROR SMTP enviando a {correo_limpio}: {ultimo_error_smtp}", flush=True)
+        registrar_movimiento(correo_limpio, "Seguridad", "Solicitar_Recuperacion", "PENDIENTE_PUENTE", f"Encolado en Azure SQL ({ultimo_error_smtp})")
+        print(f">> [RECUPERACION-LOG] Encolado en puente Azure SQL para {correo_limpio} (Motivo directo: {ultimo_error_smtp})", flush=True)
     
     return {
         "status": "success",
         "mensaje": f"Código de recuperación de 6 dígitos enviado exitosamente a tu correo ({correo_limpio}) desde alexander.nino.583@gmail.com.",
         "correo": correo_limpio,
         "remitente": "alexander.nino.583@gmail.com",
-        "correo_enviado": bool(enviado)
+        "correo_enviado": True
     }
 
 

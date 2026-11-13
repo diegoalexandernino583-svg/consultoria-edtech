@@ -447,9 +447,20 @@ function actualizarPerfilSidebar() {
     }
   }
 
+function esUsuarioBodegaLegal() {
+  if (!currentUser) return false;
+  const rolRaw = String(currentUser.rol || '').toLowerCase().trim();
+  const emailRaw = String(currentUser.correo || '').toLowerCase().trim();
+  return rolRaw.includes('bodega') ||
+    rolRaw.includes('auditor') ||
+    rolRaw.includes('institucional legal') ||
+    ['diegoalexander.nino.583@hotmail.com', 'diego.alexander.nino.583@hotmail.com'].includes(emailRaw);
+}
+
   if (topNameText) topNameText.innerText = currentUser.nombre;
+  const esLegal = esUsuarioBodegaLegal();
   const claveRol = currentUser.rol === 'Super Administrador' ? 'rol_superadmin' : currentUser.rol === 'Mentor' ? 'rol_mentor' : (currentUser.rol === 'Aprendiz' || currentUser.rol === 'Estudiante') ? 'rol_aprendiz' : 'rol_admin';
-  const rolTexto = t(claveRol, currentUser.rol);
+  const rolTexto = esLegal ? 'Administrador Institucional Legal' : t(claveRol, currentUser.rol);
   if (role) role.innerText = rolTexto;
 
   if (topPill) {
@@ -497,8 +508,8 @@ function actualizarBrandingOrganizacionUI() {
   const sidebarNombre = document.getElementById('sidebar-org-nombre');
   const sidebarPlaceholder = document.getElementById('sidebar-org-logo-placeholder');
 
-  // REGLA DE ORO: El Superadministrador es global; NUNCA mostrar una institución fija debajo de "Centro de Comando"
-  if (currentUser.rol === 'Super Administrador') {
+  // El Superadministrador y el Administrador Institucional Legal son globales: ocultar tarjeta de institución fija debajo de "Centro de Comando"
+  if (currentUser.rol === 'Super Administrador' || esUsuarioBodegaLegal()) {
     if (headerBranding) {
       headerBranding.classList.add('hidden');
       headerBranding.classList.remove('flex');
@@ -1541,14 +1552,11 @@ function configurarVistasSegunRol(forzarNavegacionInicial = false) {
         <span>${t('side_configuracion_espacio', 'Configuración & Espacio')}</span>
       </a>
     `;
-  } else if (rol.includes('bodega') || rol.includes('auditor') || (currentUser && ['diegoalexander.nino.583@hotmail.com', 'diego.alexander.nino.583@hotmail.com'].includes(String(currentUser.correo || '').toLowerCase().trim()))) {
+  } else if (esUsuarioBodegaLegal()) {
     linksHtml = `
-      <div class="px-3 pt-1 pb-1">
-        <span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-400">Subentorno Exclusivo</span>
-      </div>
       <a id="nav-item-boveda-legal" onclick="navegarVista('boveda-legal')" class="sidebar-link active btn-sidebar-bodega-legal">
         <i data-lucide="folder-lock" class="w-4 h-4 shrink-0"></i>
-        <span>📁 Bodega Legal</span>
+        <span>Administrador Institucional Legal</span>
       </a>
       <div class="px-3 pt-3 pb-1">
         <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Ajustes & Cuenta</span>
@@ -1729,15 +1737,10 @@ function volverDesdeConfiguraciones() {
 let ultimaVistaAntesDeConfiguracion = 'directorio';
 
 function navegarVista(vistaId) {
-  // Acceso inmediato a Bodega Legal para Super Administrador y Bodega Legal
+  // Separación radical de roles: Administrador Institucional Legal es exclusivo de su titular
   if (vistaId === 'boveda-legal') {
-    const rolRaw = currentUser ? String(currentUser.rol || '').trim().toLowerCase() : '';
-    const emailRaw = currentUser ? String(currentUser.correo || '').trim().toLowerCase() : '';
-    const esAutorizado = rolRaw.includes('super') || rolRaw.includes('bodega') || rolRaw.includes('legal') ||
-                         ['alexander.niño.583@hgmail.com', 'alexander.nino.583@hgmail.com', 'alexander.nino.583@gmail.com', 'diego.alexander.nino.583@hotmail.com', 'diego.alexander.niño.583@hotmail.com', 'diegoalexander.nino.583@hotmail.com'].includes(emailRaw) ||
-                         emailRaw.includes('alexander.ni') || emailRaw.includes('diego.alexander.ni');
-    if (!esAutorizado) {
-      mostrarToast('Acceso denegado: La Bodega Legal es un subentorno confidencial.', 'error');
+    if (!esUsuarioBodegaLegal()) {
+      mostrarToast('Acceso denegado: Esta sección es exclusiva del Administrador Institucional Legal.', 'error');
       volverDesdeConfiguraciones();
       return;
     }
@@ -9770,19 +9773,6 @@ function inicializarVistaConfiguraciones(subTabApertura = null) {
     }
   }
 
-  // Tarjeta de Asignación de Correo de Auditoría Legal: EXCLUSIVA para Super Administrador
-  const cardBovedaCfg = document.getElementById('card-config-correo-boveda-legal');
-  if (cardBovedaCfg) {
-    if (currentUser.rol === 'Super Administrador') {
-      cardBovedaCfg.classList.remove('hidden');
-      if (typeof cargarCorreosAutorizadosBovedaEnConfig === 'function') {
-        cargarCorreosAutorizadosBovedaEnConfig();
-      }
-    } else {
-      cardBovedaCfg.classList.add('hidden');
-    }
-  }
-
   cambiarTabConfiguracion('cuenta');
   refrescarIconos();
 }
@@ -12446,24 +12436,27 @@ function renderizarTablasDocumentacionLegal(docLegal) {
 
   if (tbodyPoliticas) {
     if (politicasArchivos.length === 0) {
-      tbodyPoliticas.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">Sin políticas adicionales subidas. Utilice el botón superior para incorporar nuevas políticas oficiales.</td></tr>`;
+      tbodyPoliticas.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">Sin políticas adicionales subidas. Utilice "+ Añadir Política (.pdf)" para incorporar documentos PDF.</td></tr>`;
     } else {
       tbodyPoliticas.innerHTML = politicasArchivos.map(p => `
-        <tr class="hover:bg-slate-50 transition-colors">
-          <td class="py-2.5 px-3 font-semibold text-slate-800 flex items-center gap-2">
-            <i data-lucide="shield-check" class="w-4 h-4 text-amber-600"></i>
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
+          <td class="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+            <i data-lucide="shield-check" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
             <span>${escapeHtml(p.nombre_archivo)}</span>
           </td>
-          <td class="py-2.5 px-3 text-slate-600">${escapeHtml(p.descripcion || 'Política Institucional')}</td>
-          <td class="py-2.5 px-3 text-slate-500 font-mono">${formatearTamanoBytes(p.tamano_bytes)}</td>
-          <td class="py-2.5 px-3 text-slate-500 font-mono text-[11px]">${escapeHtml(p.fecha_subida || '')}</td>
+          <td class="py-2.5 px-3 text-slate-600 dark:text-slate-300">${escapeHtml(p.descripcion || 'Política Institucional')}</td>
+          <td class="py-2.5 px-3 text-slate-500 dark:text-slate-400 font-mono">${formatearTamanoBytes(p.tamano_bytes)}</td>
+          <td class="py-2.5 px-3 text-slate-500 dark:text-slate-400 font-mono text-[11px]">${escapeHtml(p.fecha_subida || '')}</td>
           <td class="py-2.5 px-3 text-right whitespace-nowrap">
             <div class="inline-flex items-center gap-1.5">
-              <button type="button" onclick="descargarArchivoBodegaLegal(${p.id})" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0a192f] text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer" title="Descargar política">
-                <i data-lucide="download" class="w-3.5 h-3.5 text-cyan-600"></i>
-                <span>Descargar</span>
+              <button type="button" onclick="descargarArchivoBodegaLegal(${p.id})" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#0a192f] dark:text-white text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer" title="Descargar PDF">
+                <i data-lucide="download" class="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400"></i>
+                <span>PDF</span>
               </button>
-              <button type="button" onclick="eliminarArchivoBodegaLegal(${p.id}, '${escapeHtml(p.nombre_archivo)}')" class="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 transition-all cursor-pointer" title="Eliminar de forma auditada">
+              <button type="button" onclick="renombrarArchivoBodegaLegal(${p.id}, '${escapeHtml(p.descripcion || p.nombre_archivo)}')" class="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all cursor-pointer" title="Renombrar / editar descripción">
+                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+              </button>
+              <button type="button" onclick="eliminarArchivoBodegaLegal(${p.id}, '${escapeHtml(p.nombre_archivo)}')" class="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 transition-all cursor-pointer" title="Eliminar de forma auditada">
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
               </button>
             </div>
@@ -12475,24 +12468,27 @@ function renderizarTablasDocumentacionLegal(docLegal) {
 
   if (tbodyLegales) {
     if (legalesArchivos.length === 0) {
-      tbodyLegales.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">Sin documentos legales adicionales subidos. Utilice el botón superior para incorporar nuevos convenios marco o estatutos.</td></tr>`;
+      tbodyLegales.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-400">Sin documentos legales adicionales subidos. Utilice "+ Añadir Documento Legal (.pdf)" para subir archivos en PDF.</td></tr>`;
     } else {
       tbodyLegales.innerHTML = legalesArchivos.map(l => `
-        <tr class="hover:bg-slate-50 transition-colors">
-          <td class="py-2.5 px-3 font-semibold text-slate-800 flex items-center gap-2">
-            <i data-lucide="file-text" class="w-4 h-4 text-cyan-600"></i>
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors">
+          <td class="py-2.5 px-3 font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+            <i data-lucide="file-text" class="w-4 h-4 text-cyan-600 dark:text-cyan-400"></i>
             <span>${escapeHtml(l.nombre_archivo)}</span>
           </td>
-          <td class="py-2.5 px-3 text-slate-600">${escapeHtml(l.descripcion || 'Documento Legal de Empresa')}</td>
-          <td class="py-2.5 px-3 text-slate-500 font-mono">${formatearTamanoBytes(l.tamano_bytes)}</td>
-          <td class="py-2.5 px-3 text-slate-500 font-mono text-[11px]">${escapeHtml(l.fecha_subida || '')}</td>
+          <td class="py-2.5 px-3 text-slate-600 dark:text-slate-300">${escapeHtml(l.descripcion || 'Documento Legal de Empresa')}</td>
+          <td class="py-2.5 px-3 text-slate-500 dark:text-slate-400 font-mono">${formatearTamanoBytes(l.tamano_bytes)}</td>
+          <td class="py-2.5 px-3 text-slate-500 dark:text-slate-400 font-mono text-[11px]">${escapeHtml(l.fecha_subida || '')}</td>
           <td class="py-2.5 px-3 text-right whitespace-nowrap">
             <div class="inline-flex items-center gap-1.5">
-              <button type="button" onclick="descargarArchivoBodegaLegal(${l.id})" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[#0a192f] text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer" title="Descargar documento legal">
-                <i data-lucide="download" class="w-3.5 h-3.5 text-blue-600"></i>
-                <span>Descargar</span>
+              <button type="button" onclick="descargarArchivoBodegaLegal(${l.id})" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#0a192f] dark:text-white text-xs font-bold transition-all inline-flex items-center gap-1 cursor-pointer" title="Descargar PDF">
+                <i data-lucide="download" class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400"></i>
+                <span>PDF</span>
               </button>
-              <button type="button" onclick="eliminarArchivoBodegaLegal(${l.id}, '${escapeHtml(l.nombre_archivo)}')" class="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 transition-all cursor-pointer" title="Eliminar de forma auditada">
+              <button type="button" onclick="renombrarArchivoBodegaLegal(${l.id}, '${escapeHtml(l.descripcion || l.nombre_archivo)}')" class="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all cursor-pointer" title="Renombrar / editar descripción">
+                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+              </button>
+              <button type="button" onclick="eliminarArchivoBodegaLegal(${l.id}, '${escapeHtml(l.nombre_archivo)}')" class="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 transition-all cursor-pointer" title="Eliminar de forma auditada">
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
               </button>
             </div>
@@ -12536,11 +12532,35 @@ function seleccionarCarpetaInstitucionalBodega(orgId) {
     return;
   }
 
-  const archivosOrg = org.archivos || [];
   const contratos = org.contratos || [];
+  const conveniosArchivos = org.convenios_archivos || [];
+  const actasArchivos = org.actas_archivos || [];
   const convenios = org.convenios || [];
   const actasHabeas = org.actas_habeas || [];
   const autorizaciones = org.autorizaciones || [];
+
+  const renderTarjetaArchivoPDF = (item, colorClass = 'slate') => {
+    const tituloMostrar = item.descripcion && item.descripcion.trim() ? item.descripcion.trim() : item.nombre_archivo;
+    return `
+      <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs flex items-center justify-between gap-2">
+        <div class="min-w-0">
+          <p class="font-bold text-slate-800 dark:text-slate-100 truncate" title="${escapeHtml(tituloMostrar)}">${escapeHtml(tituloMostrar)}</p>
+          <p class="text-[10px] text-slate-500 dark:text-slate-400 font-mono truncate">${escapeHtml(item.nombre_archivo)} · ${formatearTamanoBytes(item.tamano_bytes)}</p>
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+          <button type="button" onclick="descargarArchivoBodegaLegal(${item.id})" class="p-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-cyan-50 dark:hover:bg-slate-700 text-cyan-700 dark:text-cyan-400 cursor-pointer" title="Descargar PDF">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          </button>
+          <button type="button" onclick="renombrarArchivoBodegaLegal(${item.id}, '${escapeHtml(tituloMostrar)}')" class="p-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-amber-50 dark:hover:bg-slate-700 text-amber-700 dark:text-amber-400 cursor-pointer" title="Renombrar">
+            <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+          </button>
+          <button type="button" onclick="eliminarArchivoBodegaLegal(${item.id}, '${escapeHtml(item.nombre_archivo)}')" class="p-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-rose-50 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-400 cursor-pointer" title="Eliminar">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  };
 
   contenedor.innerHTML = `
     <!-- ENCABEZADO CARPETA INSTITUCIONAL -->
@@ -12556,65 +12576,58 @@ function seleccionarCarpetaInstitucionalBodega(orgId) {
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <button type="button" onclick="abrirModalSubirArchivoSeccion('institucion', ${org.organizacion_id})" class="px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer">
+        <button type="button" onclick="abrirModalSubirArchivoSeccion('institucion', ${org.organizacion_id}, 'INST_CONTRATOS')" class="px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer">
           <i data-lucide="plus-circle" class="w-4 h-4"></i>
-          <span>+ Añadir Archivo</span>
+          <span>+ Añadir PDF</span>
         </button>
       </div>
     </div>
 
-    <!-- FORMULARIO DESPLEGABLE SUBIDA DOCUMENTO A LA CARPETA INSTITUCIONAL -->
-    <div id="form-subir-doc-institucion-wrapper-${org.organizacion_id}" class="hidden p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-      <h4 class="text-xs font-bold text-slate-700">Subir Contrato, Convenio, Acta o Cualquier Archivo para ${escapeHtml(org.nombre)}</h4>
-      <form onsubmit="subirDocumentoInstitucionDirecto(event, ${org.organizacion_id})" class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
-        <div>
-          <label class="block text-[11px] font-bold text-slate-600 mb-1">Tipo de Documento</label>
-          <select id="select-tipo-doc-inst-${org.organizacion_id}" class="corp-input w-full px-2 py-1.5 text-xs font-bold">
-            <option value="Contrato Firmado">📄 Contrato Firmado</option>
-            <option value="Convenio Institucional">📜 Convenio Institucional</option>
-            <option value="Acta Previa de Consentimiento">📋 Acta Previa de Consentimiento</option>
-            <option value="Autorización de Padres / Titulares">🛡️ Autorización de Padres / Titulares</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-[11px] font-bold text-slate-600 mb-1">Archivo (Cualquier formato)</label>
-          <input type="file" id="file-doc-inst-${org.organizacion_id}" required accept="*/*" class="corp-input w-full px-2 py-1.5 text-xs">
-        </div>
-        <div>
-          <label class="block text-[11px] font-bold text-slate-600 mb-1">Descripción / Notas</label>
-          <input type="text" id="desc-doc-inst-${org.organizacion_id}" placeholder="Ej: Contrato Anual 2026 suscrito por Rectoría" class="corp-input w-full px-3 py-2 text-xs">
-        </div>
-        <div>
-          <button type="submit" class="w-full py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-2xs cursor-pointer flex items-center justify-center gap-1.5">
-            <i data-lucide="check-circle" class="w-4 h-4"></i>
-            <span>Guardar en Carpeta</span>
-          </button>
-        </div>
-      </form>
-    </div>
-
-    <!-- 4 SUB-SECCIONES DE LA CARPETA INSTITUCIONAL -->
+    <!-- 4 SUB-SECCIONES DE LA CARPETA INSTITUCIONAL (CON + AÑADIR, DESCARGAR PDF, RENOMBRAR Y ELIMINAR) -->
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
       <!-- 1. CONTRATOS FIRMADOS -->
-      <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
-        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-          <h4 class="text-xs font-bold text-[#0a192f] flex items-center gap-1.5">
-            <i data-lucide="file-check" class="w-4 h-4 text-cyan-600"></i>
+      <div class="p-4 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 shadow-2xs space-y-3">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+          <h4 class="text-xs font-bold text-[#0a192f] dark:text-white flex items-center gap-1.5">
+            <i data-lucide="file-check" class="w-4 h-4 text-cyan-600 dark:text-cyan-400"></i>
             <span>Contratos (${contratos.length})</span>
           </h4>
+          <button type="button" onclick="abrirModalSubirArchivoSeccion('institucion', ${org.organizacion_id}, 'INST_CONTRATOS')" class="px-2 py-1 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer">
+            <i data-lucide="plus" class="w-3 h-3"></i>
+            <span>Añadir</span>
+          </button>
         </div>
-        <div class="space-y-2 max-h-60 overflow-y-auto">
-          ${contratos.length === 0 ? `<p class="text-xs text-slate-400 py-3 text-center">Sin contratos subidos.</p>` : contratos.map(c => `
-            <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs flex items-center justify-between gap-2">
+        <div class="space-y-2 max-h-64 overflow-y-auto">
+          ${contratos.length === 0 ? `<p class="text-xs text-slate-400 py-3 text-center">Sin contratos PDF subidos.</p>` : contratos.map(c => renderTarjetaArchivoPDF(c)).join('')}
+        </div>
+      </div>
+
+      <!-- 2. CONVENIOS REGISTRADOS -->
+      <div class="p-4 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 shadow-2xs space-y-3">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+          <h4 class="text-xs font-bold text-[#0a192f] dark:text-white flex items-center gap-1.5">
+            <i data-lucide="building-2" class="w-4 h-4 text-blue-600 dark:text-blue-400"></i>
+            <span>Convenios (${conveniosArchivos.length + convenios.length})</span>
+          </h4>
+          <button type="button" onclick="abrirModalSubirArchivoSeccion('institucion', ${org.organizacion_id}, 'INST_CONVENIOS')" class="px-2 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer">
+            <i data-lucide="plus" class="w-3 h-3"></i>
+            <span>Añadir</span>
+          </button>
+        </div>
+        <div class="space-y-2 max-h-64 overflow-y-auto">
+          ${(conveniosArchivos.length === 0 && convenios.length === 0) ? `<p class="text-xs text-slate-400 py-3 text-center">Sin convenios PDF subidos.</p>` : ''}
+          ${conveniosArchivos.map(cvf => renderTarjetaArchivoPDF(cvf)).join('')}
+          ${convenios.map(cv => `
+            <div class="p-2.5 rounded-xl bg-blue-50/60 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-xs flex items-center justify-between gap-2">
               <div class="min-w-0">
-                <p class="font-bold text-slate-800 truncate">${escapeHtml(c.nombre_archivo)}</p>
-                <p class="text-[10px] text-slate-500 font-mono">${formatearTamanoBytes(c.tamano_bytes)}</p>
+                <span class="font-bold text-blue-900 dark:text-blue-200 block truncate">${escapeHtml(cv.estado_convenio || 'CONVENIO VIGENTE')}</span>
+                <p class="text-[10px] font-mono text-slate-500 dark:text-slate-400 truncate">SHA: ${cv.hash_integridad?.slice(0, 14)}...</p>
               </div>
               <div class="flex items-center gap-1 shrink-0">
-                <button onclick="descargarArchivoBodegaLegal(${c.id})" class="p-1 rounded-lg bg-white border border-slate-200 hover:bg-cyan-50 text-cyan-700 cursor-pointer" title="Descargar">
+                <button type="button" onclick="descargarRegistroBovedaLegalPdf(${cv.id})" class="p-1 rounded-lg bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-700 hover:bg-blue-50 text-blue-700 dark:text-blue-300 cursor-pointer" title="Descargar PDF">
                   <i data-lucide="download" class="w-3.5 h-3.5"></i>
                 </button>
-                <button onclick="eliminarArchivoBodegaLegal(${c.id}, '${escapeHtml(c.nombre_archivo)}')" class="p-1 rounded-lg bg-white border border-slate-200 hover:bg-rose-50 text-rose-700 cursor-pointer" title="Eliminar">
+                <button type="button" onclick="eliminarRegistroBovedaLegal(${cv.id}, 'Convenio #${cv.id}')" class="p-1 rounded-lg bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-700 hover:bg-rose-50 text-rose-700 dark:text-rose-400 cursor-pointer" title="Eliminar registro">
                   <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                 </button>
               </div>
@@ -12623,72 +12636,54 @@ function seleccionarCarpetaInstitucionalBodega(orgId) {
         </div>
       </div>
 
-      <!-- 2. CONVENIOS REGISTRADOS -->
-      <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
-        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-          <h4 class="text-xs font-bold text-[#0a192f] flex items-center gap-1.5">
-            <i data-lucide="building-2" class="w-4 h-4 text-blue-600"></i>
-            <span>Convenios (${convenios.length})</span>
+      <!-- 3. ACTAS PREVIAS -->
+      <div class="p-4 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 shadow-2xs space-y-3">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+          <h4 class="text-xs font-bold text-[#0a192f] dark:text-white flex items-center gap-1.5">
+            <i data-lucide="scale" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
+            <span>Actas Previas (${actasArchivos.length + actasHabeas.length})</span>
           </h4>
+          <button type="button" onclick="abrirModalSubirArchivoSeccion('institucion', ${org.organizacion_id}, 'INST_ACTAS')" class="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer">
+            <i data-lucide="plus" class="w-3 h-3"></i>
+            <span>Añadir</span>
+          </button>
         </div>
-        <div class="space-y-2 max-h-60 overflow-y-auto">
-          ${convenios.length === 0 ? `<p class="text-xs text-slate-400 py-3 text-center">Convenio activo estándar.</p>` : convenios.map(cv => `
-            <div class="p-2.5 rounded-xl bg-blue-50/60 border border-blue-200 text-xs space-y-1">
-              <div class="flex items-center justify-between">
-                <span class="font-bold text-blue-900 truncate">${escapeHtml(cv.estado_convenio || 'CONVENIO VIGENTE')}</span>
+        <div class="space-y-2 max-h-64 overflow-y-auto">
+          ${(actasArchivos.length === 0 && actasHabeas.length === 0) ? `<p class="text-xs text-slate-400 py-3 text-center">Sin actas previas en PDF.</p>` : ''}
+          ${actasArchivos.map(af => renderTarjetaArchivoPDF(af)).join('')}
+          ${actasHabeas.map(a => `
+            <div class="p-2.5 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <span class="font-bold text-emerald-900 dark:text-emerald-200 block truncate">Acta #${a.id} (${a.cantidad_registros || 0} tit.)</span>
+                <p class="text-[10px] font-mono text-slate-500 dark:text-slate-400 truncate">SHA: ${a.hash_integridad?.slice(0, 14)}...</p>
               </div>
-              <p class="text-[10px] font-mono text-slate-500 truncate">SHA: ${cv.hash_integridad?.slice(0, 14)}...</p>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-
-      <!-- 3. ACTAS DE HABEAS DATA -->
-      <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
-        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-          <h4 class="text-xs font-bold text-[#0a192f] flex items-center gap-1.5">
-            <i data-lucide="scale" class="w-4 h-4 text-emerald-600"></i>
-            <span>Actas Previas (${actasHabeas.length})</span>
-          </h4>
-        </div>
-        <div class="space-y-2 max-h-60 overflow-y-auto">
-          ${actasHabeas.length === 0 ? `<p class="text-xs text-slate-400 py-3 text-center">Sin cargas de Excel.</p>` : actasHabeas.map(a => `
-            <div class="p-2.5 rounded-xl bg-emerald-50/60 border border-emerald-200 text-xs space-y-1">
-              <div class="flex items-center justify-between">
-                <span class="font-bold text-emerald-900">Acta #${a.id}</span>
-                <span class="text-[10px] font-mono text-emerald-700">${a.cantidad_registros} titulares</span>
+              <div class="flex items-center gap-1 shrink-0">
+                <button type="button" onclick="descargarRegistroBovedaLegalPdf(${a.id})" class="p-1 rounded-lg bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-700 hover:bg-emerald-50 text-emerald-700 dark:text-emerald-300 cursor-pointer" title="Descargar PDF">
+                  <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                </button>
+                <button type="button" onclick="eliminarRegistroBovedaLegal(${a.id}, 'Acta #${a.id}')" class="p-1 rounded-lg bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-700 hover:bg-rose-50 text-rose-700 dark:text-rose-400 cursor-pointer" title="Eliminar acta">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
               </div>
-              <p class="text-[10px] font-mono text-slate-400 truncate">SHA: ${a.hash_integridad?.slice(0, 14)}...</p>
             </div>
           `).join('')}
         </div>
       </div>
 
       <!-- 4. AUTORIZACIONES -->
-      <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
-        <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-          <h4 class="text-xs font-bold text-[#0a192f] flex items-center gap-1.5">
-            <i data-lucide="user-check" class="w-4 h-4 text-purple-600"></i>
+      <div class="p-4 rounded-2xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 shadow-2xs space-y-3">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+          <h4 class="text-xs font-bold text-[#0a192f] dark:text-white flex items-center gap-1.5">
+            <i data-lucide="user-check" class="w-4 h-4 text-purple-600 dark:text-purple-400"></i>
             <span>Autorizaciones (${autorizaciones.length})</span>
           </h4>
+          <button type="button" onclick="abrirModalSubirArchivoSeccion('institucion', ${org.organizacion_id}, 'INST_AUTORIZACIONES')" class="px-2 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer">
+            <i data-lucide="plus" class="w-3 h-3"></i>
+            <span>Añadir</span>
+          </button>
         </div>
-        <div class="space-y-2 max-h-60 overflow-y-auto">
-          ${autorizaciones.length === 0 ? `<p class="text-xs text-slate-400 py-3 text-center">Sin autorizaciones específicas subidas.</p>` : autorizaciones.map(aut => `
-            <div class="p-2.5 rounded-xl bg-purple-50/60 border border-purple-200 text-xs flex items-center justify-between gap-2">
-              <div class="min-w-0">
-                <p class="font-bold text-purple-900 truncate">${escapeHtml(aut.nombre_archivo)}</p>
-                <p class="text-[10px] text-slate-500 font-mono">${formatearTamanoBytes(aut.tamano_bytes)}</p>
-              </div>
-              <div class="flex items-center gap-1 shrink-0">
-                <button onclick="descargarArchivoBodegaLegal(${aut.id})" class="p-1 rounded-lg bg-white border border-slate-200 hover:bg-purple-50 text-purple-700 cursor-pointer" title="Descargar">
-                  <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                </button>
-                <button onclick="eliminarArchivoBodegaLegal(${aut.id}, '${escapeHtml(aut.nombre_archivo)}')" class="p-1 rounded-lg bg-white border border-slate-200 hover:bg-rose-50 text-rose-700 cursor-pointer" title="Eliminar">
-                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                </button>
-              </div>
-            </div>
-          `).join('')}
+        <div class="space-y-2 max-h-64 overflow-y-auto">
+          ${autorizaciones.length === 0 ? `<p class="text-xs text-slate-400 py-3 text-center">Sin autorizaciones PDF subidas.</p>` : autorizaciones.map(aut => renderTarjetaArchivoPDF(aut)).join('')}
         </div>
       </div>
     </div>
@@ -12865,13 +12860,66 @@ async function subirDocumentoInstitucionDirecto(event, orgId) {
   }
 }
 
+function esArchivoPDFValido(file) {
+  if (!file) return false;
+  const nombre = String(file.name || '').trim().toLowerCase();
+  const tipo = String(file.type || '').trim().toLowerCase();
+  return nombre.endsWith('.pdf') || tipo === 'application/pdf';
+}
+
+async function renombrarArchivoBodegaLegal(archivoId, nombreActual) {
+  const nuevoNombre = prompt('Nuevo nombre o descripción para el documento PDF:', nombreActual || '');
+  if (nuevoNombre === null) return;
+  const limpio = nuevoNombre.trim();
+  if (!limpio) {
+    return mostrarToast('El nombre/descripción no puede estar vacío.', 'advertencia');
+  }
+  try {
+    const res = await fetch(`${API_BASE}/api/bodega-legal/renombrar-archivo/${archivoId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        descripcion: limpio,
+        correo_responsable: currentUser?.correo || 'diego.alexander.nino.583@hotmail.com'
+      })
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.detail || 'Error al renombrar documento');
+    mostrarToast(`✓ ${json.mensaje || 'Documento actualizado con éxito.'}`, 'exito');
+    await cargarVistaBovedaLegal();
+  } catch (err) {
+    mostrarToast(err.message, 'error');
+  }
+}
+
+async function eliminarRegistroBovedaLegal(registroId, etiqueta) {
+  if (!confirm(`¿Está seguro de eliminar el registro '${etiqueta}'?`)) return;
+  try {
+    const correo = currentUser?.correo || 'diego.alexander.nino.583@hotmail.com';
+    const res = await fetch(`${API_BASE}/api/bodega-legal/eliminar-registro/${registroId}?correo_responsable=${encodeURIComponent(correo)}`, {
+      method: 'POST'
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.detail || 'Error al eliminar registro');
+    mostrarToast(`✓ ${json.mensaje || 'Registro eliminado.'}`, 'info');
+    await cargarVistaBovedaLegal();
+  } catch (err) {
+    mostrarToast(err.message, 'error');
+  }
+}
+
+function descargarRegistroBovedaLegalPdf(registroId) {
+  mostrarToast('Descargando certificado en formato PDF (.pdf)...', 'info');
+  window.location.href = `${API_BASE}/api/bodega-legal/descargar-registro-pdf/${registroId}`;
+}
+
 async function eliminarArchivoBodegaLegal(archivoId, nombreArchivo) {
-  if (!confirm(`¿Está seguro de eliminar el documento '${nombreArchivo}' de la Bodega Legal?\n\nEsta acción quedará registrada en el Historial de Auditoría con sello SHA-256.`)) {
+  if (!confirm(`¿Está seguro de eliminar el documento '${nombreArchivo}'?\n\nEsta acción quedará registrada en el Historial de Auditoría con sello SHA-256.`)) {
     return;
   }
   try {
     mostrarToast('Eliminando documento y registrando evento en auditoría...', 'info');
-    const correo = currentUser?.correo || 'diegoalexander.nino.583@hotmail.com';
+    const correo = currentUser?.correo || 'diego.alexander.nino.583@hotmail.com';
     const res = await fetch(`${API_BASE}/api/bodega-legal/eliminar-archivo/${archivoId}?correo_responsable=${encodeURIComponent(correo)}`, {
       method: 'POST'
     });
@@ -12949,9 +12997,9 @@ function abrirModalSubirCualquierArchivoBodega() {
   const fileInput = document.getElementById('input-archivo-bodega-modal');
   if (fileInput) fileInput.value = '';
   const labelFile = document.getElementById('label-archivo-bodega-seleccionado');
-  if (labelFile) labelFile.textContent = 'Haz clic aquí para examinar o arrastra cualquier archivo';
+  if (labelFile) labelFile.textContent = 'Haz clic aquí para examinar o arrastra tu documento PDF (.pdf)';
   const sublabel = document.getElementById('sublabel-archivo-bodega-tamano');
-  if (sublabel) sublabel.textContent = 'Soporta documentos, hojas de cálculo, imágenes, comprimidos y más';
+  if (sublabel) sublabel.textContent = 'Solo se aceptan archivos en formato PDF (.pdf). Otros formatos serán rechazados automáticamente.';
   const descInput = document.getElementById('modal-subir-archivo-descripcion');
   if (descInput) descInput.value = '';
 
@@ -12961,7 +13009,7 @@ function abrirModalSubirCualquierArchivoBodega() {
   refrescarIconos();
 }
 
-function abrirModalSubirArchivoSeccion(destino, subcategoriaOOrgId) {
+function abrirModalSubirArchivoSeccion(destino, subcategoriaOOrgId, subcategoriaInst = 'INST_CONTRATOS') {
   abrirModalSubirCualquierArchivoBodega();
   if (destino === 'empresa') {
     const selDest = document.getElementById('modal-subir-archivo-destino');
@@ -12978,6 +13026,10 @@ function abrirModalSubirArchivoSeccion(destino, subcategoriaOOrgId) {
     if (subcategoriaOOrgId) {
       const selOrg = document.getElementById('modal-subir-archivo-org');
       if (selOrg) selOrg.value = String(subcategoriaOOrgId);
+    }
+    const selSubInst = document.getElementById('modal-subir-archivo-subcategoria-inst');
+    if (selSubInst && subcategoriaInst) {
+      selSubInst.value = subcategoriaInst;
     }
   }
 }
@@ -13015,59 +13067,73 @@ function actualizarInfoArchivoSeleccionado(input) {
   const labelFile = document.getElementById('label-archivo-bodega-seleccionado');
   const sublabel = document.getElementById('sublabel-archivo-bodega-tamano');
   if (!input || !input.files || !input.files[0]) {
-    if (labelFile) labelFile.textContent = 'Haz clic aquí para examinar o arrastra cualquier archivo';
-    if (sublabel) sublabel.textContent = 'Soporta documentos, hojas de cálculo, imágenes, comprimidos y más';
+    if (labelFile) labelFile.textContent = 'Haz clic aquí para examinar o arrastra tu documento PDF (.pdf)';
+    if (sublabel) sublabel.textContent = 'Solo se aceptan archivos en formato PDF (.pdf). Otros formatos serán rechazados automáticamente.';
     return;
   }
   const file = input.files[0];
-  if (labelFile) labelFile.textContent = `✓ Archivo: ${file.name}`;
-  if (sublabel) sublabel.textContent = `Tamaño: ${formatearTamanoBytes(file.size)} · Tipo: ${file.type || 'Documento / Archivo'}`;
+  if (!esArchivoPDFValido(file)) {
+    input.value = '';
+    if (labelFile) labelFile.textContent = '❌ Formato no permitido. Seleccione únicamente un archivo PDF (.pdf)';
+    if (sublabel) sublabel.textContent = 'Word, Excel, imágenes y otros formatos están bloqueados por seguridad.';
+    mostrarToast('Formato rechazado: Solo se permiten documentos en formato PDF (.pdf).', 'error');
+    return;
+  }
+  if (labelFile) labelFile.textContent = `✓ Documento PDF: ${file.name}`;
+  if (sublabel) sublabel.textContent = `Tamaño: ${formatearTamanoBytes(file.size)} · Formato válido: PDF (.pdf)`;
 }
 
 async function ejecutarSubidaArchivoBodega(event) {
   if (event) event.preventDefault();
   const fileInput = document.getElementById('input-archivo-bodega-modal');
   if (!fileInput || !fileInput.files.length) {
-    return mostrarToast('Por favor seleccione un archivo para añadir a la Bodega Legal.', 'advertencia');
+    return mostrarToast('Por favor seleccione un documento PDF (.pdf) para añadir.', 'advertencia');
+  }
+  const archivo = fileInput.files[0];
+  if (!esArchivoPDFValido(archivo)) {
+    fileInput.value = '';
+    return mostrarToast('Formato no permitido: Solo se aceptan archivos en formato PDF (.pdf).', 'error');
   }
 
   const destino = document.getElementById('modal-subir-archivo-destino')?.value || 'empresa';
-  const categoria = document.getElementById('modal-subir-archivo-categoria')?.value || 'LEGALES_EMPRESA';
+  const categoriaEmpresa = document.getElementById('modal-subir-archivo-categoria')?.value || 'LEGALES_EMPRESA';
+  const subcategoriaInst = document.getElementById('modal-subir-archivo-subcategoria-inst')?.value || 'INST_CONTRATOS';
   const orgId = document.getElementById('modal-subir-archivo-org')?.value || '';
   const descripcion = document.getElementById('modal-subir-archivo-descripcion')?.value || '';
 
   if (destino === 'institucion' && !orgId) {
-    return mostrarToast('Por favor seleccione la institución a la que pertenece este archivo.', 'advertencia');
+    return mostrarToast('Por favor seleccione la institución a la que pertenece este documento PDF.', 'advertencia');
   }
 
   const btnSubmit = document.getElementById('btn-submit-subir-archivo-bodega');
   const txtOriginal = btnSubmit ? btnSubmit.innerHTML : '';
   if (btnSubmit) {
     btnSubmit.disabled = true;
-    btnSubmit.innerHTML = `<span class="animate-spin inline-block mr-1">⌛</span><span>Guardando en Azure SQL...</span>`;
+    btnSubmit.innerHTML = `<span class="animate-spin inline-block mr-1">⌛</span><span>Guardando PDF en Azure SQL...</span>`;
   }
 
   const fd = new FormData();
-  fd.append('archivo', fileInput.files[0]);
+  fd.append('archivo', archivo);
   fd.append('destino', destino);
   if (destino === 'institucion') {
     fd.append('organizacion_id', orgId);
+    fd.append('categoria', subcategoriaInst);
   } else {
-    fd.append('categoria', categoria);
+    fd.append('categoria', categoriaEmpresa);
   }
   fd.append('descripcion', descripcion);
-  fd.append('correo_responsable', currentUser?.correo || 'diegoalexander.nino.583@hotmail.com');
+  fd.append('correo_responsable', currentUser?.correo || 'diego.alexander.nino.583@hotmail.com');
 
   try {
-    mostrarToast('Subiendo archivo y persistiendo en tiempo real en Azure SQL Database...', 'info');
+    mostrarToast('Subiendo documento PDF y persistiendo en tiempo real en Azure SQL Database...', 'info');
     const res = await fetch(`${API_BASE}/api/bodega-legal/subir-archivo`, {
       method: 'POST',
       body: fd
     });
     const json = await res.json();
-    if (!res.ok) throw new Error(json.detail || 'Error al guardar el archivo en Azure SQL Database');
+    if (!res.ok) throw new Error(json.detail || 'Error al guardar el documento PDF en Azure SQL Database');
 
-    mostrarToast(`✓ ${json.mensaje || 'Archivo añadido exitosamente a la Bodega Legal.'}`, 'exito');
+    mostrarToast(`✓ ${json.mensaje || 'Documento PDF añadido exitosamente.'}`, 'exito');
     cerrarModal('modal-subir-cualquier-archivo-bodega');
     await cargarVistaBovedaLegal();
 

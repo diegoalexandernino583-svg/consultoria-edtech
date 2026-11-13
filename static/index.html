@@ -39,7 +39,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <link rel="stylesheet" href="/static/styles.css?v=20261113_sync_v5">
+  <link rel="stylesheet" href="/static/styles.css?v=20261113_sync_v6">
   <style>
     /* Ocultar el icono nativo de revelar contraseña de Edge / Windows para evitar doble ojito */
     input::-ms-reveal,
@@ -50,14 +50,30 @@
     }
   </style>
 </head>
-<body class="bg-[#f8fafc] dark:bg-[#050c17] text-slate-800 dark:text-slate-100 antialiased min-h-screen w-full overflow-x-hidden">
+<body class="bg-[#f8fafc] dark:bg-[#0b0f19] text-slate-800 dark:text-slate-100 antialiased min-h-screen w-full overflow-x-hidden">
+  <script>
+    try {
+      if (localStorage.getItem('edtech_tema_visual') === 'oscuro') {
+        document.documentElement.classList.add('dark');
+        document.body.classList.add('tema-oscuro', 'dark');
+      }
+    } catch(e) {}
+  </script>
 
   <!-- =====================================================================
        1. PANTALLA COMPLETA DE INICIO / LOGIN (SIN VENTANA FLOTANTE)
        SE MUESTRA CUANDO NO HAY SESIÓN ACTIVA
        ===================================================================== -->
-  <div id="pantalla-auth-fullscreen" class="min-h-screen bg-[#f8fafc] dark:bg-slate-950 flex flex-col justify-center items-center p-4 sm:p-8 transition-colors duration-200">
+  <div id="pantalla-auth-fullscreen" class="min-h-screen w-full bg-[#f8fafc] dark:bg-[#0b0f19] flex flex-col justify-center items-center p-4 sm:p-8 transition-colors duration-200 relative">
     
+    <!-- Selector rápido de Modo Claro / Oscuro en Login y Recuperación -->
+    <div class="fixed top-4 right-4 z-50">
+      <button type="button" onclick="seleccionarTemaVisual(document.body.classList.contains('tema-oscuro') ? 'claro' : 'oscuro')" class="px-3 py-1.5 rounded-xl bg-white/90 dark:bg-[#121824] border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold shadow-sm hover:shadow-md transition-all flex items-center gap-1.5 cursor-pointer" title="Alternar Modo Claro / Oscuro">
+        <i data-lucide="moon" class="w-3.5 h-3.5 text-cyan-500"></i>
+        <span>Modo Claro / Oscuro</span>
+      </button>
+    </div>
+
     <div class="max-w-md w-full bg-white dark:bg-[#0b1329] p-8 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 transition-colors duration-200">
       
       <!-- Cabecera Institucional -->
@@ -65,19 +81,19 @@
         <div class="w-14 h-14 rounded-2xl bg-[#091b2c] flex items-center justify-center mx-auto mb-3 shadow-lg">
           <i data-lucide="shield-check" class="w-7 h-7 text-cyan-400"></i>
         </div>
-        <h1 class="text-2xl font-extrabold text-[#0a192f] tracking-tight">Consultoría EdTech</h1>
-        <p class="text-xs text-slate-500 font-medium mt-1">Centro de Comando & Gobernanza Institucional</p>
+        <h1 class="text-2xl font-extrabold text-[#0a192f] dark:text-white tracking-tight">Consultoría EdTech</h1>
+        <p class="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">Centro de Comando & Gobernanza Institucional</p>
       </div>
 
       <!-- PANEL: INICIAR SESIÓN -->
       <div id="panel-auth-login">
         <!-- ALERTA CUANDO EL CORREO NO ESTÁ REGISTRADO -->
-        <div id="alerta-no-registrado" class="hidden p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex flex-col gap-1.5 mb-4">
-          <div class="flex items-center gap-2 font-bold text-amber-800">
-            <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600"></i>
+        <div id="alerta-no-registrado" class="hidden p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-700/60 text-xs text-amber-900 dark:text-amber-200 flex flex-col gap-1.5 mb-4">
+          <div class="flex items-center gap-2 font-bold text-amber-800 dark:text-amber-300">
+            <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
             <span>Este correo no está registrado en el sistema</span>
           </div>
-          <p class="text-[11px] text-amber-700 leading-tight">
+          <p class="text-[11px] text-amber-700 dark:text-amber-300/90 leading-tight">
             Para acceder, tu cuenta debe haber sido dada de alta previamente por el Super Administrador o la coordinación de tu institución.
           </p>
         </div>
@@ -91,7 +107,7 @@
           </div>
 
           <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Correo Electrónico</label>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">Correo Electrónico</label>
             <div class="relative">
               <i data-lucide="mail" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
               <input id="login-email" type="email" required placeholder="correo@institucion.edu.co" class="corp-input w-full pl-9 pr-3 py-2 rounded-xl text-sm font-medium">
@@ -99,22 +115,22 @@
           </div>
 
           <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Contraseña</label>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">Contraseña</label>
             <div class="relative">
               <i data-lucide="key" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
               <input id="login-password" type="password" required placeholder="••••••••" class="corp-input w-full pl-9 pr-10 py-2 rounded-xl text-sm font-medium">
-              <button type="button" onclick="togglePasswordVisibility('login-password', this)" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 p-0.5" title="Ver contraseña">
+              <button type="button" onclick="togglePasswordVisibility('login-password', this)" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5" title="Ver contraseña">
                 <i data-lucide="eye" class="w-4 h-4"></i>
               </button>
             </div>
             <div class="flex justify-end mt-1.5">
-              <button type="button" onclick="cambiarPestanaAuth('recuperar')" class="text-xs text-sky-600 hover:text-sky-800 font-semibold transition-colors">
+              <button type="button" onclick="cambiarPestanaAuth('recuperar')" class="text-xs text-sky-600 dark:text-sky-400 hover:text-sky-800 dark:hover:text-sky-300 font-semibold transition-colors">
                 ¿Olvidaste tu contraseña?
               </button>
             </div>
           </div>
 
-          <button id="btn-login-submit" type="submit" class="w-full py-2.5 rounded-xl bg-[#091b2c] hover:bg-[#0f273f] text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2">
+          <button id="btn-login-submit" type="submit" class="w-full py-2.5 rounded-xl bg-[#091b2c] hover:bg-[#0f273f] dark:bg-sky-600 dark:hover:bg-sky-500 text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2">
             <span>Iniciar Sesión</span>
             <i data-lucide="arrow-right" class="w-4 h-4"></i>
           </button>
@@ -126,32 +142,32 @@
       <!-- PANEL: RECUPERAR CONTRASEÑA -->
       <div id="panel-auth-recuperar" class="hidden">
         <div class="mb-4">
-          <h3 class="text-base font-bold text-[#0a192f]">Recuperar Contraseña</h3>
-          <p class="text-xs text-slate-500">Restablece tu acceso con un código militar enviado a tu correo.</p>
+          <h3 class="text-base font-bold text-[#0a192f] dark:text-white">Recuperar Contraseña</h3>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Restablece tu acceso con un código de 6 dígitos enviado a tu correo.</p>
         </div>
 
         <!-- Paso 1: Solicitar Código -->
         <form id="form-recuperar-paso1" onsubmit="solicitarCodigoRecuperacion(event)" class="space-y-4">
-          <div class="p-3.5 rounded-xl bg-sky-50 border border-sky-200 text-xs text-sky-900 flex items-start gap-2.5">
-            <i data-lucide="key" class="w-4 h-4 text-sky-600 shrink-0 mt-0.5"></i>
-            <p class="leading-relaxed">Ingresa tu correo institucional registrado. Te enviaremos un código de seguridad para definir tu nueva contraseña.</p>
+          <div class="p-3.5 rounded-xl bg-sky-50 dark:bg-slate-800/90 border border-sky-200 dark:border-slate-700 text-xs text-sky-900 dark:text-slate-200 flex items-start gap-2.5">
+            <i data-lucide="key" class="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0 mt-0.5"></i>
+            <p class="leading-relaxed">Ingresa tu correo institucional registrado. Te enviaremos un código de seguridad de 6 dígitos para definir tu nueva contraseña.</p>
           </div>
 
           <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Correo Electrónico Registrado</label>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">Correo Electrónico Registrado</label>
             <div class="relative">
               <i data-lucide="mail" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
               <input id="recuperar-email" type="email" required placeholder="correo@institucion.edu.co" class="corp-input w-full pl-9 pr-3 py-2 rounded-xl text-sm font-medium">
             </div>
           </div>
 
-          <button id="btn-recuperar-solicitar" type="submit" class="w-full py-2.5 rounded-xl bg-[#091b2c] hover:bg-[#0f273f] text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2">
+          <button id="btn-recuperar-solicitar" type="submit" class="w-full py-2.5 rounded-xl bg-[#091b2c] hover:bg-[#0f273f] dark:bg-sky-600 dark:hover:bg-sky-500 text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2">
             <i data-lucide="send" class="w-4 h-4"></i>
             <span>Enviar Código de Recuperación</span>
           </button>
 
           <div class="text-center pt-2">
-            <button type="button" onclick="cambiarPestanaAuth('login')" class="text-xs text-slate-500 hover:text-slate-800 font-semibold inline-flex items-center gap-1 transition-colors">
+            <button type="button" onclick="cambiarPestanaAuth('login')" class="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white font-semibold inline-flex items-center gap-1 transition-colors">
               <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
               <span>Volver a Iniciar Sesión</span>
             </button>
@@ -160,33 +176,33 @@
 
         <!-- Paso 2: Ingresar Código y Nueva Contraseña -->
         <form id="form-recuperar-paso2" onsubmit="ejecutarCambioPassword(event)" class="hidden space-y-3.5">
-          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700">
-            <p class="text-slate-500 text-[11px]">Código enviado a:</p>
-            <p id="lbl-recuperar-email-destino" class="font-bold text-[#0a192f] font-mono"></p>
+          <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-200">
+            <p class="text-slate-500 dark:text-slate-400 text-[11px]">Código enviado a:</p>
+            <p id="lbl-recuperar-email-destino" class="font-bold text-[#0a192f] dark:text-white font-mono"></p>
           </div>
 
           <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Código de Recuperación (6 Dígitos)</label>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">Código de Recuperación (6 Dígitos)</label>
             <input id="recuperar-codigo-otp" type="text" maxlength="6" inputmode="numeric" required placeholder="••••••" class="corp-input w-full py-2 text-center font-mono text-xl tracking-[0.3em] font-bold">
           </div>
 
           <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Nueva Contraseña (Mínimo 6 dígitos/caracteres)</label>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">Nueva Contraseña (Mínimo 6 dígitos/caracteres)</label>
             <div class="relative">
               <i data-lucide="lock" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
               <input id="recuperar-nueva-pwd" type="password" required minlength="6" placeholder="Mínimo 6 caracteres" oninput="validarCoincidenciaPasswordRecuperar()" class="corp-input w-full pl-9 pr-10 py-2 rounded-xl text-sm font-medium">
-              <button type="button" onclick="togglePasswordVisibility('recuperar-nueva-pwd', this)" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 p-0.5" title="Ver contraseña">
+              <button type="button" onclick="togglePasswordVisibility('recuperar-nueva-pwd', this)" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5" title="Ver contraseña">
                 <i data-lucide="eye" class="w-4 h-4"></i>
               </button>
             </div>
           </div>
 
           <div>
-            <label class="block text-xs font-bold text-slate-700 mb-1">Rectificar Nueva Contraseña</label>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">Rectificar Nueva Contraseña</label>
             <div class="relative">
               <i data-lucide="check-check" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
               <input id="recuperar-confirm-pwd" type="password" required minlength="6" placeholder="Repite tu nueva contraseña" oninput="validarCoincidenciaPasswordRecuperar()" class="corp-input w-full pl-9 pr-10 py-2 rounded-xl text-sm font-medium">
-              <button type="button" onclick="togglePasswordVisibility('recuperar-confirm-pwd', this)" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 p-0.5" title="Ver contraseña">
+              <button type="button" onclick="togglePasswordVisibility('recuperar-confirm-pwd', this)" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5" title="Ver contraseña">
                 <i data-lucide="eye" class="w-4 h-4"></i>
               </button>
             </div>
@@ -199,11 +215,11 @@
           </button>
 
           <div class="flex items-center justify-between pt-1">
-            <button type="button" onclick="volverARecuperarPaso1()" class="text-xs text-slate-500 hover:text-slate-800 font-semibold inline-flex items-center gap-1">
+            <button type="button" onclick="volverARecuperarPaso1()" class="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white font-semibold inline-flex items-center gap-1">
               <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
               <span>Cambiar correo</span>
             </button>
-            <button type="button" onclick="reenviarCodigoRecuperacion()" class="text-xs text-sky-600 hover:text-sky-800 font-semibold">
+            <button type="button" onclick="reenviarCodigoRecuperacion()" class="text-xs text-sky-600 dark:text-sky-400 hover:text-sky-800 dark:hover:text-sky-300 font-semibold">
               Reenviar código
             </button>
           </div>
@@ -492,9 +508,9 @@
               <div class="caja-legal-habeas p-3.5 rounded-xl bg-amber-50/90 border border-amber-300/90 shadow-2xs">
                 <label class="flex items-start gap-2.5 cursor-pointer select-none">
                   <input type="checkbox" id="check-legal-habeas-excel" onchange="actualizarEstadoBotonExcelLegal()" class="mt-0.5 w-4 h-4 rounded text-cyan-700 focus:ring-cyan-600 border-amber-400 cursor-pointer shrink-0">
-                  <span class="text-[11px] text-slate-800 leading-relaxed">
-                    <strong class="text-[#0a192f] font-extrabold">Declaración Obligatoria de Habeas Data (Ley 1581 de 2012 y Decreto 1377 de 2013):</strong>
-                    Certifico bajo gravedad de juramento que la Institución cuenta con la autorización previa, expresa e informada de cada titular (y de los padres/acudientes legales conforme al <strong>Art. 7 de la Ley 1581 de 2012</strong> cuando incluya menores de edad en colegios o instituciones educativas) para el tratamiento académico de sus datos en la plataforma. Esta declaración quedará registrada de forma inalterable en la <strong>📁 Bodega Legal</strong> con fecha, hora exacta e IP.
+                  <span class="text-[11px] text-slate-800 dark:text-slate-200 leading-relaxed">
+                    <strong class="text-[#0a192f] dark:text-white font-extrabold">Declaración Obligatoria de Habeas Data (Ley 1581 de 2012 y Decreto 1377 de 2013):</strong>
+                    Certifico bajo gravedad de juramento que la Institución cuenta con la autorización previa, expresa e informada de cada titular (y de los padres/acudientes legales conforme al <strong>Art. 7 de la Ley 1581 de 2012</strong> cuando incluya menores de edad en colegios o instituciones educativas) para el tratamiento académico de sus datos en la plataforma. Esta declaración quedará registrada de forma inalterable con fecha, hora exacta e IP.
                   </span>
                 </label>
               </div>
@@ -2358,7 +2374,7 @@
         </section>
 
         <!-- ===============================================================
-             VISTA 6.5: BÓVEDA EXCLUSIVA DE AUDITORÍA & COMPLIANCE LEGAL
+             VISTA 6.5: ADMINISTRADOR INSTITUCIONAL LEGAL
              (LEY 1581 DE 2012 Y DECRETO 1377 DE 2013 - ACCESO BLINDADO)
              =============================================================== -->
         <section id="vista-boveda-legal" class="vista-seccion hidden space-y-6 bodega-blur-gate-wrapper">
@@ -2373,9 +2389,9 @@
                   <i data-lucide="lock" class="w-3 h-3 text-amber-500"></i>
                   <span>Seguridad Blindada · Ley 1581 de 2012</span>
                 </div>
-                <h2 class="text-xl font-black tracking-tight text-[#0a192f] dark:text-white">Bodega Legal & Compliance</h2>
+                <h2 class="text-xl font-black tracking-tight text-[#0a192f] dark:text-white">Administrador Institucional Legal</h2>
                 <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto leading-relaxed">
-                  Subentorno protegido de auditoría, convenios y compliance legal reservado para el Oficial de Cumplimiento y el Superadministrador.
+                  Entorno exclusivo de gestión documental en PDF (.pdf), contratos, convenios, actas previas y autorizaciones bajo la Ley 1581 de 2012.
                 </p>
               </div>
 
@@ -2384,7 +2400,7 @@
                   <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Correo Autorizado</label>
                   <div class="relative">
                     <i data-lucide="mail" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-                    <input id="input-blur-correo-bodega" type="email" required value="diegoalexander.nino.583@hotmail.com" class="corp-input w-full pl-9 pr-3 py-2 text-xs font-mono rounded-xl border">
+                    <input id="input-blur-correo-bodega" type="email" required value="diego.alexander.nino.583@hotmail.com" class="corp-input w-full pl-9 pr-3 py-2 text-xs font-mono rounded-xl border">
                   </div>
                 </div>
 
@@ -2395,7 +2411,7 @@
                   </div>
                   <div class="relative">
                     <i data-lucide="key-round" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
-                    <input id="input-blur-clave-bodega" type="password" required placeholder="Contraseña de la Bodega Legal" class="corp-input w-full pl-9 pr-10 py-2 text-xs font-mono rounded-xl border">
+                    <input id="input-blur-clave-bodega" type="password" required placeholder="Contraseña del Administrador Institucional Legal" class="corp-input w-full pl-9 pr-10 py-2 text-xs font-mono rounded-xl border">
                     <button type="button" onclick="alternarVisibilidadClaveBlur()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
                       <i id="icono-ojo-blur" data-lucide="eye" class="w-4 h-4"></i>
                     </button>
@@ -2405,7 +2421,7 @@
                 <div class="pt-2">
                   <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white font-bold text-xs shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer">
                     <i data-lucide="unlock" class="w-4 h-4"></i>
-                    <span>Desbloquear Bodega Legal</span>
+                    <span>Desbloquear Administrador Institucional Legal</span>
                   </button>
                 </div>
               </form>
@@ -2418,41 +2434,41 @@
             </div>
           </div>
 
-          <!-- ENCABEZADO PRINCIPAL DE LA BODEGA LEGAL -->
+          <!-- ENCABEZADO PRINCIPAL DEL ADMINISTRADOR INSTITUCIONAL LEGAL -->
           <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-slate-800/80">
             <div>
               <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-400/30 text-amber-700 dark:text-amber-400 text-[11px] font-extrabold uppercase tracking-wider mb-2">
                 <i data-lucide="scale" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
-                <span>LEY 1581 DE 2012 & DECRETO 1377 DE 2013 · COLOMBIA · AUDITORÍA INMUTABLE</span>
+                <span>LEY 1581 DE 2012 & DECRETO 1377 DE 2013 · COLOMBIA · DOCUMENTACIÓN EXCLUSIVA EN PDF (.PDF)</span>
               </div>
               <h1 class="text-3xl font-extrabold text-[#0a192f] dark:text-white tracking-tight flex items-center gap-2.5">
-                <span>📁 Bodega Legal & Compliance</span>
+                <span>📁 Administrador Institucional Legal</span>
               </h1>
               <p class="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-3xl leading-relaxed">
-                Repositorio oficial y protegido para la gestión de <strong>documentos legales, políticas de la empresa y convenios institucionales</strong> bajo la normatividad colombiana, persistido en tiempo real en <strong>Azure SQL Database</strong>.
+                Repositorio oficial y protegido para la gestión de <strong>contratos, convenios, actas previas, autorizaciones y políticas en formato PDF (.pdf)</strong> bajo la normatividad colombiana, persistido en tiempo real en <strong>Azure SQL Database</strong>.
               </p>
             </div>
             <div class="flex flex-wrap items-center gap-2.5 shrink-0">
               <button type="button" onclick="abrirModalSubirCualquierArchivoBodega()" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-700 to-cyan-800 hover:from-cyan-800 hover:to-cyan-900 text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer">
                 <i data-lucide="plus-circle" class="w-4 h-4 text-cyan-200"></i>
-                <span>+ Añadir Archivo</span>
+                <span>+ Añadir PDF</span>
               </button>
-              <button type="button" onclick="abrirModalCambiarClaveBodega()" class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer" title="Cambiar Contraseña de acceso a la Bodega Legal">
+              <button type="button" onclick="abrirModalCambiarClaveBodega()" class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer" title="Cambiar Contraseña de acceso">
                 <i data-lucide="key" class="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400"></i>
                 <span>Cambiar Contraseña</span>
               </button>
-              <button type="button" onclick="bloquearBodegaLegalManual()" class="px-3.5 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-400/40 text-amber-700 dark:text-amber-400 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer" title="Bloquear Bodega manualmente">
+              <button type="button" onclick="bloquearBodegaLegalManual()" class="px-3.5 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-400/40 text-amber-700 dark:text-amber-400 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer" title="Bloquear vista manualmente">
                 <i data-lucide="lock" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
-                <span>Bloquear Bodega</span>
+                <span>Bloquear Acceso</span>
               </button>
             </div>
           </div>
 
-          <!-- KPIs de la Bodega Legal (Tarjetas Flotantes Minimalistas con Bordes de Seguridad Estilizados) -->
+          <!-- KPIs del Administrador Institucional Legal -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div class="bodega-kpi-card">
               <div class="flex items-center justify-between mb-2">
-                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Archivos Persistidos</span>
+                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Documentos PDF</span>
                 <div class="w-8 h-8 rounded-lg bg-cyan-50 dark:bg-cyan-950/50 text-cyan-600 flex items-center justify-center">
                   <i data-lucide="file-check-2" class="w-4 h-4"></i>
                 </div>
@@ -2468,7 +2484,7 @@
                 </div>
               </div>
               <p id="kpi-boveda-docs-empresa" class="text-2xl font-black text-amber-600 dark:text-amber-400">0</p>
-              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Políticas & Marco Legal</p>
+              <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Políticas & Marco Legal (.pdf)</p>
             </div>
             <div class="bodega-kpi-card">
               <div class="flex items-center justify-between mb-2">
@@ -2482,13 +2498,13 @@
             </div>
             <div class="bodega-kpi-card">
               <div class="flex items-center justify-between mb-2">
-                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Oficial de Cumplimiento</span>
+                <span class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Titular Legal</span>
                 <div class="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 flex items-center justify-center">
                   <i data-lucide="user-check" class="w-4 h-4"></i>
                 </div>
               </div>
-              <p class="text-xs font-black text-purple-700 dark:text-purple-300 truncate" title="diegoalexander.nino.583@hotmail.com">Diego Alexander Niño</p>
-              <p class="text-[10px] text-slate-400 font-mono mt-0.5 truncate">diegoalexander.nino.583@hotmail.com</p>
+              <p class="text-xs font-black text-purple-700 dark:text-purple-300 truncate" title="diego.alexander.nino.583@hotmail.com">Diego Alexander Niño</p>
+              <p class="text-[10px] text-slate-400 font-mono mt-0.5 truncate">diego.alexander.nino.583@hotmail.com</p>
             </div>
           </div>
 
@@ -2512,34 +2528,34 @@
                 <div>
                   <h3 class="text-sm font-extrabold text-[#0a192f] dark:text-white flex items-center gap-2">
                     <i data-lucide="shield" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
-                    <span>Apartado 1: Políticas de la Empresa</span>
+                    <span>Apartado 1: Políticas de la Empresa (Formato PDF)</span>
                   </h3>
                   <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Políticas institucionales de tratamiento de datos personales, manuales de Habeas Data y formatos de autorización (Ley 1581 de 2012 Art. 7).
+                    Políticas institucionales de tratamiento de datos personales, manuales de Habeas Data y formatos de autorización en PDF (Ley 1581 de 2012 Art. 7).
                   </p>
                 </div>
                 <button type="button" onclick="abrirModalSubirArchivoSeccion('empresa', 'POLITICAS_EMPRESA')" class="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer">
                   <i data-lucide="plus" class="w-4 h-4"></i>
-                  <span>+ Añadir Política</span>
+                  <span>+ Añadir Política (.pdf)</span>
                 </button>
               </div>
 
               <!-- LISTA DE POLÍTICAS BASE PRE-CARGADAS -->
               <div>
-                <p class="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5">Políticas Oficiales Pre-cargadas:</p>
+                <p class="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5">Políticas Oficiales Pre-cargadas (.pdf):</p>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                   <div class="card-doc-legal-flotante space-y-3">
                     <div>
                       <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-extrabold uppercase">
                         <i data-lucide="shield-check" class="w-3 h-3 text-emerald-500"></i>
-                        <span>Ley 1581 / 2012</span>
+                        <span>Ley 1581 / 2012 · PDF</span>
                       </span>
                       <h4 class="text-xs font-bold text-[#0a192f] dark:text-white mt-1.5 leading-snug">Política Institucional de Tratamiento de Datos Personales</h4>
                       <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Habeas Data, principios de finalidad, necesidad y derechos de los titulares bajo la normatividad colombiana.</p>
                     </div>
                     <button type="button" onclick="descargarDocumentoOficialTexto('politica_datos')" class="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#0a192f] dark:text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer">
                       <i data-lucide="download" class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400"></i>
-                      <span>Descargar Política Oficial (.txt)</span>
+                      <span>Descargar Política Oficial (.pdf)</span>
                     </button>
                   </div>
 
@@ -2547,14 +2563,14 @@
                     <div>
                       <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 text-[10px] font-extrabold uppercase">
                         <i data-lucide="file-check" class="w-3 h-3 text-amber-500"></i>
-                        <span>Artículo 7 Menores</span>
+                        <span>Artículo 7 Menores · PDF</span>
                       </span>
                       <h4 class="text-xs font-bold text-[#0a192f] dark:text-white mt-1.5 leading-snug">Formato de Autorización de Padres para Menores de Edad</h4>
                       <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Consentimiento informado previo de acudientes para estudiantes menores en colegios y centros formativos.</p>
                     </div>
                     <button type="button" onclick="descargarDocumentoOficialTexto('autorizacion_menores')" class="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#0a192f] dark:text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer">
                       <i data-lucide="download" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
-                      <span>Descargar Formato Oficial (.txt)</span>
+                      <span>Descargar Formato Oficial (.pdf)</span>
                     </button>
                   </div>
                 </div>
@@ -2562,20 +2578,20 @@
 
               <!-- TABLA DE POLÍTICAS SUBIDAS ADICIONALES -->
               <div>
-                <p class="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2">Políticas Adicionales Incorporadas:</p>
+                <p class="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Políticas Adicionales Incorporadas (.pdf):</p>
                 <div class="overflow-x-auto">
                   <table class="w-full text-left text-xs">
-                    <thead class="bg-slate-100 text-slate-700 font-bold uppercase text-[10px]">
+                    <thead class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold uppercase text-[10px]">
                       <tr>
-                        <th class="py-2.5 px-3">Archivo</th>
-                        <th class="py-2.5 px-3">Descripción</th>
+                        <th class="py-2.5 px-3">Documento PDF</th>
+                        <th class="py-2.5 px-3">Nombre / Descripción</th>
                         <th class="py-2.5 px-3">Tamaño</th>
                         <th class="py-2.5 px-3">Fecha</th>
                         <th class="py-2.5 px-3 text-right">Acciones</th>
                       </tr>
                     </thead>
-                    <tbody id="tabla-boveda-politicas-subidas" class="divide-y divide-slate-100 text-slate-700">
-                      <tr><td colspan="5" class="py-4 text-center text-slate-400">Sin políticas adicionales subidas. Utilice "+ Añadir Política" para incorporar cualquier archivo.</td></tr>
+                    <tbody id="tabla-boveda-politicas-subidas" class="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
+                      <tr><td colspan="5" class="py-4 text-center text-slate-400">Sin políticas adicionales subidas. Utilice "+ Añadir Política (.pdf)" para incorporar documentos PDF.</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -2588,34 +2604,34 @@
                 <div>
                   <h3 class="text-sm font-extrabold text-[#0a192f] dark:text-white flex items-center gap-2">
                     <i data-lucide="file-text" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
-                    <span>Apartado 2: Documentos Legales de la Empresa</span>
+                    <span>Apartado 2: Documentos Legales de la Empresa (Formato PDF)</span>
                   </h3>
                   <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Convenios marco de cooperación, acuerdos de confidencialidad, actas corporativas y autorizaciones de la empresa.
+                    Convenios marco de cooperación, acuerdos de confidencialidad, actas corporativas y autorizaciones de la empresa en formato PDF (.pdf).
                   </p>
                 </div>
                 <button type="button" onclick="abrirModalSubirArchivoSeccion('empresa', 'LEGALES_EMPRESA')" class="px-3.5 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-800 text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer">
                   <i data-lucide="plus" class="w-4 h-4"></i>
-                  <span>+ Añadir Documento Legal</span>
+                  <span>+ Añadir Documento Legal (.pdf)</span>
                 </button>
               </div>
 
-              <!-- LISTA DE DOCUMENTOS LEGALES BASE PRE-CARGADOS -->
+              <!-- LISTA DE DOCUMENTOS LEGALES BASE PRE-CARGADAS -->
               <div>
-                <p class="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5">Documentos Legales Base:</p>
+                <p class="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2.5">Documentos Legales Base (.pdf):</p>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                   <div class="card-doc-legal-flotante space-y-3">
                     <div>
                       <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20 text-[10px] font-extrabold uppercase">
                         <i data-lucide="file-text" class="w-3 h-3 text-blue-500"></i>
-                        <span>Convenio Marco Base</span>
+                        <span>Convenio Marco Base · PDF</span>
                       </span>
                       <h4 class="text-xs font-bold text-[#0a192f] dark:text-white mt-1.5 leading-snug">Convenio Marco Institucional de Cooperación y Datos</h4>
                       <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Cláusulas de tratamiento de datos personales, uso recíproco de signos distintivos/marcas e inmutabilidad.</p>
                     </div>
                     <button type="button" onclick="descargarDocumentoOficialTexto('convenio_marco')" class="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#0a192f] dark:text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer">
                       <i data-lucide="download" class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400"></i>
-                      <span>Descargar Convenio Oficial (.txt)</span>
+                      <span>Descargar Convenio Oficial (.pdf)</span>
                     </button>
                   </div>
 
@@ -2623,14 +2639,14 @@
                     <div>
                       <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/20 text-[10px] font-extrabold uppercase">
                         <i data-lucide="check-circle-2" class="w-3 h-3 text-purple-500"></i>
-                        <span>Mayores de Edad</span>
+                        <span>Mayores de Edad · PDF</span>
                       </span>
                       <h4 class="text-xs font-bold text-[#0a192f] dark:text-white mt-1.5 leading-snug">Declaración de Consentimiento para Mayores de Edad</h4>
                       <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Consentimiento informado para aprendices universitarios, SENA o colaboradores adultos.</p>
                     </div>
                     <button type="button" onclick="descargarDocumentoOficialTexto('consentimiento_mayores')" class="w-full py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#0a192f] dark:text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer">
                       <i data-lucide="download" class="w-3.5 h-3.5 text-purple-600 dark:text-purple-400"></i>
-                      <span>Descargar Consentimiento Oficial (.txt)</span>
+                      <span>Descargar Consentimiento Oficial (.pdf)</span>
                     </button>
                   </div>
                 </div>
@@ -2638,20 +2654,20 @@
 
               <!-- TABLA DE DOCUMENTOS LEGALES SUBIDOS ADICIONALES -->
               <div>
-                <p class="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-2">Documentos Legales Adicionales Incorporados:</p>
+                <p class="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Documentos Legales Adicionales Incorporados (.pdf):</p>
                 <div class="overflow-x-auto">
                   <table class="w-full text-left text-xs">
-                    <thead class="bg-slate-100 text-slate-700 font-bold uppercase text-[10px]">
+                    <thead class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold uppercase text-[10px]">
                       <tr>
-                        <th class="py-2.5 px-3">Archivo</th>
-                        <th class="py-2.5 px-3">Descripción</th>
+                        <th class="py-2.5 px-3">Documento PDF</th>
+                        <th class="py-2.5 px-3">Nombre / Descripción</th>
                         <th class="py-2.5 px-3">Tamaño</th>
                         <th class="py-2.5 px-3">Fecha</th>
                         <th class="py-2.5 px-3 text-right">Acciones</th>
                       </tr>
                     </thead>
-                    <tbody id="tabla-boveda-legales-subidos" class="divide-y divide-slate-100 text-slate-700">
-                      <tr><td colspan="5" class="py-4 text-center text-slate-400">Sin documentos legales adicionales subidos. Utilice "+ Añadir Documento Legal" para subir cualquier archivo.</td></tr>
+                    <tbody id="tabla-boveda-legales-subidos" class="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-200">
+                      <tr><td colspan="5" class="py-4 text-center text-slate-400">Sin documentos legales adicionales subidos. Utilice "+ Añadir Documento Legal (.pdf)" para subir archivos en PDF.</td></tr>
                     </tbody>
                   </table>
                 </div>
@@ -2665,14 +2681,14 @@
               <div>
                 <h3 class="text-sm font-extrabold text-[#0a192f] dark:text-white flex items-center gap-2">
                   <i data-lucide="folder-tree" class="w-5 h-5 text-amber-600 dark:text-amber-400"></i>
-                  <span>2. 🏢 Carpetas por Institución</span>
+                  <span>2. 🏢 Carpetas por Institución (Contratos, Convenios, Actas Previas y Autorizaciones en PDF)</span>
                 </h3>
                 <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Carpetas digitales por cada colegio, universidad, SENA o empresa. Permite añadir, descargar y eliminar cualquier archivo asociado a la entidad (contratos, convenios, actas o autorizaciones).
+                  Carpetas digitales por cada colegio, universidad, SENA o empresa. Permite añadir, nombrar, renombrar, descargar y eliminar documentos PDF (.pdf) en las 4 categorías institucionales.
                 </p>
               </div>
               <div class="flex items-center gap-2">
-                <label class="text-xs font-bold text-slate-600">Seleccionar Institución:</label>
+                <label class="text-xs font-bold text-slate-600 dark:text-slate-300">Seleccionar Institución:</label>
                 <select id="select-institucion-carpeta-bodega" onchange="seleccionarCarpetaInstitucionalBodega(this.value)" class="corp-input px-3 py-1.5 text-xs font-bold">
                   <option value="">Seleccionar Carpeta Institucional...</option>
                 </select>
@@ -2877,78 +2893,6 @@
                   <span>Descargar Copia de Seguridad Institucional (.xlsx)</span>
                 </button>
               </div>
-            </div>
-
-            <!-- EXCLUSIVO SUPER ADMINISTRADOR: SUBENTORNO BODEGA LEGAL & GESTIÓN DE CONTRASEÑA OFICIAL -->
-            <div id="card-config-correo-boveda-legal" class="hidden corp-card p-6 border border-amber-300 bg-amber-50/40 space-y-5">
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-amber-200/80">
-                <div>
-                  <div class="flex items-center gap-2">
-                    <i data-lucide="scale" class="w-5 h-5 text-amber-700"></i>
-                    <h3 class="text-sm font-extrabold text-[#0a192f]">⚖️ Bodega Legal: Credenciales Oficiales & Acceso Exclusivo</h3>
-                    <span class="px-2.5 py-0.5 rounded-full bg-[#0a192f] text-cyan-300 text-[10px] font-bold">Exclusivo SuperAdmin</span>
-                  </div>
-                  <p class="text-xs text-slate-600 mt-1">
-                    Gestión blindada de acceso y contraseña del correo oficial de Bodega Legal persistido en <strong>Azure SQL Database</strong>. Permite ingresar al subentorno directamente desde aquí o mediante inicio de sesión independiente con credenciales propias.
-                  </p>
-                </div>
-                <button type="button" onclick="navegarVista('boveda-legal')" class="px-4 py-2.5 rounded-xl bg-[#0a192f] hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-2 shrink-0 cursor-pointer">
-                  <i data-lucide="folder-lock" class="w-4 h-4 text-cyan-400"></i>
-                  <span>Abrir 📁 Bodega Legal</span>
-                </button>
-              </div>
-
-              <!-- TARJETA DE GESTIÓN DE CONTRASEÑA DE diegoalexander.nino.583@hotmail.com -->
-              <div class="p-4 rounded-xl bg-white border border-amber-300 shadow-2xs space-y-3">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span class="text-xs font-bold text-slate-800">Cuenta Oficial de Bodega Legal:</span>
-                    <code class="px-2 py-0.5 rounded bg-slate-100 text-slate-900 font-mono text-xs font-bold border border-slate-300">diegoalexander.nino.583@hotmail.com</code>
-                    <span class="px-2 py-0.5 rounded-full bg-cyan-100 text-cyan-800 text-[10px] font-extrabold">ROL: BODEGA_LEGAL</span>
-                  </div>
-                  <span class="text-[11px] text-slate-500">Clave demo sugerida: <code>123456</code></span>
-                </div>
-
-                <form onsubmit="actualizarClaveOficialBodega(event)" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-                  <div class="relative flex-1">
-                    <input id="input-clave-oficial-bodega" type="password" required placeholder="Nueva contraseña para diegoalexander.nino.583@hotmail.com" class="corp-input w-full pl-3 pr-10 py-2 rounded-xl text-xs font-mono">
-                    <button type="button" onclick="alternarVisibilidadClaveBodega()" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 cursor-pointer p-1" title="Mostrar / Ocultar contraseña">
-                      <i id="icono-ojo-clave-bodega" data-lucide="eye" class="w-4 h-4"></i>
-                    </button>
-                  </div>
-                  <button type="submit" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 shrink-0 cursor-pointer">
-                    <i data-lucide="key-round" class="w-4 h-4"></i>
-                    <span>Actualizar Contraseña en Azure SQL</span>
-                  </button>
-                </form>
-              </div>
-
-              <!-- FORMULARIO PARA AUTORIZAR OTROS CORREOS JURÍDICOS ADICIONALES -->
-              <div class="pt-2">
-                <p class="text-[11px] font-bold text-slate-700 mb-2">Autorizar Correos Jurídicos o Auditores Adicionales:</p>
-                <form onsubmit="guardarCorreoLegalDesdeConfig(event)" class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
-                  <div>
-                    <label class="block text-[10px] font-bold text-slate-600 mb-1">Correo Jurídico Adicional</label>
-                    <input id="cfg-input-boveda-correo" type="email" required placeholder="abogado@institucion.edu.co" class="corp-input w-full px-3 py-2 rounded-xl text-xs font-mono">
-                  </div>
-                  <div>
-                    <label class="block text-[10px] font-bold text-slate-600 mb-1">Nombre / Dependencia</label>
-                    <input id="cfg-input-boveda-nombre" type="text" required placeholder="Oficina Jurídica" class="corp-input w-full px-3 py-2 rounded-xl text-xs">
-                  </div>
-                  <div>
-                    <label class="block text-[10px] font-bold text-slate-600 mb-1">Contraseña Inicial</label>
-                    <input id="cfg-input-boveda-clave" type="password" placeholder="Clave para login directo" class="corp-input w-full px-3 py-2 rounded-xl text-xs font-mono">
-                  </div>
-                  <div>
-                    <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-[#0a192f] hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer">
-                      <i data-lucide="user-plus" class="w-4 h-4 text-cyan-400"></i>
-                      <span>Autorizar Acceso</span>
-                    </button>
-                  </div>
-                </form>
-              </div>
-              <div id="cfg-lista-correos-boveda" class="flex flex-wrap gap-2 pt-1"></div>
             </div>
           </div>
 
@@ -3537,7 +3481,7 @@
        MODALES DEL SISTEMA
        ===================================================================== -->
   
-  <!-- MODAL: AÑADIR CUALQUIER ARCHIVO A LA BODEGA LEGAL -->
+  <!-- MODAL: AÑADIR DOCUMENTO PDF AL ADMINISTRADOR INSTITUCIONAL LEGAL -->
   <div id="modal-subir-cualquier-archivo-bodega" class="hidden fixed inset-0 z-50 bg-slate-900/70 dark:bg-slate-950/95 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-white dark:bg-[#0c1322] p-6 sm:p-7 rounded-3xl max-w-lg w-full shadow-2xl border border-amber-500/30 dark:border-amber-500/40 transition-all">
       <div class="flex items-center justify-between pb-3.5 border-b border-slate-200 dark:border-slate-800/80">
@@ -3547,10 +3491,10 @@
           </div>
           <div>
             <h3 class="text-sm font-extrabold text-[#0a192f] dark:text-white flex items-center gap-1.5">
-              <span>+ Añadir a Bodega Legal</span>
-              <span class="text-[9px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-400/40 text-amber-600 dark:text-amber-400 font-extrabold uppercase">Audit</span>
+              <span>+ Añadir Documento PDF · Administrador Institucional Legal</span>
+              <span class="text-[9px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-400/40 text-amber-600 dark:text-amber-400 font-extrabold uppercase">PDF</span>
             </h3>
-            <p class="text-[11px] text-slate-500 dark:text-slate-400">Soporte multiformato (PDF, Word, Excel, CSV, Imágenes, ZIP)</p>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400">Formato permitido exclusivamente: Documentos PDF (.pdf)</p>
           </div>
         </div>
         <button type="button" onclick="cerrarModal('modal-subir-cualquier-archivo-bodega')" class="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
@@ -3559,24 +3503,24 @@
       </div>
 
       <form onsubmit="ejecutarSubidaArchivoBodega(event)" class="space-y-4 mt-4">
-        <!-- Selector de Archivo -->
+        <!-- Selector de Archivo (Estricto PDF) -->
         <div>
-          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Seleccionar Archivo (Cualquier formato)</label>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Seleccionar Documento (Exclusivamente en formato .pdf)</label>
           <div class="relative border-2 border-dashed border-amber-400/35 dark:border-amber-500/30 hover:border-amber-500 dark:hover:border-amber-400 rounded-2xl p-5 text-center cursor-pointer transition-all bg-amber-500/5 dark:bg-amber-950/20 hover:bg-amber-500/10" onclick="document.getElementById('input-archivo-bodega-modal').click()">
-            <input id="input-archivo-bodega-modal" type="file" required accept="*/*" onchange="actualizarInfoArchivoSeleccionado(this)" class="hidden">
+            <input id="input-archivo-bodega-modal" type="file" required accept=".pdf,application/pdf" onchange="actualizarInfoArchivoSeleccionado(this)" class="hidden">
             <i data-lucide="file-up" class="w-8 h-8 mx-auto text-amber-600 dark:text-amber-400 mb-1.5"></i>
             <p id="label-archivo-bodega-seleccionado" class="text-xs font-semibold text-slate-700 dark:text-slate-200">
-              Haz clic aquí para examinar o arrastra cualquier archivo
+              Haz clic aquí para examinar o arrastra tu documento PDF (.pdf)
             </p>
             <p id="sublabel-archivo-bodega-tamano" class="text-[10px] text-slate-400 mt-0.5">
-              Soporta documentos, hojas de cálculo, imágenes, comprimidos y más
+              Solo se aceptan archivos en formato PDF (.pdf). Otros formatos serán rechazados automáticamente.
             </p>
           </div>
         </div>
 
         <!-- Destino -->
         <div>
-          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Destino en la Bodega Legal</label>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Destino en el Administrador Institucional Legal</label>
           <select id="modal-subir-archivo-destino" onchange="toggleDestinoModalBodega(this.value)" class="corp-input w-full px-3 py-2 text-xs font-semibold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
             <option value="empresa" selected>🏢 Documentación Legal de la Empresa (Políticas y Normativas)</option>
             <option value="institucion">🏫 Carpeta por Institución (Colegio, SENA, Universidad, Empresa)</option>
@@ -3592,18 +3536,29 @@
           </select>
         </div>
 
-        <!-- Si Destino es Institución: Selector de Organización -->
-        <div id="contenedor-institucion-bodega-modal" class="hidden">
-          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Institución / Entidad Destino</label>
-          <select id="modal-subir-archivo-org" class="corp-input w-full px-3 py-2 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
-            <option value="">-- Seleccionar Institución --</option>
-          </select>
+        <!-- Si Destino es Institución: Selector de Organización y Categoría Institucional -->
+        <div id="contenedor-institucion-bodega-modal" class="hidden space-y-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Institución / Entidad Destino</label>
+            <select id="modal-subir-archivo-org" class="corp-input w-full px-3 py-2 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+              <option value="">-- Seleccionar Institución --</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Categoría Documental de la Institución</label>
+            <select id="modal-subir-archivo-subcategoria-inst" class="corp-input w-full px-3 py-2 text-xs font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+              <option value="INST_CONTRATOS">📄 Contratos (Contratos firmados y anexos contractuales)</option>
+              <option value="INST_CONVENIOS">📜 Convenios (Convenios institucionales de cooperación)</option>
+              <option value="INST_ACTAS">📋 Actas Previas (Actas de consentimiento y reuniones)</option>
+              <option value="INST_AUTORIZACIONES">🛡️ Autorizaciones (Autorizaciones de padres, acudientes o titulares)</option>
+            </select>
+          </div>
         </div>
 
-        <!-- Descripción / Notas -->
+        <!-- Descripción / Nombre Personalizado -->
         <div>
-          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Descripción o Nombre Descriptivo (Opcional)</label>
-          <input id="modal-subir-archivo-descripcion" type="text" placeholder="Ej: Contrato Marco 2026, RUT renovado, Acta de entrega..." class="corp-input w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Nombre o Descripción del Documento (Ej: Convenio 2026, Acta #3)</label>
+          <input id="modal-subir-archivo-descripcion" type="text" placeholder="Ej: Convenio 2026, Acta #3, Contrato Marco..." class="corp-input w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
         </div>
 
         <div class="flex space-x-2.5 pt-2">
@@ -3612,7 +3567,7 @@
           </button>
           <button id="btn-submit-subir-archivo-bodega" type="submit" class="w-1/2 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-bold shadow-md shadow-amber-600/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer">
             <i data-lucide="check-circle" class="w-3.5 h-3.5 text-amber-200"></i>
-            <span>Añadir a Bodega Legal</span>
+            <span>Subir Documento PDF</span>
           </button>
         </div>
       </form>
@@ -3620,7 +3575,7 @@
   </div>
 
 
-  <!-- MODAL: CAMBIAR CONTRASEÑA BODEGA LEGAL -->
+  <!-- MODAL: CAMBIAR CONTRASEÑA ADMINISTRADOR INSTITUCIONAL LEGAL -->
   <div id="modal-cambiar-clave-bodega" class="hidden fixed inset-0 z-50 bg-slate-900/70 dark:bg-slate-950/95 backdrop-blur-md dark:backdrop-blur-xl flex items-center justify-center p-4">
     <div class="bg-white dark:bg-[#0c1322] p-6 sm:p-7 rounded-3xl max-w-md w-full shadow-2xl border border-amber-500/35 dark:border-amber-500/45 transition-all">
       <div class="flex items-center justify-between pb-3.5 border-b border-slate-200 dark:border-slate-800/80">
@@ -3629,7 +3584,7 @@
             <i data-lucide="key" class="w-5 h-5"></i>
           </div>
           <div>
-            <h3 class="text-sm font-extrabold text-[#0a192f] dark:text-white">Cambiar Contraseña de Bodega Legal</h3>
+            <h3 class="text-sm font-extrabold text-[#0a192f] dark:text-white">Cambiar Contraseña · Administrador Institucional Legal</h3>
             <p class="text-[11px] text-slate-500 dark:text-slate-400">Persiste de inmediato en Azure SQL Database</p>
           </div>
         </div>
@@ -3641,7 +3596,7 @@
       <form onsubmit="ejecutarCambioClaveBodega(event)" class="space-y-4 mt-4">
         <div>
           <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Correo Oficial Autorizado</label>
-          <input type="text" readonly value="diegoalexander.nino.583@hotmail.com" class="corp-input w-full px-3 py-2 text-xs font-mono rounded-xl bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 cursor-not-allowed">
+          <input type="text" readonly value="diego.alexander.nino.583@hotmail.com" class="corp-input w-full px-3 py-2 text-xs font-mono rounded-xl bg-slate-100 dark:bg-slate-800/70 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 cursor-not-allowed">
         </div>
 
         <div>
@@ -3876,24 +3831,24 @@
     <div class="bg-white p-7 rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 dark:bg-[#0b1329] dark:border-slate-800 dark:text-slate-100">
       <div class="flex items-center justify-between mb-4">
         <div>
-          <p class="text-[10px] font-bold text-cyan-600 uppercase tracking-wider">Gobernanza de Cuentas</p>
-          <h3 class="font-bold text-[#0a192f] text-lg">Modificar Usuario / Cargo</h3>
+          <p class="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider">Gobernanza de Cuentas</p>
+          <h3 class="font-bold text-[#0a192f] dark:text-white text-lg">Modificar Usuario / Cargo</h3>
         </div>
-        <button onclick="cerrarModal('modal-editar-usuario')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+        <button onclick="cerrarModal('modal-editar-usuario')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
       <form onsubmit="guardarEdicionUsuario(event)" class="space-y-3.5">
         <input type="hidden" id="edit-user-id">
         <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Nombre Completo</label>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">Nombre Completo</label>
           <input id="edit-user-nombre" type="text" required class="corp-input w-full px-3 py-2 rounded-xl text-xs">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Correo Electrónico</label>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">Correo Electrónico</label>
           <input id="edit-user-correo" type="email" required class="corp-input w-full px-3 py-2 rounded-xl text-xs font-mono">
         </div>
         <div class="grid grid-cols-2 gap-2.5">
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Rol / Cargo</label>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">Rol / Cargo</label>
             <select id="edit-user-rol" class="corp-input w-full px-2.5 py-2 rounded-xl text-xs">
               <option value="Aprendiz">Aprendiz</option>
               <option value="Mentor">Mentor</option>
@@ -3901,12 +3856,12 @@
             </select>
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">Institución</label>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">Institución</label>
             <select id="edit-user-org" class="corp-input w-full px-2.5 py-2 rounded-xl text-xs"></select>
           </div>
         </div>
         <div id="container-edit-mentor">
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Mentor Asignado (Solo Aprendices)</label>
+          <label class="block text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">Mentor Asignado (Solo Aprendices)</label>
           <select id="edit-user-mentor" class="corp-input w-full px-2.5 py-2 rounded-xl text-xs">
             <option value="">Sin mentor asignado</option>
           </select>
@@ -5769,7 +5724,7 @@
   <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
 
   <!-- CLIENT SCRIPT -->
-  <script src="/static/i18n_auto.js?v=20261113_sync_v5"></script>
-  <script src="/static/app.js?v=20261113_sync_v5"></script>
+  <script src="/static/i18n_auto.js?v=20261113_sync_v6"></script>
+  <script src="/static/app.js?v=20261113_sync_v6"></script>
 </body>
 </html>

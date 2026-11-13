@@ -1628,19 +1628,147 @@ def actualizar_clave_bodega_legal(datos: ActualizarClaveBodegaReq, request: Requ
     }
 
 
+def _generar_pdf_corporativo_bytes(titulo: str, subtitulo: str, cuerpo: str) -> bytes:
+    """Genera un archivo PDF 1.4 válido y multipágina en Python puro para documentos legales oficiales y actas."""
+    import textwrap
+
+    def _esc_pdf(txt: str) -> str:
+        s = (txt or "").replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+        return s.encode("latin-1", errors="replace").decode("latin-1")
+
+    lineas_totales = []
+    lineas_totales.append(("B", 13, "ADMINISTRADOR INSTITUCIONAL LEGAL - CONSULTORIA EDTECH"))
+    lineas_totales.append(("B", 11, titulo[:90]))
+    if subtitulo:
+        lineas_totales.append(("R", 9, subtitulo[:105]))
+    lineas_totales.append(("R", 9, "-" * 92))
+
+    for parrafo in (cuerpo or "").splitlines():
+        p_strip = parrafo.strip()
+        if not p_strip:
+            lineas_totales.append(("R", 9, ""))
+            continue
+        envueltas = textwrap.wrap(p_strip, width=88) or [""]
+        for l_env in envueltas:
+            es_enc = l_env.isupper() and len(l_env) > 4
+            lineas_totales.append(("B" if es_enc else "R", 9, l_env))
+
+    lineas_por_pagina = 46
+    paginas = [
+        lineas_totales[i:i + lineas_por_pagina]
+        for i in range(0, max(1, len(lineas_totales)), lineas_por_pagina)
+    ]
+
+    objetos = []
+    # Obj 1: Catalog, Obj 2: Pages, Obj 3: Font Regular, Obj 4: Font Bold
+    objetos.append(b"<< /Type /Catalog /Pages 2 0 R >>")
+    objetos.append(b"")  # placeholder for Pages
+    objetos.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")
+    objetos.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>")
+
+    kids_refs = []
+    for idx_pag, l_pag in enumerate(paginas):
+        cmds = ["BT", "50 755 Td"]
+        for fuente, tam, texto_linea in l_pag:
+            f_tag = "/F2" if fuente == "B" else "/F1"
+            cmds.append(f"{f_tag} {tam} Tf")
+            cmds.append(f"({_esc_pdf(texto_linea)}) Tj")
+            cmds.append("0 -15 Td")
+        cmds.append("/F1 8 Tf")
+        cmds.append(f"(Pagina {idx_pag + 1} de {len(paginas)} - Certificado en Azure SQL Database) Tj")
+        cmds.append("ET")
+        stream_bytes = "\n".join(cmds).encode("latin-1", errors="replace")
+
+        obj_content_num = len(objetos) + 1
+        objetos.append(
+            f"<< /Length {len(stream_bytes)} >>\nstream\n".encode("latin-1")
+            + stream_bytes
+            + b"\nendstream"
+        )
+        obj_page_num = len(objetos) + 1
+        objetos.append(
+            f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+            f"/Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> "
+            f"/Contents {obj_content_num} 0 R >>".encode("latin-1")
+        )
+        kids_refs.append(f"{obj_page_num} 0 R")
+
+    objetos[1] = f"<< /Type /Pages /Kids [{' '.join(kids_refs)}] /Count {len(kids_refs)} >>".encode("latin-1")
+
+    out = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
+    offsets = [0]
+    for idx_o, contenido_obj in enumerate(objetos, start=1):
+        offsets.append(len(out))
+        out.extend(f"{idx_o} 0 obj\n".encode("latin-1"))
+        out.extend(contenido_obj)
+        out.extend(b"\nendobj\n")
+
+    xref_pos = len(out)
+    out.extend(f"xref\n0 {len(objetos) + 1}\n".encode("latin-1"))
+    out.extend(b"0000000000 65535 f \n")
+    for off in offsets[1:]:
+        out.extend(f"{off:010d} 00000 n \n".encode("latin-1"))
+    out.extend(
+        f"trailer\n<< /Size {len(objetos) + 1} /Root 1 0 R >>\nstartxref\n{xref_pos}\n%%EOF\n".encode("latin-1")
+    )
+    return bytes(out)
+
+
+def _validar_archivo_pdf_estricto(archivo: UploadFile) -> str:
+    """Valida estrictamente que el archivo subido sea únicamente formato PDF (.pdf)."""
+    nombre_orig = (archivo.filename or "").strip()
+    if not nombre_orig:
+        raise HTTPException(status_code=400, detail="El archivo debe tener un nombre válido con extensión .pdf.")
+    if not nombre_orig.lower().endswith(".pdf"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Formato no permitido ('{nombre_orig}'). Solo se aceptan documentos en formato PDF (.pdf)."
+        )
+    ctype = (archivo.content_type or "").lower()
+    if ctype and any(bloqueado in ctype for bloqueado in ["word", "officedocument", "msword", "excel", "spreadsheet", "image/", "zip", "csv"]):
+        raise HTTPException(
+            status_code=400,
+            detail="Formato rechazado: Solo se permiten archivos en formato PDF (.pdf)."
+        )
+    return nombre_orig
+
+
+def _normalizar_subcategoria_institucional(tipo_raw: Optional[str], descripcion_raw: Optional[str] = "", nombre_archivo: Optional[str] = "") -> str:
+    """Clasifica un archivo institucional en una de las 4 categorías: INST_CONTRATOS, INST_CONVENIOS, INST_ACTAS, INST_AUTORIZACIONES."""
+    t = (tipo_raw or "").strip().upper()
+    if t in ("INST_CONTRATOS", "CONTRATOS", "CONTRATO", "CONTRATO FIRMADO"):
+        return "INST_CONTRATOS"
+    if t in ("INST_CONVENIOS", "CONVENIOS", "CONVENIO", "CONVENIO INSTITUCIONAL"):
+        return "INST_CONVENIOS"
+    if t in ("INST_ACTAS", "ACTAS", "ACTA", "ACTAS PREVIAS", "ACTA PREVIA DE CONSENTIMIENTO"):
+        return "INST_ACTAS"
+    if t in ("INST_AUTORIZACIONES", "AUTORIZACIONES", "AUTORIZACION", "AUTORIZACIÓN DE PADRES / TITULARES"):
+        return "INST_AUTORIZACIONES"
+
+    texto = f"{tipo_raw or ''} {descripcion_raw or ''} {nombre_archivo or ''}".lower()
+    if any(k in texto for k in ["autoriz", "menor", "padre", "acudiente", "titular"]):
+        return "INST_AUTORIZACIONES"
+    if any(k in texto for k in ["acta", "habeas", "consentimiento previo"]):
+        return "INST_ACTAS"
+    if "convenio" in texto:
+        return "INST_CONVENIOS"
+    return "INST_CONTRATOS"
+
+
 @router.get("/api/bodega-legal/carpetas")
 def obtener_carpetas_bodega_legal(
     request: Request,
     usuario_id: Optional[int] = Query(None),
-    correo: Optional[str] = Query(None)
+    correo: Optional[str] = Query(None),
+    correo_solicitante: Optional[str] = Query(None)
 ):
-    """Retorna las 4 secciones estructuradas de la Bodega Legal:
-    1. Documentación Legal (Políticas de la Empresa y Documentos Legales)
-    2. Carpetas Dinámicas por Institución
+    """Retorna las secciones estructuradas de Administrador Institucional Legal:
+    1. Documentación Legal (Políticas de la Empresa y Documentos Legales en PDF)
+    2. Carpetas Dinámicas por Institución (Contratos, Convenios, Actas Previas y Autorizaciones en PDF)
     3. Historial de Convenios y Actas (Trazabilidad y Auditoría)
     4. Copias de Seguridad Inalterables (Snapshots)
     """
-    _exigir_acceso_boveda_legal(request, usuario_id, correo)
+    _exigir_acceso_boveda_legal(request, usuario_id, correo or correo_solicitante)
     _sincronizar_convenios_existentes_en_boveda()
 
     docs_politicas_base = [
@@ -1650,7 +1778,8 @@ def obtener_carpetas_bodega_legal(
             "descripcion": "Política integral de Habeas Data, recolección, almacenamiento y uso de información conforme a la legislación colombiana.",
             "normativa": "Ley Estatutaria 1581 de 2012 Art. 9 y 12",
             "apartado": "POLITICAS_EMPRESA",
-            "tipo": "Política Oficial Base"
+            "tipo": "Política Oficial Base (.pdf)",
+            "formato": "PDF"
         },
         {
             "id": "autorizacion_menores",
@@ -1658,7 +1787,8 @@ def obtener_carpetas_bodega_legal(
             "descripcion": "Consentimiento informado legal suscrito por padres y acudientes de estudiantes escolares menores de 18 años.",
             "normativa": "Artículo 7 Ley 1581 de 2012 · Decreto 1377 de 2013",
             "apartado": "POLITICAS_EMPRESA",
-            "tipo": "Formato de Protección Especial"
+            "tipo": "Formato de Protección Especial (.pdf)",
+            "formato": "PDF"
         }
     ]
 
@@ -1669,7 +1799,8 @@ def obtener_carpetas_bodega_legal(
             "descripcion": "Acuerdo marco para gobernanza institucional, alianzas formativas y uso recíproco de distintivos y marcas.",
             "normativa": "Ley 1581 de 2012 · Decreto 1377 de 2013",
             "apartado": "LEGALES_EMPRESA",
-            "tipo": "Convenio Base Consultoría"
+            "tipo": "Convenio Base Consultoría (.pdf)",
+            "formato": "PDF"
         },
         {
             "id": "consentimiento_mayores",
@@ -1677,7 +1808,8 @@ def obtener_carpetas_bodega_legal(
             "descripcion": "Acta de autorización y conocimiento de tratamiento de datos personales para aprendices y participantes adultos.",
             "normativa": "Ley 1581 de 2012 Art. 4 Principio de Libertad",
             "apartado": "LEGALES_EMPRESA",
-            "tipo": "Consentimiento Legal Informado"
+            "tipo": "Consentimiento Legal Informado (.pdf)",
+            "formato": "PDF"
         }
     ]
 
@@ -1686,8 +1818,8 @@ def obtener_carpetas_bodega_legal(
         fetchall=True
     ) or []
 
-    politicas_subidas = [a for a in archivos_todos if a.get("categoria") in ("POLITICAS_EMPRESA", "POLITICA")]
-    legales_subidos = [a for a in archivos_todos if a.get("categoria") in ("LEGALES_EMPRESA", "CONSULTORIA", "DOCUMENTO_LEGAL") or (a.get("categoria") not in ("POLITICAS_EMPRESA", "POLITICA") and a.get("organizacion_id") is None)]
+    politicas_subidas = [a for a in archivos_todos if a.get("categoria") in ("POLITICAS_EMPRESA", "POLITICA") and a.get("organizacion_id") is None]
+    legales_subidos = [a for a in archivos_todos if a.get("organizacion_id") is None and a.get("categoria") not in ("POLITICAS_EMPRESA", "POLITICA")]
 
     orgs = db.execute_query(
         "SELECT id, nombre, tipo_organizacion, dominio_permitido, licencias_asignadas, logo_url, fecha_creacion FROM organizaciones ORDER BY id ASC",
@@ -1711,7 +1843,6 @@ def obtener_carpetas_bodega_legal(
         fetchall=True
     ) or []
 
-    # Historial completo de trazabilidad y auditoría
     trazabilidad = db.execute_query(
         """SELECT id, categoria, fecha_hora, direccion_ip, correo_responsable, rol_responsable,
                   organizacion_id, organizacion_nombre, tipo_organizacion, estado_convenio,
@@ -1725,34 +1856,56 @@ def obtener_carpetas_bodega_legal(
     for o in orgs:
         oid = o["id"]
         archivos_org = [a for a in archivos_institucionales if a.get("organizacion_id") == oid]
-        actas_org = [a for a in actas_habeas if a.get("organizacion_id") == oid]
-        convenios_org = [c for c in convenios_registrados if c.get("organizacion_id") == oid]
+        actas_reg_org = [a for a in actas_habeas if a.get("organizacion_id") == oid]
+        convenios_reg_org = [c for c in convenios_registrados if c.get("organizacion_id") == oid]
         snaps_org = [
             s for s in snapshots 
             if s.get("entidad_id") == oid or (s.get("entidad_nombre") and o["nombre"].lower() in str(s.get("entidad_nombre")).lower())
         ]
 
-        contratos_org = [a for a in archivos_org if "contrato" in (a.get("descripcion") or "").lower() or "contrato" in (a.get("nombre_archivo") or "").lower() or a.get("categoria") == "INSTITUCIONAL"]
-        autorizaciones_org = [a for a in archivos_org if any(k in (a.get("descripcion") or "").lower() or k in (a.get("nombre_archivo") or "").lower() for k in ["autoriz", "menor", "padre", "acudiente"])]
+        contratos_org = []
+        convenios_archivos_org = []
+        actas_archivos_org = []
+        autorizaciones_org = []
+
+        for a in archivos_org:
+            cat_a = (a.get("categoria") or "").strip().upper()
+            if cat_a in ("INST_CONTRATOS", "INST_CONVENIOS", "INST_ACTAS", "INST_AUTORIZACIONES"):
+                subcat = cat_a
+            else:
+                subcat = _normalizar_subcategoria_institucional(cat_a, a.get("descripcion"), a.get("nombre_archivo"))
+            a_item = dict(a)
+            a_item["subcategoria"] = subcat
+            a_item["origen_item"] = "archivo"
+            if subcat == "INST_CONVENIOS":
+                convenios_archivos_org.append(a_item)
+            elif subcat == "INST_ACTAS":
+                actas_archivos_org.append(a_item)
+            elif subcat == "INST_AUTORIZACIONES":
+                autorizaciones_org.append(a_item)
+            else:
+                contratos_org.append(a_item)
 
         carpetas_orgs.append({
             "organizacion_id": oid,
             "nombre": o["nombre"],
             "tipo_organizacion": o.get("tipo_organizacion") or "Institución",
             "dominio_permitido": o.get("dominio_permitido") or "LIBRE",
-            "licencias_asignadas": o.get("licencias_asignadas") or 1000000000,
+            "licencias_asignadas": o.get("licencias_asignadas") or 500,
             "logo_url": o.get("logo_url"),
             "fecha_creacion": o.get("fecha_creacion"),
             "total_archivos": len(archivos_org),
             "total_contratos": len(contratos_org),
-            "total_actas_habeas": len(actas_org),
-            "total_convenios": len(convenios_org),
+            "total_actas_habeas": len(actas_archivos_org) + len(actas_reg_org),
+            "total_convenios": len(convenios_archivos_org) + len(convenios_reg_org),
             "total_backups": len(snaps_org),
             "archivos": archivos_org,
             "contratos": contratos_org,
+            "convenios_archivos": convenios_archivos_org,
+            "actas_archivos": actas_archivos_org,
             "autorizaciones": autorizaciones_org,
-            "actas_habeas": actas_org,
-            "convenios": convenios_org,
+            "actas_habeas": actas_reg_org,
+            "convenios": convenios_reg_org,
             "snapshots": snaps_org
         })
 
@@ -1785,38 +1938,41 @@ async def subir_documento_legal_empresa(
     archivo: UploadFile = File(...),
     categoria: Optional[str] = Form("LEGALES_EMPRESA"),
     descripcion: Optional[str] = Form(None),
-    correo_responsable: Optional[str] = Form("diegoalexander.nino.583@hotmail.com")
+    correo_responsable: Optional[str] = Form("diego.alexander.nino.583@hotmail.com")
 ):
-    """Sube un documento oficial (Políticas de la Empresa o Documentos Legales) a la Bodega Legal"""
+    """Sube un documento oficial en formato PDF (Políticas de la Empresa o Documentos Legales)"""
+    nombre_pdf = _validar_archivo_pdf_estricto(archivo)
     contenido = await archivo.read()
     tamano = len(contenido)
     b64 = base64.b64encode(contenido).decode('utf-8')
-    subido_por = (correo_responsable or "diegoalexander.nino.583@hotmail.com").strip().lower()
+    subido_por = (correo_responsable or "diego.alexander.nino.583@hotmail.com").strip().lower()
     cat_final = (categoria or "LEGALES_EMPRESA").strip().upper()
     if cat_final not in ("POLITICAS_EMPRESA", "LEGALES_EMPRESA", "CONSULTORIA"):
         cat_final = "LEGALES_EMPRESA"
 
+    desc_limpia = (descripcion or "").strip() or "Documento Legal / Política de la Empresa (.pdf)"
+
     arch_id = db.execute_query("""
         INSERT INTO bodega_legal_archivos (categoria, organizacion_id, nombre_archivo, descripcion, tamano_bytes, contenido_b64, subido_por)
         VALUES (?, NULL, ?, ?, ?, ?, ?)
-    """, (cat_final, archivo.filename, descripcion or "Documento Legal / Política de la Empresa", tamano, b64, subido_por), return_id=True)
+    """, (cat_final, nombre_pdf, desc_limpia, tamano, b64, subido_por), return_id=True)
 
     ip_cliente = obtener_ip_cliente(request) if request else "127.0.0.1"
     registrar_evento_boveda_legal(
         categoria="CREACION_DOCUMENTO_LEGAL",
         correo_responsable=subido_por,
-        rol_responsable="Oficial de Cumplimiento & Bodega Legal",
+        rol_responsable="Administrador Institucional Legal",
         direccion_ip=ip_cliente,
         organizacion_id=None,
         organizacion_nombre="Consultoría EdTech Global",
         tipo_organizacion="Empresa",
-        estado_convenio="DOCUMENTO ACTIVO",
-        nombre_archivo=archivo.filename,
+        estado_convenio="DOCUMENTO PDF ACTIVO",
+        nombre_archivo=nombre_pdf,
         cantidad_registros=1,
         confirmacion_ley1581=True,
         confirmacion_menores_art7=True,
-        declaracion_legal=f"Documento '{archivo.filename}' incorporado a '{cat_final}' en Bodega Legal.",
-        detalles_dict={"archivo_id": arch_id, "tamano_bytes": tamano, "categoria": cat_final, "descripcion": descripcion}
+        declaracion_legal=f"Documento PDF '{nombre_pdf}' ({desc_limpia}) incorporado a '{cat_final}'.",
+        detalles_dict={"archivo_id": arch_id, "tamano_bytes": tamano, "categoria": cat_final, "descripcion": desc_limpia}
     )
 
     try:
@@ -1824,8 +1980,8 @@ async def subir_documento_legal_empresa(
     except Exception:
         pass
 
-    registrar_movimiento(subido_por, "Bodega_Legal", "Subir_Doc_Legal", "EXITO", f"Archivo: {archivo.filename} ({tamano} bytes, {cat_final})")
-    return {"status": "success", "mensaje": f"Documento '{archivo.filename}' guardado y certificado en la Bodega Legal.", "id": arch_id}
+    registrar_movimiento(subido_por, "Administrador_Institucional_Legal", "Subir_Doc_Legal_PDF", "EXITO", f"Archivo: {nombre_pdf} ({tamano} bytes, {cat_final})")
+    return {"status": "success", "mensaje": f"Documento PDF '{nombre_pdf}' guardado y certificado exitosamente.", "id": arch_id}
 
 
 @router.post("/api/bodega-legal/eliminar-archivo/{archivo_id}")
@@ -1835,19 +1991,18 @@ def eliminar_archivo_bodega_legal(
     request: Request,
     correo_responsable: Optional[str] = Query(None)
 ):
-    """Elimina de forma controlada y auditada un documento de la Bodega Legal, registrando el suceso en la trazabilidad inmutable"""
+    """Elimina de forma controlada y auditada un documento PDF de Administrador Institucional Legal"""
     arch = db.execute_query("SELECT id, categoria, organizacion_id, nombre_archivo, descripcion, tamano_bytes, subido_por FROM bodega_legal_archivos WHERE id = ?", (archivo_id,), fetchone=True)
     if not arch:
-        raise HTTPException(status_code=404, detail="El archivo solicitado no existe en la Bodega Legal.")
+        raise HTTPException(status_code=404, detail="El archivo solicitado no existe.")
 
-    correo_act = (correo_responsable or request.headers.get("X-User-Email") or "diegoalexander.nino.583@hotmail.com").strip().lower()
+    correo_act = (correo_responsable or request.headers.get("X-User-Email") or "diego.alexander.nino.583@hotmail.com").strip().lower()
     ip_cliente = obtener_ip_cliente(request) if request else "127.0.0.1"
 
-    # Registrar evento inmutable de eliminación en trazabilidad legal (papelera de auditoría)
     registrar_evento_boveda_legal(
         categoria="ELIMINACION_DOCUMENTO_LEGAL",
         correo_responsable=correo_act,
-        rol_responsable="Oficial de Cumplimiento & Bodega Legal",
+        rol_responsable="Administrador Institucional Legal",
         direccion_ip=ip_cliente,
         organizacion_id=arch.get("organizacion_id"),
         organizacion_nombre=f"Org ID #{arch.get('organizacion_id')}" if arch.get("organizacion_id") else "Consultoría EdTech Global",
@@ -1857,7 +2012,7 @@ def eliminar_archivo_bodega_legal(
         cantidad_registros=1,
         confirmacion_ley1581=True,
         confirmacion_menores_art7=True,
-        declaracion_legal=f"ELIMINACIÓN AUDITADA: Se eliminó el documento '{arch.get('nombre_archivo')}' (Categoría: {arch.get('categoria')}) de la Bodega Legal por solicitud de {correo_act}.",
+        declaracion_legal=f"ELIMINACIÓN AUDITADA: Se eliminó el documento '{arch.get('nombre_archivo')}' (Categoría: {arch.get('categoria')}) por solicitud de {correo_act}.",
         detalles_dict={
             "archivo_id_eliminado": arch["id"],
             "tamano_bytes": arch.get("tamano_bytes"),
@@ -1873,10 +2028,85 @@ def eliminar_archivo_bodega_legal(
     except Exception:
         pass
 
-    registrar_movimiento(correo_act, "Bodega_Legal", "Eliminar_Archivo", "EXITO", f"Archivo #{archivo_id}: {arch.get('nombre_archivo')} eliminado")
+    registrar_movimiento(correo_act, "Administrador_Institucional_Legal", "Eliminar_Archivo", "EXITO", f"Archivo #{archivo_id}: {arch.get('nombre_archivo')} eliminado")
     return {
         "status": "success",
-        "mensaje": f"Archivo '{arch.get('nombre_archivo')}' eliminado de la Bodega Legal y certificado en el historial inmutable de auditoría."
+        "mensaje": f"Documento '{arch.get('nombre_archivo')}' eliminado y certificado en el historial de auditoría."
+    }
+
+
+@router.post("/api/bodega-legal/eliminar-registro/{registro_id}")
+@router.delete("/api/bodega-legal/registros/{registro_id}")
+def eliminar_registro_boveda_legal(
+    registro_id: int,
+    request: Request,
+    correo_responsable: Optional[str] = Query(None)
+):
+    """Permite eliminar un convenio o acta registrada en boveda_legal_registros desde la carpeta institucional"""
+    reg = db.execute_query("SELECT id, categoria, organizacion_id, organizacion_nombre, nombre_archivo, estado_convenio FROM boveda_legal_registros WHERE id = ?", (registro_id,), fetchone=True)
+    if not reg:
+        raise HTTPException(status_code=404, detail="El registro legal solicitado no existe.")
+
+    correo_act = (correo_responsable or request.headers.get("X-User-Email") or "diego.alexander.nino.583@hotmail.com").strip().lower()
+    db.execute_query("DELETE FROM boveda_legal_registros WHERE id = ?", (registro_id,), commit=True)
+
+    try:
+        replicador_azure.sincronizar_inmediato(["boveda_legal_registros"])
+    except Exception:
+        pass
+
+    registrar_movimiento(correo_act, "Administrador_Institucional_Legal", "Eliminar_Registro_Carpeta", "EXITO", f"Registro #{registro_id} eliminado")
+    return {
+        "status": "success",
+        "mensaje": f"Registro #{registro_id} eliminado de la carpeta institucional en Azure SQL."
+    }
+
+
+class RenombrarArchivoLegalReq(BaseModel):
+    descripcion: str
+    nombre_archivo: Optional[str] = None
+    subcategoria: Optional[str] = None
+
+
+@router.post("/api/bodega-legal/renombrar-archivo/{archivo_id}")
+def renombrar_archivo_bodega_legal(
+    archivo_id: int,
+    datos: RenombrarArchivoLegalReq,
+    request: Request
+):
+    """Permite actualizar el nombre descriptivo o título de un documento PDF (ej: 'Convenio 2026', 'Acta #3')"""
+    arch = db.execute_query("SELECT id, nombre_archivo, descripcion, categoria, organizacion_id FROM bodega_legal_archivos WHERE id = ?", (archivo_id,), fetchone=True)
+    if not arch:
+        raise HTTPException(status_code=404, detail="El documento solicitado no existe.")
+
+    nueva_desc = (datos.descripcion or "").strip()
+    if not nueva_desc:
+        raise HTTPException(status_code=400, detail="El nombre o descripción del documento no puede estar vacío.")
+
+    nuevo_nombre = (datos.nombre_archivo or arch.get("nombre_archivo") or "documento.pdf").strip()
+    if not nuevo_nombre.lower().endswith(".pdf"):
+        nuevo_nombre = f"{nuevo_nombre}.pdf"
+
+    nueva_cat = arch.get("categoria")
+    if datos.subcategoria and arch.get("organizacion_id") is not None:
+        nueva_cat = _normalizar_subcategoria_institucional(datos.subcategoria, nueva_desc, nuevo_nombre)
+
+    db.execute_query(
+        "UPDATE bodega_legal_archivos SET descripcion = ?, nombre_archivo = ?, categoria = ? WHERE id = ?",
+        (nueva_desc, nuevo_nombre, nueva_cat, archivo_id),
+        commit=True
+    )
+    try:
+        replicador_azure.sincronizar_inmediato(["bodega_legal_archivos"])
+    except Exception:
+        pass
+
+    return {
+        "status": "success",
+        "mensaje": f"Documento actualizado a '{nueva_desc}' en Azure SQL.",
+        "id": archivo_id,
+        "descripcion": nueva_desc,
+        "nombre_archivo": nuevo_nombre
     }
 
 
@@ -1888,9 +2118,10 @@ async def subir_contrato_institucion(
     archivo: UploadFile = File(...),
     tipo_documento: Optional[str] = Form("Contrato Firmado"),
     descripcion: Optional[str] = Form(None),
-    correo_responsable: Optional[str] = Form("diegoalexander.nino.583@hotmail.com")
+    correo_responsable: Optional[str] = Form("diego.alexander.nino.583@hotmail.com")
 ):
-    """Sube un contrato, convenio, acta previa o autorización a la Carpeta Dinámica de la Institución en la Bodega Legal"""
+    """Sube un contrato, convenio, acta previa o autorización en formato PDF a la Carpeta Dinámica de la Institución"""
+    nombre_pdf = _validar_archivo_pdf_estricto(archivo)
     org = resolver_organizacion(organizacion_id)
     if not org:
         raise HTTPException(status_code=404, detail="Organización no encontrada.")
@@ -1898,31 +2129,32 @@ async def subir_contrato_institucion(
     contenido = await archivo.read()
     tamano = len(contenido)
     b64 = base64.b64encode(contenido).decode('utf-8')
-    subido_por = (correo_responsable or "diegoalexander.nino.583@hotmail.com").strip().lower()
-    tipo_doc = tipo_documento or "Contrato Firmado"
-    desc_completa = descripcion or f"{tipo_doc} - {org['nombre']}"
+    subido_por = (correo_responsable or "diego.alexander.nino.583@hotmail.com").strip().lower()
+    tipo_doc = (tipo_documento or "Contrato Firmado").strip()
+    subcat_db = _normalizar_subcategoria_institucional(tipo_doc, descripcion, nombre_pdf)
+    desc_completa = (descripcion or "").strip() or f"{tipo_doc} - {org['nombre']}"
 
     arch_id = db.execute_query("""
         INSERT INTO bodega_legal_archivos (categoria, organizacion_id, nombre_archivo, descripcion, tamano_bytes, contenido_b64, subido_por)
-        VALUES ('INSTITUCIONAL', ?, ?, ?, ?, ?, ?)
-    """, (org["id"], archivo.filename, desc_completa, tamano, b64, subido_por), return_id=True)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (subcat_db, org["id"], nombre_pdf, desc_completa, tamano, b64, subido_por), return_id=True)
 
     ip_cliente = obtener_ip_cliente(request) if request else "127.0.0.1"
     registrar_evento_boveda_legal(
         categoria="ACTA_INSTITUCIONAL",
         correo_responsable=subido_por,
-        rol_responsable="Oficial de Cumplimiento & Bodega Legal",
+        rol_responsable="Administrador Institucional Legal",
         direccion_ip=ip_cliente,
         organizacion_id=org["id"],
         organizacion_nombre=org["nombre"],
         tipo_organizacion=org.get("tipo_organizacion") or "Institución",
-        estado_convenio="DOCUMENTO INSTITUCIONAL REGISTRADO",
-        nombre_archivo=archivo.filename,
+        estado_convenio="DOCUMENTO PDF REGISTRADO",
+        nombre_archivo=nombre_pdf,
         cantidad_registros=1,
         confirmacion_ley1581=True,
         confirmacion_menores_art7=True,
-        declaracion_legal=f"DOCUMENTO INSTITUCIONAL INCORPORADO: Se asoció '{archivo.filename}' ({tipo_doc}) a la carpeta de '{org['nombre']}'.",
-        detalles_dict={"archivo_id": arch_id, "tipo_documento": tipo_doc, "tamano_bytes": tamano, "descripcion": desc_completa}
+        declaracion_legal=f"DOCUMENTO PDF INCORPORADO: Se asoció '{nombre_pdf}' ({desc_completa}) a la categoría '{subcat_db}' de '{org['nombre']}'.",
+        detalles_dict={"archivo_id": arch_id, "tipo_documento": tipo_doc, "subcategoria": subcat_db, "tamano_bytes": tamano, "descripcion": desc_completa}
     )
 
     try:
@@ -1930,8 +2162,13 @@ async def subir_contrato_institucion(
     except Exception:
         pass
 
-    registrar_movimiento(subido_por, "Bodega_Legal", "Subir_Doc_Institucional", "EXITO", f"Org: {org['nombre']} - Archivo: {archivo.filename} ({tipo_doc})")
-    return {"status": "success", "mensaje": f"Documento '{archivo.filename}' ({tipo_doc}) guardado en la carpeta de {org['nombre']}.", "id": arch_id}
+    registrar_movimiento(subido_por, "Administrador_Institucional_Legal", "Subir_Doc_Institucional_PDF", "EXITO", f"Org: {org['nombre']} - Archivo: {nombre_pdf} ({subcat_db})")
+    return {
+        "status": "success",
+        "mensaje": f"Documento PDF '{desc_completa}' guardado en la carpeta de {org['nombre']}.",
+        "id": arch_id,
+        "subcategoria": subcat_db
+    }
 
 
 @router.post("/api/bodega-legal/subir-archivo")
@@ -1941,51 +2178,53 @@ async def subir_cualquier_archivo_bodega_legal(
     destino: Optional[str] = Form("empresa"),  # "empresa" o "institucion"
     organizacion_id: Optional[int] = Form(None),
     categoria: Optional[str] = Form("LEGALES_EMPRESA"),
+    subcategoria_institucional: Optional[str] = Form(None),
     descripcion: Optional[str] = Form(None),
-    correo_responsable: Optional[str] = Form("diegoalexander.nino.583@hotmail.com")
+    correo_responsable: Optional[str] = Form("diego.alexander.nino.583@hotmail.com")
 ):
-    """Permite añadir CUALQUIER archivo (PDF, Word, Excel, CSV, Imagen, Zip, etc.) a la Bodega Legal de inmediato"""
+    """Permite añadir documentos exclusivamente en formato PDF (.pdf) a Administrador Institucional Legal"""
+    nombre_pdf = _validar_archivo_pdf_estricto(archivo)
     contenido = await archivo.read()
     tamano = len(contenido)
     b64 = base64.b64encode(contenido).decode('utf-8')
-    subido_por = (correo_responsable or "diegoalexander.nino.583@hotmail.com").strip().lower()
+    subido_por = (correo_responsable or "diego.alexander.nino.583@hotmail.com").strip().lower()
 
     dest = (destino or "empresa").strip().lower()
     org_id_final = None
     org_nom = "Consultoría EdTech Global"
     cat_final = (categoria or "LEGALES_EMPRESA").strip().upper()
 
+    desc_final = (descripcion or "").strip()
+    if not desc_final:
+        desc_final = os.path.splitext(nombre_pdf)[0]
+
     if dest in ("institucion", "organizacion") and organizacion_id:
         org = resolver_organizacion(organizacion_id)
         if org:
             org_id_final = org["id"]
             org_nom = org["nombre"]
-            cat_final = "INSTITUCIONAL"
-
-    desc_final = (descripcion or "").strip()
-    if not desc_final:
-        desc_final = f"Archivo añadido: {archivo.filename}"
+            cat_final = _normalizar_subcategoria_institucional(subcategoria_institucional or categoria, desc_final, nombre_pdf)
 
     arch_id = db.execute_query("""
         INSERT INTO bodega_legal_archivos (categoria, organizacion_id, nombre_archivo, descripcion, tamano_bytes, contenido_b64, subido_por)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (cat_final, org_id_final, archivo.filename, desc_final, tamano, b64, subido_por), return_id=True)
+    """, (cat_final, org_id_final, nombre_pdf, desc_final, tamano, b64, subido_por), return_id=True)
 
     ip_cliente = obtener_ip_cliente(request) if request else "127.0.0.1"
     registrar_evento_boveda_legal(
         categoria="CREACION_DOCUMENTO_LEGAL",
         correo_responsable=subido_por,
-        rol_responsable="Oficial de Cumplimiento & Bodega Legal",
+        rol_responsable="Administrador Institucional Legal",
         direccion_ip=ip_cliente,
         organizacion_id=org_id_final,
         organizacion_nombre=org_nom,
         tipo_organizacion="Institución" if org_id_final else "Empresa",
-        estado_convenio="DOCUMENTO ACTIVO",
-        nombre_archivo=archivo.filename,
+        estado_convenio="DOCUMENTO PDF ACTIVO",
+        nombre_archivo=nombre_pdf,
         cantidad_registros=1,
         confirmacion_ley1581=True,
         confirmacion_menores_art7=True,
-        declaracion_legal=f"Archivo '{archivo.filename}' incorporado a la Bodega Legal ({org_nom}).",
+        declaracion_legal=f"Documento PDF '{nombre_pdf}' ({desc_final}) incorporado en '{cat_final}' ({org_nom}).",
         detalles_dict={"archivo_id": arch_id, "tamano_bytes": tamano, "categoria": cat_final, "descripcion": desc_final}
     )
 
@@ -1994,12 +2233,14 @@ async def subir_cualquier_archivo_bodega_legal(
     except Exception:
         pass
 
-    registrar_movimiento(subido_por, "Bodega_Legal", "Añadir_Archivo", "EXITO", f"Archivo: {archivo.filename} ({tamano} bytes, {cat_final})")
+    registrar_movimiento(subido_por, "Administrador_Institucional_Legal", "Añadir_PDF", "EXITO", f"Archivo: {nombre_pdf} ({tamano} bytes, {cat_final})")
     return {
         "status": "success",
-        "mensaje": f"Archivo '{archivo.filename}' añadido exitosamente a la Bodega Legal.",
+        "mensaje": f"Documento PDF '{desc_final}' añadido exitosamente.",
         "id": arch_id,
-        "nombre_archivo": archivo.filename,
+        "nombre_archivo": nombre_pdf,
+        "descripcion": desc_final,
+        "categoria": cat_final,
         "destino": dest,
         "organizacion_nombre": org_nom
     }
@@ -2007,27 +2248,78 @@ async def subir_cualquier_archivo_bodega_legal(
 
 @router.get("/api/bodega-legal/descargar-archivo/{archivo_id}")
 def descargar_archivo_bodega_legal(archivo_id: int, request: Request):
-    """Descarga cualquier archivo persistido en la Bodega Legal"""
-    arch = db.execute_query("SELECT id, nombre_archivo, tamano_bytes, contenido_b64 FROM bodega_legal_archivos WHERE id = ?", (archivo_id,), fetchone=True)
+    """Descarga cualquier archivo persistido en formato PDF (.pdf)"""
+    arch = db.execute_query("SELECT id, nombre_archivo, descripcion, tamano_bytes, contenido_b64 FROM bodega_legal_archivos WHERE id = ?", (archivo_id,), fetchone=True)
     if not arch or not arch.get("contenido_b64"):
-        raise HTTPException(status_code=404, detail="Archivo no encontrado en la Bodega Legal.")
+        raise HTTPException(status_code=404, detail="Documento PDF no encontrado.")
 
     bytes_contenido = base64.b64decode(arch["contenido_b64"])
+    nombre = (arch.get("nombre_archivo") or "documento_legal.pdf").strip()
+    if not nombre.lower().endswith(".pdf"):
+        nombre = f"{os.path.splitext(nombre)[0]}.pdf"
+
+    if not bytes_contenido.startswith(b"%PDF"):
+        texto_plano = bytes_contenido.decode("utf-8", errors="replace")
+        bytes_contenido = _generar_pdf_corporativo_bytes(
+            titulo=arch.get("descripcion") or nombre,
+            subtitulo=f"Archivo Original: {nombre}",
+            cuerpo=texto_plano
+        )
+
     buffer = io.BytesIO(bytes_contenido)
-    nombre = arch.get("nombre_archivo") or "documento_bodega_legal.bin"
     return StreamingResponse(
         buffer,
-        media_type="application/octet-stream",
+        media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{nombre}"'}
+    )
+
+
+@router.get("/api/bodega-legal/descargar-registro-pdf/{registro_id}")
+def descargar_registro_boveda_como_pdf(registro_id: int, request: Request):
+    """Descarga un convenio institucional o acta previa de boveda_legal_registros en formato PDF (.pdf)"""
+    reg = db.execute_query(
+        """SELECT id, categoria, fecha_hora, direccion_ip, correo_responsable, rol_responsable,
+                  organizacion_id, organizacion_nombre, tipo_organizacion, estado_convenio,
+                  nombre_archivo, cantidad_registros, declaracion_legal, hash_integridad
+           FROM boveda_legal_registros WHERE id = ?""",
+        (registro_id,),
+        fetchone=True
+    )
+    if not reg:
+        raise HTTPException(status_code=404, detail="Registro legal no encontrado.")
+
+    es_convenio = reg.get("categoria") == "CONVENIO_INSTITUCIONAL"
+    titulo = f"CONVENIO INSTITUCIONAL - {reg.get('organizacion_nombre') or 'ENTIDAD'}" if es_convenio else f"ACTA PREVIA HABEAS DATA #{reg['id']} - {reg.get('organizacion_nombre') or 'ENTIDAD'}"
+    subtitulo = f"Ley Estatutaria 1581 de 2012 y Decreto 1377 de 2013 - Fecha: {reg.get('fecha_hora')}"
+    cuerpo = (
+        f"CERTIFICADO OFICIAL DE CUMPLIMIENTO LEGAL Y TRAZABILIDAD\n\n"
+        f"ID de Registro: #{reg['id']}\n"
+        f"Categoría Legal: {reg.get('categoria')}\n"
+        f"Institución / Entidad: {reg.get('organizacion_nombre')} (ID: {reg.get('organizacion_id')})\n"
+        f"Tipo de Entidad: {reg.get('tipo_organizacion') or 'Institución Educativa / Empresa'}\n"
+        f"Estado / Clasificación: {reg.get('estado_convenio') or 'VIGENTE'}\n"
+        f"Responsable Autenticado: {reg.get('correo_responsable')} ({reg.get('rol_responsable') or 'Oficial de Cumplimiento'})\n"
+        f"Fecha y Hora Oficial: {reg.get('fecha_hora')}\n"
+        f"Titulares / Registros Amparados: {reg.get('cantidad_registros') or 1}\n"
+        f"Sello Criptográfico SHA-256: {reg.get('hash_integridad')}\n\n"
+        f"DECLARACIÓN JURÍDICA VINCULANTE:\n"
+        f"{reg.get('declaracion_legal') or 'Certificación vigente conforme a la Ley 1581 de 2012 y Decreto 1377 de 2013.'}\n"
+    )
+    pdf_bytes = _generar_pdf_corporativo_bytes(titulo, subtitulo, cuerpo)
+    prefijo = "convenio_institucional" if es_convenio else "acta_previa_habeas_data"
+    nombre_descarga = f"{prefijo}_{reg['id']}.pdf"
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{nombre_descarga}"'}
     )
 
 
 @router.get("/api/bodega-legal/descargar-documento-oficial/{doc_id}")
 def descargar_documento_oficial_base(doc_id: str, request: Request):
-    """Genera y descarga el texto íntegro oficial colombiano del documento seleccionado"""
+    """Genera y descarga el documento oficial colombiano seleccionado en formato PDF (.pdf)"""
     pol = next((p for p in POLITICAS_LEGALES_OFICIALES if p["id"] == doc_id), None)
-    
-    # Textos legales formateados oficiales
+
     textos_oficiales = {
         "convenio_marco": (
             "CONVENIO MARCO DE COOPERACIÓN Y TRATAMIENTO DE DATOS PERSONALES\n"
@@ -2045,7 +2337,7 @@ def descargar_documento_oficial_base(doc_id: str, request: Request):
             "CLÁUSULA CUARTA - USO DE SIGNOS DISTINTIVOS Y LOGOS: Las partes autorizan el uso recíproco y no exclusivo de sus logotipos "
             "y distintivos institucionales para efectos exclusivos de la ambientación del espacio multi-tenant, emisión de reportes ejecutivos "
             "y expedición de constancias académicas.\n\n"
-            "CLÁUSULA QUINTA - INMUTABILIDAD Y AUDITORÍA: Todo movimiento y cargue de datos genera actas inmutables en la Bodega Legal "
+            "CLÁUSULA QUINTA - INMUTABILIDAD Y AUDITORÍA: Todo movimiento y cargue de datos genera actas inmutables en Administrador Institucional Legal "
             "con sellado de tiempo y hash SHA-256 para efectos de control ante la Superintendencia de Industria y Comercio (SIC).\n"
         ),
         "politica_datos": (
@@ -2062,7 +2354,7 @@ def descargar_documento_oficial_base(doc_id: str, request: Request):
             "ser informado sobre el uso de sus datos; revocar la autorización o solicitar la supresión de los datos cuando no exista deber legal "
             "o contractual de conservarlos.\n\n"
             "4. CANAL DE ATENCIÓN DE HABEAS DATA:\n"
-            "Los titulares pueden ejercer sus derechos enviando comunicación formal al canal de Auditoría Legal y Cumplimiento: diegoalexander.nino.583@hotmail.com."
+            "Los titulares pueden ejercer sus derechos enviando comunicación formal al canal de Administrador Institucional Legal: diego.alexander.nino.583@hotmail.com."
         ),
         "autorizacion_menores": (
             "FORMATO OFICIAL DE AUTORIZACIÓN DE PADRES O ACUDIENTES LEGALES PARA MENORES DE EDAD\n"
@@ -2102,11 +2394,17 @@ def descargar_documento_oficial_base(doc_id: str, request: Request):
     if not contenido_texto:
         raise HTTPException(status_code=404, detail="Documento oficial no encontrado.")
 
-    buffer = io.BytesIO(contenido_texto.encode('utf-8'))
-    nombre_descarga = f"documento_legal_oficial_{doc_id}.txt"
+    lineas_doc = [l.strip() for l in contenido_texto.splitlines() if l.strip()]
+    titulo_doc = lineas_doc[0] if lineas_doc else f"Documento Oficial {doc_id}"
+    pdf_bytes = _generar_pdf_corporativo_bytes(
+        titulo=titulo_doc,
+        subtitulo="Normatividad Colombiana - Ley Estatutaria 1581 de 2012 y Decreto 1377 de 2013",
+        cuerpo=contenido_texto
+    )
+    nombre_descarga = f"documento_legal_oficial_{doc_id}.pdf"
     return StreamingResponse(
-        buffer,
-        media_type="text/plain; charset=utf-8",
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{nombre_descarga}"'}
     )
 
