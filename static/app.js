@@ -2954,14 +2954,19 @@ function clasificarRolUsuario(rol) {
   if (
     r === 'SUPER_ADMIN' ||
     r === 'SUPER ADMINISTRADOR' ||
+    r === 'SUPERADMINISTRADOR' ||
+    r === 'BODEGA_LEGAL' ||
+    r === 'BODEGA LEGAL' ||
+    r.includes('SUPER') ||
+    r.includes('BODEGA')
+  ) {
+    return 'OCULTO_GLOBAL';
+  }
+  if (
     r === 'ADMIN' ||
     r === 'ADMINISTRADOR' ||
     r === 'ADMINISTRATIVO' ||
-    r === 'BODEGA_LEGAL' ||
-    r === 'BODEGA LEGAL' ||
     r.includes('ADMIN') ||
-    r.includes('BODEGA') ||
-    r.includes('SUPER') ||
     r.includes('DIRECTIV') ||
     r.includes('RECTOR')
   ) {
@@ -3121,16 +3126,29 @@ function renderizarTableroJerarquico(data) {
   if (!data) return;
 
   // Normalización y partición estricta de roles:
-  // Prohibido mezclar administradores o mentores en aprendices.
+  // Prohibido mezclar administradores o mentores en aprendices, y prohibido mostrar cuentas globales (Superadministrador / Bodega Legal) en vistas institucionales.
+  const correosMaestrosOcultos = new Set([
+    'alexander.nino.583@gmail.com',
+    'alexander.niño.583@hgmail.com',
+    'alexander.nino.583@hgmail.com',
+    'diego.alexander.nino.583@hotmail.com',
+    'diegoalexander.nino.583@hotmail.com'
+  ]);
   const todosLosUsuarios = [
     ...(data.administradores || []),
     ...(data.mentores || []),
     ...(data.aprendices || [])
   ];
   const mapaUnicos = new Map();
+  const correosVistos = new Set();
   todosLosUsuarios.forEach(u => {
-    if (u && u.id && !mapaUnicos.has(u.id)) {
+    if (!u || !u.id) return;
+    const correoNorm = String(u.correo || '').trim().toLowerCase();
+    if (correosMaestrosOcultos.has(correoNorm)) return;
+    if (clasificarRolUsuario(u.rol) === 'OCULTO_GLOBAL') return;
+    if (!mapaUnicos.has(u.id) && (!correoNorm || !correosVistos.has(correoNorm))) {
       mapaUnicos.set(u.id, u);
+      if (correoNorm) correosVistos.add(correoNorm);
     }
   });
   const unicos = Array.from(mapaUnicos.values());
@@ -4668,6 +4686,20 @@ function confirmarEliminarMaterial(id, titulo) {
   materialIdAEliminar = id;
   const lbl = document.getElementById('lbl-eliminar-material-titulo');
   if (lbl) lbl.innerText = `"${titulo}"`;
+  const desc = document.getElementById('desc-eliminar-material-modal');
+  const btn = document.getElementById('btn-ejecutar-eliminar-material');
+  const col = (catalogoColeccionesActuales || []).find(c => Number(c.id) === Number(id));
+  const yaEnviada = Boolean((col && Number(col.total_instituciones_enviadas || 0) > 0) || (todasAsignacionesColecciones || []).some(a => Number(a.material_id) === Number(id)));
+  if (desc) {
+    if (yaEnviada) {
+      desc.innerHTML = `¿Deseas limpiar <strong id="lbl-eliminar-material-titulo" class="text-[#0a192f] dark:text-white">"${escapeHtml(titulo)}"</strong> de tu Catálogo Global?<br><span class="text-emerald-600 dark:text-emerald-400 font-semibold block mt-1">✓ La institución que ya la recibió conservará su acceso y se mantendrá el registro histórico de la fecha de envío para evitar duplicados.</span>`;
+    } else {
+      desc.innerHTML = `¿Estás seguro de eliminar <strong id="lbl-eliminar-material-titulo" class="text-[#0a192f] dark:text-white">"${escapeHtml(titulo)}"</strong> del catálogo? Esta colección aún no ha sido enviada a ninguna institución.`;
+    }
+  }
+  if (btn) {
+    btn.innerText = yaEnviada ? 'Sí, Limpiar de Catálogo Global' : 'Sí, Eliminar';
+  }
   document.getElementById('modal-confirmar-eliminar-material').classList.remove('hidden');
 }
 
@@ -5907,8 +5939,14 @@ async function cargarMateriales() {
     }
 
     grid.innerHTML = mats.map(m => {
+      const yaFueEnviada = Number(m.total_instituciones_enviadas || 0) > 0;
+      const botonEditar = esSuperAdmin ? `
+        <button onclick="abrirModalEditarMaterial(${m.id})" title="Editar colección en el catálogo" class="p-1.5 rounded-lg text-slate-400 hover:text-cyan-600 hover:bg-cyan-50 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+          <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+        </button>
+      ` : '';
       const botonEliminar = puedeEliminar ? `
-        <button onclick="confirmarEliminarMaterial(${m.id}, '${escapeHtml(m.titulo)}')" title="Eliminar colección del catálogo" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors">
+        <button onclick="confirmarEliminarMaterial(${m.id}, '${escapeHtml(m.titulo)}')" title="${yaFueEnviada ? 'Limpiar del catálogo global (se conserva en la institución receptora)' : 'Eliminar colección del catálogo'}" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-slate-800 transition-colors cursor-pointer">
           <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
         </button>
       ` : '';
@@ -5920,29 +5958,47 @@ async function cargarMateriales() {
         </button>
       ` : '';
 
-      const rolDestinoTexto = m.rol_destino === 'Mentor' 
-        ? ('👨‍🏫 ' + t('cat_para_mentores', 'Para Mentores')) 
-        : (m.rol_destino === 'Todos' ? ('🌐 ' + t('cat_global', 'Global')) : ('🎓 ' + t('cat_para_aprendices', 'Para Aprendices')));
+      const etiquetaRol = m.etiqueta_destino || (
+        m.rol_destino === 'Mentor' ? 'Para Mentores' : (m.rol_destino === 'Aprendiz' ? 'Para Aprendices' : 'Para Todos')
+      );
+      const iconoRol = etiquetaRol.includes('Mentor') ? '👨‍🏫' : (etiquetaRol.includes('Aprendiz') ? '🎓' : '🌐');
+      const rolDestinoTexto = `${iconoRol} ${etiquetaRol}`;
+
+      const badgeEnviada = (esSuperAdmin && yaFueEnviada) ? `
+        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800" title="Último envío: ${escapeHtml(m.ultima_fecha_envio || '')}">
+          ✓ Enviada (${m.total_instituciones_enviadas})
+        </span>
+      ` : '';
+
+      const mensajeSuperAdminHtml = m.mensaje_superadmin ? `
+        <div class="mt-2 mb-2 p-2.5 rounded-xl bg-amber-50/80 dark:bg-slate-800/90 border border-amber-200 dark:border-cyan-800 text-[11px] text-slate-700 dark:text-slate-200">
+          <strong class="font-bold text-amber-900 dark:text-cyan-300 block">💬 Instrucción de Consultoría:</strong>
+          <span>${escapeHtml(m.mensaje_superadmin)}</span>
+        </div>
+      ` : '';
 
       return `
         <div class="corp-card p-5 flex flex-col justify-between hover:shadow-md transition-shadow relative">
           <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <span class="text-[10px] font-bold text-cyan-600 uppercase tracking-wider">${m.tipo_material || 'Curso'}</span>
-              <div class="flex items-center space-x-1">
+            <div class="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+              <span class="text-[10px] font-bold text-cyan-600 uppercase tracking-wider">${escapeHtml(m.tipo_material || 'Curso')}</span>
+              <div class="flex items-center space-x-1 flex-wrap">
                 <span class="px-2 py-0.5 rounded text-[10px] font-extrabold badge-catalogo-modulos">
                   ${m.total_modulos || 3} ${t('cat_modulos', 'Módulos')}
                 </span>
                 <span class="text-[10px] font-bold px-2 py-0.5 rounded badge-catalogo-rol">
-                  ${rolDestinoTexto}
+                  ${escapeHtml(rolDestinoTexto)}
                 </span>
+                ${badgeEnviada}
+                ${botonEditar}
                 ${botonEliminar}
               </div>
             </div>
-            <h4 class="text-sm font-bold text-[#0a192f] mt-1 mb-2 leading-snug">${m.titulo}</h4>
-            ${m.organizacion_nombre ? `<p class="text-[11px] text-slate-400 mb-2 font-medium">${t('cat_institucion', 'Institución')}: <span class="text-slate-600 font-semibold">${m.organizacion_nombre}</span></p>` : `<p class="text-[11px] text-cyan-600 mb-2 font-medium">${t('cat_acceso_global', 'Acceso Global (Todas)')}</p>`}
+            <h4 class="text-sm font-bold text-[#0a192f] dark:text-white mt-1 mb-2 leading-snug">${escapeHtml(m.titulo)}</h4>
+            ${m.organizacion_nombre ? `<p class="text-[11px] text-slate-400 mb-2 font-medium">${t('cat_institucion', 'Institución')}: <span class="text-slate-600 dark:text-slate-300 font-semibold">${escapeHtml(m.organizacion_nombre)}</span></p>` : `<p class="text-[11px] text-cyan-600 dark:text-cyan-400 mb-2 font-medium">${t('cat_acceso_global', 'En Catálogo Global (Lista para asignar)')}</p>`}
+            ${mensajeSuperAdminHtml}
           </div>
-          <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+          <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap">
             <a href="${m.enlace_url}" target="_blank" class="btn-catalogo-explorar flex-1">
               <span>${t('cat_explorar_material', 'Explorar Material')}</span>
               <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
@@ -5963,6 +6019,54 @@ function abrirModalCrearMaterial() {
     mostrarToast('Acceso exclusivo: Solo el Super Administrador está facultado para subir y habilitar contenidos en el catálogo global de la plataforma.', 'advertencia');
     return;
   }
+  const editIdInput = document.getElementById('mat-edit-id');
+  if (editIdInput) editIdInput.value = '';
+  const titModal = document.getElementById('modal-crear-material-titulo');
+  if (titModal) titModal.innerText = 'Crear / Guardar Colección en Catálogo';
+  const btnSubmit = document.getElementById('btn-submit-crear-material');
+  if (btnSubmit) btnSubmit.innerText = 'Guardar Colección en Catálogo';
+  const inTit = document.getElementById('mat-titulo');
+  const inUrl = document.getElementById('mat-url');
+  const inMod = document.getElementById('mat-modulos');
+  const inOrg = document.getElementById('mat-asignar-org');
+  if (inTit) inTit.value = '';
+  if (inUrl) inUrl.value = '';
+  if (inMod) inMod.value = '3';
+  if (inOrg) inOrg.value = '';
+  document.getElementById('modal-crear-material').classList.remove('hidden');
+}
+
+function abrirModalEditarMaterial(materialId) {
+  if (currentUser && currentUser.rol !== 'Super Administrador') {
+    mostrarToast('Solo el Super Administrador puede editar colecciones del catálogo global.', 'advertencia');
+    return;
+  }
+  const col = (catalogoColeccionesActuales || []).find(c => Number(c.id) === Number(materialId));
+  if (!col) {
+    mostrarToast('No se encontró la colección seleccionada en el catálogo.', 'error');
+    return;
+  }
+  const editIdInput = document.getElementById('mat-edit-id');
+  if (editIdInput) editIdInput.value = String(col.id);
+  const titModal = document.getElementById('modal-crear-material-titulo');
+  if (titModal) titModal.innerText = 'Editar Colección del Catálogo';
+  const btnSubmit = document.getElementById('btn-submit-crear-material');
+  if (btnSubmit) btnSubmit.innerText = 'Guardar Cambios en Tiempo Real';
+
+  const inTit = document.getElementById('mat-titulo');
+  const inTipo = document.getElementById('mat-tipo');
+  const inRol = document.getElementById('mat-rol-destino');
+  const inUrl = document.getElementById('mat-url');
+  const inMod = document.getElementById('mat-modulos');
+  const inOrg = document.getElementById('mat-asignar-org');
+
+  if (inTit) inTit.value = col.titulo || '';
+  if (inTipo && col.tipo_material) inTipo.value = col.tipo_material;
+  if (inRol && col.rol_destino) inRol.value = col.rol_destino;
+  if (inUrl) inUrl.value = col.enlace_url || '';
+  if (inMod) inMod.value = String(col.total_modulos || 3);
+  if (inOrg) inOrg.value = col.organizacion_id ? String(col.organizacion_id) : '';
+
   document.getElementById('modal-crear-material').classList.remove('hidden');
 }
 
@@ -5972,28 +6076,35 @@ async function guardarNuevoMaterial(event) {
     mostrarToast('Acceso exclusivo: Solo el Super Administrador está facultado para subir y habilitar contenidos en el catálogo global.', 'error');
     return;
   }
+  const editId = document.getElementById('mat-edit-id')?.value?.trim() || '';
   const titulo = document.getElementById('mat-titulo').value.trim();
   const tipo_material = document.getElementById('mat-tipo').value;
   const enlace_url = document.getElementById('mat-url').value.trim();
   const rol_destino = document.getElementById('mat-rol-destino').value;
   const total_modulos = parseInt(document.getElementById('mat-modulos')?.value || 3);
-  const orgVal = document.getElementById('mat-asignar-org').value;
+  const orgVal = document.getElementById('mat-asignar-org')?.value || '';
   const organizacion_id = orgVal ? parseInt(orgVal) : null;
 
   try {
-    const res = await fetch(`${API_BASE}/api/superadmin/material/crear`, {
-      method: 'POST',
+    const endpoint = editId
+      ? `${API_BASE}/api/superadmin/material/${editId}`
+      : `${API_BASE}/api/superadmin/material/crear`;
+    const method = editId ? 'PUT' : 'POST';
+
+    const res = await fetch(endpoint, {
+      method,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ titulo, tipo_material, enlace_url, rol_destino, total_modulos, organizacion_id })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || 'Error al subir material');
+    if (!res.ok) throw new Error(data.detail || 'Error al guardar colección');
 
-    mostrarToast('✓ Contenido registrado en el Catálogo Global. Los administradores institucionales ya pueden derivarlo.', 'exito');
+    mostrarToast(data.mensaje || (editId ? '✓ Colección actualizada en tiempo real.' : '✓ Colección guardada en el Catálogo Global.'), 'exito');
     cerrarModal('modal-crear-material');
+    if (document.getElementById('mat-edit-id')) document.getElementById('mat-edit-id').value = '';
     document.getElementById('mat-titulo').value = '';
     document.getElementById('mat-url').value = '';
-    cargarMateriales();
+    await cargarMateriales();
   } catch (err) {
     mostrarToast(err.message, 'error');
   }
@@ -6083,10 +6194,22 @@ async function abrirModalEnviarColeccion(materialId = null) {
       selectCol.innerHTML = '<option value="">Elegir colección de Microsoft Learn...</option>' +
         catalogoColeccionesActuales.map(m => `<option value="${m.id}">📚 ${m.titulo} (${m.total_modulos || 3} Módulos)</option>`).join('');
 
-      if (materialId) selectCol.value = materialId;
+      if (materialId) {
+        selectCol.value = materialId;
+        const colSel = catalogoColeccionesActuales.find(c => Number(c.id) === Number(materialId));
+        const selectEtiqueta = document.getElementById('select-etiqueta-destino-envio');
+        if (selectEtiqueta && colSel) {
+          if (colSel.rol_destino === 'Mentor') selectEtiqueta.value = 'Para Mentores';
+          else if (colSel.rol_destino === 'Aprendiz') selectEtiqueta.value = 'Para Aprendices';
+          else selectEtiqueta.value = 'Para Todos';
+        }
+      }
     }
 
-    // Cargar todas las asignaciones existentes para alerta anti-duplicados
+    const inputMsg = document.getElementById('input-mensaje-envio-coleccion');
+    if (inputMsg) inputMsg.value = '';
+
+    // Cargar todas las asignaciones existentes (incluyendo el historial permanente) para alerta anti-duplicados
     const resAsig = await fetch(`${API_BASE}/api/superadmin/colecciones/asignaciones-todas`);
     const jsonAsig = await resAsig.json();
     todasAsignacionesColecciones = jsonAsig.data || [];
@@ -6246,54 +6369,80 @@ function verificarDuplicadoColeccionEnvio() {
   }
 
   const orgNombre = selectOrg.options[selectOrg.selectedIndex]?.text || 'esta institución';
+  const colSeleccionada = (catalogoColeccionesActuales || []).find(c => Number(c.id) === Number(colId));
+  const tituloNorm = String(colSeleccionada?.titulo || '').trim().toLowerCase();
 
-  // Verificar si ya fue asignada según el nivel y destinatario
-  let yaEnviada = false;
+  // Función auxiliar para coincidencia por ID o por título (incluso si se limpió del catálogo global y se recreó)
+  const coincideColeccion = (a) => {
+    if (Number(a.material_id) === Number(colId)) return true;
+    const aTit = String(a.material_titulo || '').trim().toLowerCase();
+    return Boolean(tituloNorm && aTit && aTit === tituloNorm);
+  };
+
+  // Verificar si ya fue asignada según el nivel y destinatario y obtener el registro con la fecha exacta
+  let registroPrevio = null;
   let motivoDuplicado = '';
 
   if (nivel === 'Institución') {
-    yaEnviada = todasAsignacionesColecciones.some(a => 
-      a.material_id === colId && a.organizacion_id === orgId && 
+    registroPrevio = todasAsignacionesColecciones.find(a =>
+      coincideColeccion(a) && Number(a.organizacion_id) === Number(orgId) &&
       (a.destinatario_tipo === 'Institución' || !a.destinatario_tipo)
     );
-    motivoDuplicado = `La colección ya fue asignada previamente a la directiva/administradores de <strong>${orgNombre}</strong>. Ya está disponible en su catálogo institucional.`;
+    motivoDuplicado = `La colección ya fue enviada previamente a la directiva/administradores de <strong>${orgNombre}</strong>.`;
   } else if (nivel === 'Mentores') {
     if (destId) {
-      yaEnviada = todasAsignacionesColecciones.some(a => 
-        a.material_id === colId && a.organizacion_id === orgId && 
-        a.destinatario_tipo === 'Mentores' && a.destinatario_id == destId
+      registroPrevio = todasAsignacionesColecciones.find(a =>
+        coincideColeccion(a) && Number(a.organizacion_id) === Number(orgId) &&
+        a.destinatario_tipo === 'Mentores' && Number(a.destinatario_id) === Number(destId)
       );
       motivoDuplicado = `Esta colección ya fue asignada específicamente a este mentor seleccionado.`;
     } else {
-      yaEnviada = todasAsignacionesColecciones.some(a => 
-        a.material_id === colId && a.organizacion_id === orgId && 
-        a.destinatario_tipo === 'Mentores' && (!a.destinatario_id || a.destinatario_id == 0)
+      registroPrevio = todasAsignacionesColecciones.find(a =>
+        coincideColeccion(a) && Number(a.organizacion_id) === Number(orgId) &&
+        a.destinatario_tipo === 'Mentores' && (!a.destinatario_id || Number(a.destinatario_id) === 0)
       );
       motivoDuplicado = `Esta colección ya fue enviada previamente a todos los mentores de <strong>${orgNombre}</strong>.`;
     }
   } else if (nivel === 'Aprendices') {
     if (destId) {
-      yaEnviada = todasAsignacionesColecciones.some(a => 
-        a.material_id === colId && a.organizacion_id === orgId && 
-        a.destinatario_tipo === 'Aprendices' && a.destinatario_id == destId
+      registroPrevio = todasAsignacionesColecciones.find(a =>
+        coincideColeccion(a) && Number(a.organizacion_id) === Number(orgId) &&
+        a.destinatario_tipo === 'Aprendices' && Number(a.destinatario_id) === Number(destId)
       );
       motivoDuplicado = `Este estudiante ya se encuentra matriculado en esta colección.`;
     } else {
-      yaEnviada = todasAsignacionesColecciones.some(a => 
-        a.material_id === colId && a.organizacion_id === orgId && 
-        a.destinatario_tipo === 'Aprendices' && (!a.destinatario_id || a.destinatario_id == 0)
+      registroPrevio = todasAsignacionesColecciones.find(a =>
+        coincideColeccion(a) && Number(a.organizacion_id) === Number(orgId) &&
+        a.destinatario_tipo === 'Aprendices' && (!a.destinatario_id || Number(a.destinatario_id) === 0)
       );
       motivoDuplicado = `Esta colección ya fue enviada y matriculada a todos los aprendices de <strong>${orgNombre}</strong>.`;
     }
   }
+
+  // Además, si ya fue enviada a la institución en cualquier nivel por el Superadministrador, informar si se intenta reenviar a la misma institución
+  if (!registroPrevio && nivel === 'Institución') {
+    registroPrevio = todasAsignacionesColecciones.find(a =>
+      coincideColeccion(a) && Number(a.organizacion_id) === Number(orgId)
+    );
+    if (registroPrevio) {
+      motivoDuplicado = `Esta colección ya fue enviada previamente a <strong>${orgNombre}</strong>.`;
+    }
+  }
+
+  const yaEnviada = Boolean(registroPrevio);
+  const fechaExactaPrevio = registroPrevio?.fecha_asignacion || 'Fecha registrada en historial';
+  const etiquetaPrevia = registroPrevio?.etiqueta_destino ? ` · Etiqueta: <strong>${escapeHtml(registroPrevio.etiqueta_destino)}</strong>` : '';
 
   if (yaEnviada) {
     alertaBox.className = 'alerta-caja-error p-3.5 rounded-xl border text-xs flex items-start gap-2 shadow-sm animate-pulse';
     alertaBox.innerHTML = `
       <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-500 shrink-0 mt-0.5"></i>
       <div>
-        <strong class="font-extrabold block">⚠️ ¡Alerta! Esta colección ya fue enviada a este destino</strong>
+        <strong class="font-extrabold block">⚠️ ¡Envío bloqueado por duplicado! Esta colección ya fue enviada</strong>
         <p class="text-[11px] mt-0.5 opacity-90">${motivoDuplicado}</p>
+        <p class="text-[11px] mt-1 font-mono font-bold text-rose-700 dark:text-rose-300 bg-rose-100/80 dark:bg-rose-950/70 px-2 py-1 rounded-lg inline-block">
+          📅 Fecha exacta de envío previo: <strong>${escapeHtml(fechaExactaPrevio)}</strong>${etiquetaPrevia}
+        </p>
       </div>
     `;
     if (btnSubmit) {
@@ -6349,13 +6498,18 @@ async function ejecutarEnviarColeccionOrganizacion(event) {
       btnSubmit.innerHTML = 'Enviando colección...';
     }
 
+    const etiquetaDestino = document.getElementById('select-etiqueta-destino-envio')?.value || 'Para Todos';
+    const mensajeSuperadmin = document.getElementById('input-mensaje-envio-coleccion')?.value?.trim() || null;
+
     const payload = {
       material_id: colId,
       organizacion_id: orgId,
       destinatario_tipo: nivel,
       destinatario_id: destId,
       remitente_id: currentUser?.id || null,
-      remitente_rol: currentUser?.rol || 'Administración'
+      remitente_rol: currentUser?.rol || 'Administración',
+      etiqueta_destino: etiquetaDestino,
+      mensaje_superadmin: mensajeSuperadmin
     };
 
     const res = await fetch(`${API_BASE}/api/superadmin/colecciones/enviar-a-organizacion`, {
@@ -7073,7 +7227,19 @@ function renderizarColeccionesOrganizacion(colecciones) {
             </span>
           </div>
 
-          <h4 class="text-sm font-bold text-[#0a192f] leading-snug mb-1.5">${c.titulo}</h4>
+          <h4 class="text-sm font-bold text-[#0a192f] dark:text-white leading-snug mb-1.5">${escapeHtml(c.titulo)}</h4>
+          <div class="flex items-center flex-wrap gap-1.5 mb-2">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-50 text-cyan-800 border border-cyan-200 dark:bg-cyan-950/60 dark:text-cyan-300 dark:border-cyan-800">
+              🏷️ ${escapeHtml(c.etiqueta_destino || (c.rol_destino === 'Mentor' ? 'Para Mentores' : (c.rol_destino === 'Aprendiz' ? 'Para Aprendices' : 'Para Todos')))}
+            </span>
+            ${c.fecha_asignacion ? `<span class="text-[10px] text-slate-400 font-mono">📅 Enviada: ${escapeHtml(c.fecha_asignacion)}</span>` : ''}
+          </div>
+          ${c.mensaje_superadmin ? `
+            <div class="mb-2.5 p-2 rounded-lg bg-amber-50/80 dark:bg-slate-800 border border-amber-200 dark:border-cyan-800 text-[11px] text-slate-700 dark:text-slate-200">
+              <strong class="font-bold text-amber-900 dark:text-cyan-300 block">💬 Mensaje de Consultoría:</strong>
+              <span>${escapeHtml(c.mensaje_superadmin)}</span>
+            </div>
+          ` : ''}
           
           <a href="${c.enlace_url}" target="_blank" class="text-[11px] text-cyan-600 hover:text-cyan-800 font-semibold underline flex items-center gap-1 mb-3">
             <span>Ruta en Microsoft Learn</span>
@@ -10422,10 +10588,11 @@ async function cargarColeccionesEstadoOrganizacion(orgId) {
             <div class="flex items-start justify-between gap-2">
               <div>
                 <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 inline-block mb-1">
-                  ✓ Asignada
+                  ✓ Asignada · ${escapeHtml(c.etiqueta_destino || (c.rol_destino === 'Mentor' ? 'Para Mentores' : (c.rol_destino === 'Aprendiz' ? 'Para Aprendices' : 'Para Todos')))}
                 </span>
-                <h5 class="text-xs font-bold text-slate-800 leading-snug">${escapeHtml(c.titulo)}</h5>
-                <span class="text-[10px] text-slate-400 font-medium">Asignada: ${c.fecha_asignacion ? c.fecha_asignacion.substring(0, 10) : '--'}</span>
+                <h5 class="text-xs font-bold text-slate-800 dark:text-white leading-snug">${escapeHtml(c.titulo)}</h5>
+                <span class="text-[10px] text-slate-400 font-medium block">📅 Enviada: ${escapeHtml(c.fecha_asignacion || '--')}</span>
+                ${c.mensaje_superadmin ? `<p class="text-[10px] text-amber-800 dark:text-cyan-300 bg-amber-50 dark:bg-slate-800 px-2 py-1 rounded mt-1 border border-amber-200 dark:border-cyan-800">💬 ${escapeHtml(c.mensaje_superadmin)}</p>` : ''}
               </div>
               <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-50 text-cyan-800 border border-cyan-200 shrink-0">
                 ${c.total_modulos} Módulos

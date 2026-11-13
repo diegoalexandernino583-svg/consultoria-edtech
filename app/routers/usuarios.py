@@ -331,27 +331,48 @@ def cambiar_cargo_usuario_tiempo_real(usuario_id: int, datos: CambiarCargoTiempo
 @router.put("/api/usuarios/{usuario_id}")
 @router.put("/api/superadmin/usuarios/{usuario_id}")
 def actualizar_usuario(usuario_id: int, datos: ActualizarUsuarioRequest):
-    """Permite modificar o corregir cargos duplicados, nombres, roles o mentores asignados"""
+    """Permite modificar o corregir cargos duplicados, nombres, correos, roles o mentores asignados en tiempo real con Azure SQL"""
     u = db.execute_query("SELECT id, nombre, correo, rol, organizacion_id, mentor_id FROM usuarios WHERE id = ?", (usuario_id,), fetchone=True)
     if not u:
         raise HTTPException(status_code=404, detail="El usuario no existe.")
         
-    # Protección de la cuenta y jerarquía de Super Administrador
-    if u.get("rol") == "Super Administrador" and datos.rol != "Super Administrador":
-        raise HTTPException(status_code=400, detail="La cuenta principal de Super Administrador está blindada y no puede ser modificada desde la jerarquía institucional.")
+    rol_actual_upper = str(u.get("rol") or "").strip().upper()
+    rol_nuevo = (datos.rol or u.get("rol") or "Aprendiz").strip()
+    if rol_actual_upper in ("SUPER ADMINISTRADOR", "SUPER_ADMIN", "SUPERADMIN") and rol_nuevo.upper() not in ("SUPER ADMINISTRADOR", "SUPER_ADMIN", "SUPERADMIN"):
+        raise HTTPException(status_code=400, detail="La cuenta global de Super Administrador no puede cambiar de rol desde la jerarquía institucional.")
 
-    if not datos.rol or not datos.rol.strip():
-        raise HTTPException(status_code=400, detail="El cargo o rol es requerido.")
+    nombre_nuevo = (datos.nombre or u.get("nombre") or "").strip()
+    if not nombre_nuevo:
+        raise HTTPException(status_code=400, detail="El nombre completo es requerido.")
 
-    correo_nuevo = datos.correo.strip().lower()
-    # Verificar si el nuevo correo colisiona con otro usuario distinto
-    colision = db.execute_query("SELECT id FROM usuarios WHERE correo = ? AND id != ?", (correo_nuevo, usuario_id), fetchone=True)
+    correo_nuevo = (datos.correo or u.get("correo") or "").strip().lower()
+    if not correo_nuevo or "@" not in correo_nuevo:
+        raise HTTPException(status_code=400, detail="El correo electrónico debe ser válido.")
+
+    # Verificar si el nuevo correo colisiona con otro usuario distinto (case-insensitive)
+    colision = db.execute_query(
+        "SELECT id, nombre, rol FROM usuarios WHERE LOWER(TRIM(correo)) = ? AND id != ?",
+        (correo_nuevo, usuario_id),
+        fetchone=True
+    )
     if colision:
-        raise HTTPException(status_code=400, detail="El correo ya pertenece a otro usuario registrado.")
+        raise HTTPException(
+            status_code=400,
+            detail=f"El correo '{correo_nuevo}' ya está asignado a '{colision.get('nombre')}' (ID #{colision.get('id')})."
+        )
 
-    org_id_final = datos.organizacion_id or u.get("organizacion_id") or 13
-    mentor_id_final = datos.mentor_id if datos.rol == "Aprendiz" else None
-    if datos.rol == "Aprendiz" and not mentor_id_final:
+    # Normalizar organizacion_id y mentor_id aceptando int, str o None
+    def _parse_optional_int(val, fallback=None):
+        if val is None or val == "" or str(val).lower() in ("null", "none", "0"):
+            return fallback
+        try:
+            return int(val)
+        except Exception:
+            return fallback
+
+    org_id_final = _parse_optional_int(datos.organizacion_id, u.get("organizacion_id") or 13)
+    mentor_id_final = _parse_optional_int(datos.mentor_id, None) if rol_nuevo == "Aprendiz" else None
+    if rol_nuevo == "Aprendiz" and not mentor_id_final:
         m_row = db.execute_query(
             "SELECT id FROM usuarios WHERE organizacion_id = ? AND rol = 'Mentor' AND id != ? ORDER BY id ASC LIMIT 1",
             (org_id_final, usuario_id), fetchone=True
@@ -363,15 +384,15 @@ def actualizar_usuario(usuario_id: int, datos: ActualizarUsuarioRequest):
         UPDATE usuarios
         SET nombre = ?, correo = ?, rol = ?, organizacion_id = ?, mentor_id = ?
         WHERE id = ?
-    """, (datos.nombre.strip(), correo_nuevo, datos.rol, org_id_final, mentor_id_final, usuario_id), commit=True)
+    """, (nombre_nuevo, correo_nuevo, rol_nuevo, org_id_final, mentor_id_final, usuario_id), commit=True)
 
     # Sincronizar en historial de integrantes en tiempo real
     try:
         db.execute_query("""
             UPDATE historial_nuevos_integrantes
             SET nombre = ?, correo = ?, rol = ?, organizacion_id = ?
-            WHERE usuario_id = ?
-        """, (datos.nombre.strip(), correo_nuevo, datos.rol, org_id_final, usuario_id), commit=True)
+            WHERE usuario_id = ? OR LOWER(TRIM(correo)) = ?
+        """, (nombre_nuevo, correo_nuevo, rol_nuevo, org_id_final, usuario_id, str(u.get("correo") or "").strip().lower()), commit=True)
     except Exception:
         pass
 
@@ -380,16 +401,26 @@ def actualizar_usuario(usuario_id: int, datos: ActualizarUsuarioRequest):
         codigos_2fa_activos.pop(u["correo"].lower().strip(), None)
     codigos_2fa_activos.pop(correo_nuevo, None)
 
+    try:
+        VERSION_CAMBIOS["global"] = int(VERSION_CAMBIOS.get("global", 1)) + 1
+    except Exception:
+        pass
+
     _empujar_cambio_usuario_remoto(usuario_id)
-    registrar_movimiento("Administrador", "Usuarios", "Modificar_Usuario", "EXITO", f"Usuario #{usuario_id}: {datos.nombre} (Nuevo Rol: {datos.rol})")
+    try:
+        replicador_azure.sincronizar_inmediato(["usuarios", "historial_nuevos_integrantes"])
+    except Exception as e_sync_az:
+        print(f">> [UPDATE-USER-AZURE] Aviso sincronizando usuario #{usuario_id}: {e_sync_az}", flush=True)
+
+    registrar_movimiento("Administrador", "Usuarios", "Modificar_Usuario", "EXITO", f"Usuario #{usuario_id}: {nombre_nuevo} ({correo_nuevo}) -> Rol: {rol_nuevo}")
     return {
         "status": "success",
-        "mensaje": f"Usuario '{datos.nombre}' actualizado exitosamente con cargo '{datos.rol}' (Sincronizado en Azure SQL).",
+        "mensaje": f"Usuario '{nombre_nuevo}' ({correo_nuevo}) actualizado exitosamente con cargo '{rol_nuevo}' y sincronizado en Azure SQL.",
         "usuario": {
             "id": usuario_id,
-            "nombre": datos.nombre.strip(),
+            "nombre": nombre_nuevo,
             "correo": correo_nuevo,
-            "rol": datos.rol,
+            "rol": rol_nuevo,
             "organizacion_id": org_id_final,
             "mentor_id": mentor_id_final
         }
@@ -665,14 +696,24 @@ def cambiar_password_perfil(datos: PerfilPasswordReq):
 
 @router.get("/api/usuarios/jerarquia")
 def obtener_jerarquia_usuarios(organizacion_id: Optional[int] = None):
-    """Retorna los usuarios clasificados en 3 jerarquías paralelas con progreso y asignaciones"""
+    """Retorna los usuarios institucionales clasificados en 3 jerarquías paralelas (excluyendo cuentas globales de Superadministrador y Bodega Legal)"""
     base_query = """
         SELECT u.id, u.nombre, u.correo, u.rol, u.organizacion_id, u.foto_perfil, o.nombre as organizacion_nombre,
                u.mentor_id, m.nombre as mentor_nombre, m.correo as mentor_correo, m.foto_perfil as mentor_foto_perfil
         FROM usuarios u
         LEFT JOIN organizaciones o ON u.organizacion_id = o.id
         LEFT JOIN usuarios m ON u.mentor_id = m.id
-        WHERE 1=1
+        WHERE UPPER(TRIM(COALESCE(u.rol, ''))) NOT IN ('SUPER ADMINISTRADOR', 'SUPER_ADMIN', 'SUPERADMIN', 'BODEGA_LEGAL', 'BODEGA LEGAL')
+          AND LOWER(TRIM(COALESCE(u.correo, ''))) NOT IN (
+              'alexander.nino.583@gmail.com',
+              'alexander.niño.583@gmail.com',
+              'alexander.nino.583@hgmail.com',
+              'alexander.niño.583@hgmail.com',
+              'diego.alexander.nino.583@hotmail.com',
+              'diego.alexander.niño.583@hotmail.com',
+              'diegoalexander.nino.583@hotmail.com',
+              'diegoalexander.niño.583@hotmail.com'
+          )
     """
     params = []
     if organizacion_id:
@@ -680,7 +721,17 @@ def obtener_jerarquia_usuarios(organizacion_id: Optional[int] = None):
         params.append(organizacion_id)
         
     base_query += " ORDER BY u.nombre ASC"
-    todos = db.execute_query(base_query, tuple(params), fetchall=True) or []
+    todos_raw = db.execute_query(base_query, tuple(params), fetchall=True) or []
+    # Deduplicar por correo en minúsculas por seguridad
+    vistos_correos = set()
+    todos = []
+    for row_u in todos_raw:
+        c_key = str(row_u.get("correo") or "").strip().lower()
+        if c_key and c_key in vistos_correos:
+            continue
+        if c_key:
+            vistos_correos.add(c_key)
+        todos.append(row_u)
     
     administradores = []
     mentores = []
@@ -710,7 +761,9 @@ def obtener_jerarquia_usuarios(organizacion_id: Optional[int] = None):
             
     def _clasificar_rol_estricto(rol_raw: str) -> str:
         r = str(rol_raw or "").strip().upper()
-        if r in ("SUPER_ADMIN", "SUPER ADMINISTRADOR", "ADMIN", "ADMINISTRADOR", "ADMINISTRATIVO", "BODEGA_LEGAL", "BODEGA LEGAL") or "ADMIN" in r or "BODEGA" in r or "SUPER" in r or "DIRECTIV" in r or "RECTOR" in r:
+        if "SUPER" in r or "BODEGA" in r:
+            return "OCULTO_GLOBAL"
+        if r in ("ADMIN", "ADMINISTRADOR", "ADMINISTRATIVO") or "ADMIN" in r or "DIRECTIV" in r or "RECTOR" in r:
             return "ADMIN"
         if r in ("MENTOR", "TUTOR", "DOCENTE", "PROFESOR", "INSTRUCTOR", "LIDER") or "MENTOR" in r or "TUTOR" in r or "DOCENT" in r:
             return "MENTOR"
@@ -718,7 +771,9 @@ def obtener_jerarquia_usuarios(organizacion_id: Optional[int] = None):
 
     for u in todos:
         categoria_rol = _clasificar_rol_estricto(u.get("rol"))
-        if categoria_rol == "ADMIN":
+        if categoria_rol == "OCULTO_GLOBAL":
+            continue
+        elif categoria_rol == "ADMIN":
             administradores.append(u)
         elif categoria_rol == "MENTOR":
             u["aprendices_a_cargo"] = aprendices_por_mentor.get(u["id"], [])

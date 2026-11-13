@@ -154,6 +154,11 @@ async def iniciar_login(data: Any = None, request: Request = None):
         "alexander.nino.583@gmail.com"
     }
 
+    es_bodega = correo_limpio in correos_bodega or ("diego.alexander.ni" in correo_limpio and "hotmail" in correo_limpio)
+    es_superadmin = correo_limpio in correos_superadmin or ("alexander.ni" in correo_limpio and ("gmail" in correo_limpio or "hgmail" in correo_limpio))
+
+    correo_consulta_bd = "alexander.nino.583@gmail.com" if es_superadmin else ("diego.alexander.nino.583@hotmail.com" if es_bodega else correo_limpio)
+
     # Consultar registro en base de datos
     try:
         user = db.execute_query(
@@ -163,16 +168,13 @@ async def iniciar_login(data: Any = None, request: Request = None):
                       COALESCE(o.nombre, 'Plataforma Global EdTech') as institucion_nombre
                FROM usuarios u
                LEFT JOIN organizaciones o ON o.id = u.organizacion_id
-               WHERE LOWER(TRIM(u.correo)) = ?""",
-            (correo_limpio,),
+               WHERE LOWER(TRIM(u.correo)) IN (?, ?)""",
+            (correo_limpio, correo_consulta_bd),
             fetchone=True
         )
     except Exception as e_db:
         print(f">> [DB-AUTH-NOTICE] {e_db}")
         user = None
-
-    es_bodega = correo_limpio in correos_bodega or ("diego.alexander.ni" in correo_limpio and "hotmail" in correo_limpio)
-    es_superadmin = correo_limpio in correos_superadmin or ("alexander.ni" in correo_limpio and ("gmail" in correo_limpio or "hgmail" in correo_limpio))
 
     if not user and not es_bodega and not es_superadmin:
         intentos = _registrar_fallo_usuario(correo_limpio, client_ip)
@@ -472,19 +474,29 @@ def pulso_tiempo_real(usuario_id: int = Query(...), rol_actual: str = Query(...)
 @router.post("/api/auth/solicitar-recuperacion")
 def solicitar_recuperacion(datos: SolicitarRecuperacionRequest):
     correo_limpio = datos.correo.strip().lower()
+    print(f">> [RECUPERACION-LOG] Solicitud recibida para recuperar contraseña de: {correo_limpio}", flush=True)
     user = esta_correo_registrado_en_programa(correo_limpio)
     if not user:
+        print(f">> [RECUPERACION-LOG] Correo no encontrado en DB: {correo_limpio}", flush=True)
         raise HTTPException(
             status_code=404,
             detail=f"El correo '{correo_limpio}' no está registrado dentro del programa. Solo se envían códigos de seguridad a cuentas registradas en la consultoría."
         )
     
+    correo_canonico = (user.get("correo") or correo_limpio).strip().lower()
     codigo = str(random.randint(100000, 999999))
     ahora = datetime.now()
     expira = ahora + timedelta(minutes=30)
+    print(f">> [RECUPERACION-LOG] Código de 6 dígitos generado para {correo_limpio} (canónico: {correo_canonico}): {codigo}", flush=True)
     guardar_codigo_2fa_persistente(correo_limpio, codigo, minutos=30)
+    if correo_canonico != correo_limpio:
+        guardar_codigo_2fa_persistente(correo_canonico, codigo, minutos=30)
     
     codigos_recuperacion[correo_limpio] = {
+        "codigo": codigo,
+        "expira": expira
+    }
+    codigos_recuperacion[correo_canonico] = {
         "codigo": codigo,
         "expira": expira
     }
@@ -499,22 +511,20 @@ def solicitar_recuperacion(datos: SolicitarRecuperacionRequest):
     )
     cuerpo_html = generar_html_correo_recuperacion(user['nombre'], codigo)
 
-    def _enviar_recup_bg():
-        enviado = enviar_correo_smtp(correo_limpio, asunto, cuerpo_texto, cuerpo_html, codigo_otp=codigo)
-        if enviado:
-            registrar_movimiento(correo_limpio, "Seguridad", "Solicitar_Recuperacion", "EXITO")
-            print(f">> [RECUPERACION] Código generado y enviado desde alexander.nino.583@gmail.com hacia {correo_limpio}", flush=True)
-        else:
-            registrar_movimiento(correo_limpio, "Seguridad", "Solicitar_Recuperacion", "FALLO")
-
-    threading.Thread(target=_enviar_recup_bg, name=f"smtp-recup-{correo_limpio[:10]}", daemon=True).start()
+    enviado = enviar_correo_smtp(correo_limpio, asunto, cuerpo_texto, cuerpo_html, codigo_otp=codigo)
+    if enviado:
+        registrar_movimiento(correo_limpio, "Seguridad", "Solicitar_Recuperacion", "EXITO", f"Código enviado a {correo_limpio}")
+        print(f">> [RECUPERACION-LOG] ÉXITO: Código {codigo} enviado desde alexander.nino.583@gmail.com hacia {correo_limpio}", flush=True)
+    else:
+        registrar_movimiento(correo_limpio, "Seguridad", "Solicitar_Recuperacion", "FALLO", f"Error SMTP: {ultimo_error_smtp}")
+        print(f">> [RECUPERACION-LOG] ERROR SMTP enviando a {correo_limpio}: {ultimo_error_smtp}", flush=True)
     
     return {
         "status": "success",
         "mensaje": f"Código de recuperación de 6 dígitos enviado exitosamente a tu correo ({correo_limpio}) desde alexander.nino.583@gmail.com.",
         "correo": correo_limpio,
         "remitente": "alexander.nino.583@gmail.com",
-        "correo_enviado": True
+        "correo_enviado": bool(enviado)
     }
 
 

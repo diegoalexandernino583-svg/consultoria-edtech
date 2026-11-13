@@ -2899,3 +2899,123 @@ body.tema-oscuro .card-doc-legal-flotante:hover,
   border-color: rgba(245, 158, 11, 0.6) !important;
   box-shadow: 0 12px 28px -5px rgba(0, 0, 0, 0.7), 0 0 20px rgba(245, 158, 11, 0.15) !important;
 }
+
+/* ==========================================================================
+   CORRECCIÓN GLOBAL DE MODO OSCURO (RECUPERAR CONTRASEÑA, MODIFICAR USUARIO,
+   MODALES, VISTAS DIVIDIDAS Y ÁREA DERECHA SIN FONDOS BLANCOS)
+   ========================================================================== */
+html.dark,
+html.dark body,
+body.tema-oscuro,
+html.dark #app-main-layout,
+body.tema-oscuro #app-main-layout,
+html.dark .main-workspace-area,
+body.tema-oscuro .main-workspace-area,
+html.dark main,
+body.tema-oscuro main {
+  background-color: #0b0f19 !important;
+  color: #f8fafc !important;
+  overflow-x: hidden;
+}
+
+html.dark #pantalla-auth-fullscreen,
+body.tema-oscuro #pantalla-auth-fullscreen {
+  background-color: #090d16 !important;
+  color: #f8fafc !important;
+  width: 100vw !important;
+  min-height: 100vh !important;
+}
+
+html.dark #pantalla-auth-fullscreen > div:last-child,
+body.tema-oscuro #pantalla-auth-fullscreen > div:last-child {
+  background-color: #0b0f19 !important;
+  color: #f8fafc !important;
+}
+
+html.dark #panel-auth-recuperar,
+body.tema-oscuro #panel-auth-recuperar,
+html.dark #panel-auth-login,
+body.tema-oscuro #panel-auth-login,
+html.dark #panel-auth-registro,
+body.tema-oscuro #panel-auth-registro,
+html.dark #recuperar-paso-1,
+body.tema-oscuro #recuperar-paso-1,
+html.dark #recuperar-paso-2,
+body.tema-oscuro #recuperar-paso-2 {
+  background-color: transparent !important;
+  color: #f8fafc !important;
+}
+
+html.dark #modal-editar-usuario > div,
+body.tema-oscuro #modal-editar-usuario > div,
+html.dark #modal-crear-material > div,
+body.tema-oscuro #modal-crear-material > div,
+html.dark #modal-enviar-coleccion-org > div,
+body.tema-oscuro #modal-enviar-coleccion-org > div,
+html.dark .modal-backdrop-corp > div,
+body.tema-oscuro .modal-backdrop-corp > div {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.dark #modal-editar-usuario .bg-white,
+body.tema-oscuro #modal-editar-usuario .bg-white,
+html.dark #modal-editar-usuario .bg-slate-50,
+body.tema-oscuro #modal-editar-usuario .bg-slate-50,
+html.dark #modal-enviar-coleccion-org .bg-white,
+body.tema-oscuro #modal-enviar-coleccion-org .bg-white,
+html.dark #modal-enviar-coleccion-org .bg-slate-50,
+body.tema-oscuro #modal-enviar-coleccion-org .bg-slate-50,
+html.dark #modal-crear-material .bg-white,
+body.tema-oscuro #modal-crear-material .bg-white {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.dark #modal-editar-usuario label,
+body.tema-oscuro #modal-editar-usuario label,
+html.dark #modal-crear-material label,
+body.tema-oscuro #modal-crear-material label,
+html.dark #modal-enviar-coleccion-org label,
+body.tema-oscuro #modal-enviar-coleccion-org label,
+html.dark #panel-auth-recuperar label,
+body.tema-oscuro #panel-auth-recuperar label {
+  color: #e2e8f0 !important;
+}
+
+html.dark #modal-editar-usuario input,
+body.tema-oscuro #modal-editar-usuario input,
+html.dark #modal-editar-usuario select,
+body.tema-oscuro #modal-editar-usuario select,
+html.dark #modal-crear-material input,
+body.tema-oscuro #modal-crear-material input,
+html.dark #modal-crear-material select,
+body.tema-oscuro #modal-crear-material select,
+html.dark #modal-crear-material textarea,
+body.tema-oscuro #modal-crear-material textarea,
+html.dark #modal-enviar-coleccion-org select,
+body.tema-oscuro #modal-enviar-coleccion-org select,
+html.dark #modal-enviar-coleccion-org textarea,
+body.tema-oscuro #modal-enviar-coleccion-org textarea,
+html.dark #panel-auth-recuperar input,
+body.tema-oscuro #panel-auth-recuperar input {
+  background-color: #0b1325 !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .opcion-destino-card,
+body.tema-oscuro .opcion-destino-card {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .opcion-destino-card.seleccionado,
+body.tema-oscuro .opcion-destino-card.seleccionado {
+  background-color: rgba(6, 182, 212, 0.16) !important;
+  border-color: #06b6d4 !important;
+  color: #f8fafc !important;
+}

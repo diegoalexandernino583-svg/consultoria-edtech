@@ -13,11 +13,18 @@ def obtener_test_coleccion(curso_id: int):
 
 
 @router.get("/api/material/catalogo")
-def obtener_catalogo_completo(organizacion_id: Optional[int] = None):
+def obtener_catalogo_completo(organizacion_id: Optional[int] = None, incluir_ocultos: Optional[bool] = False):
     query = """
         SELECT m.id, m.titulo, m.tipo_material, m.enlace_url, m.rol_destino, m.fecha_publicacion,
                COALESCE(m.total_modulos, 3) as total_modulos,
-               CASE WHEN COUNT(a.id) = 0 OR SUM(CASE WHEN a.organizacion_id IS NULL THEN 1 ELSE 0 END) > 0 THEN 'Acceso Global (Todas)'
+               m.descripcion_modulos,
+               COALESCE(m.oculto_catalogo_global, 0) as oculto_catalogo_global,
+               COUNT(DISTINCT CASE WHEN a.organizacion_id IS NOT NULL THEN a.organizacion_id END) as total_instituciones_enviadas,
+               MAX(a.fecha_asignacion) as ultima_fecha_envio,
+               MAX(COALESCE(a.etiqueta_destino, 'Para Todos')) as etiqueta_destino,
+               MAX(a.mensaje_superadmin) as mensaje_superadmin,
+               CASE WHEN COUNT(a.id) = 0 THEN 'En Catálogo (Sin asignar aún)'
+                    WHEN SUM(CASE WHEN a.organizacion_id IS NULL THEN 1 ELSE 0 END) > 0 THEN 'Acceso Global (Todas)'
                     ELSE MAX(o.nombre) END as organizacion_nombre
         FROM material_capacitacion m
         LEFT JOIN asignacion_material a ON m.id = a.material_id
@@ -28,8 +35,10 @@ def obtener_catalogo_completo(organizacion_id: Optional[int] = None):
     if organizacion_id:
         query += " AND (a.organizacion_id = ? OR a.organizacion_id IS NULL)"
         params.append(organizacion_id)
+    elif not incluir_ocultos:
+        query += " AND COALESCE(m.oculto_catalogo_global, 0) = 0"
         
-    query += " GROUP BY m.id, m.titulo, m.tipo_material, m.enlace_url, m.rol_destino, m.fecha_publicacion, m.total_modulos ORDER BY m.id DESC"
+    query += " GROUP BY m.id, m.titulo, m.tipo_material, m.enlace_url, m.rol_destino, m.fecha_publicacion, m.total_modulos, m.descripcion_modulos, m.oculto_catalogo_global ORDER BY m.id DESC"
     materiales = db.execute_query(query, tuple(params), fetchall=True)
     return {"status": "success", "data": materiales or []}
 
@@ -335,46 +344,129 @@ def completar_test_aprendiz(datos: CompletarTestRequest):
 @router.post("/api/superadmin/material/crear")
 def crear_material(datos: CrearMaterialReq):
     """
-    Regla de Negocio Institucional:
-    El Super Administrador es el único facultado para subir, registrar y habilitar los cursos,
-    rutas formativas y capacitaciones a nivel global en el catálogo de la plataforma.
-    La asignación fina, distribución y derivación de dichos cursos hacia aprendices o mentores específicos
-    queda estrictamente delegada a los administradores locales de cada institución desde su respectivo panel.
+    Permite crear y guardar colecciones en el catálogo global sin necesidad de asignarlas de inmediato a una institución,
+    o asignarlas opcionalmente al momento de creación, sincronizando en tiempo real con Azure SQL.
     """
-    t_mod = datos.total_modulos or 3
+    t_mod = int(datos.total_modulos or 3)
+    titulo_limpio = datos.titulo.strip()
+    enlace_limpio = datos.enlace_url.strip()
+    rol_dest = (datos.rol_destino or "Todos").strip()
+
+    org_id_val = None
+    if datos.organizacion_id is not None and str(datos.organizacion_id).strip() not in ("", "0", "null", "None"):
+        try:
+            org_id_val = int(datos.organizacion_id)
+        except Exception:
+            org_id_val = None
+
     query_insert = """
-        INSERT INTO material_capacitacion (titulo, tipo_material, enlace_url, rol_destino, total_modulos)
-        OUTPUT INSERTED.id
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO material_capacitacion (titulo, tipo_material, enlace_url, rol_destino, total_modulos, descripcion_modulos, oculto_catalogo_global)
+        VALUES (?, ?, ?, ?, ?, ?, 0)
     """
     mat_id = db.execute_query(
         query_insert,
-        (datos.titulo.strip(), datos.tipo_material, datos.enlace_url.strip(), datos.rol_destino or "General", t_mod),
-        return_id=True
+        (titulo_limpio, datos.tipo_material, enlace_limpio, rol_dest, t_mod, datos.descripcion_modulos),
+        return_id=True,
+        commit=True
     )
     if not mat_id:
         row = db.execute_query(
             "SELECT id FROM material_capacitacion WHERE titulo = ? AND enlace_url = ? ORDER BY id DESC",
-            (datos.titulo.strip(), datos.enlace_url.strip()),
+            (titulo_limpio, enlace_limpio),
             fetchone=True
         )
         if row:
             mat_id = row["id"]
 
-    if mat_id and datos.organizacion_id:
+    if mat_id and org_id_val:
+        etiqueta_map = {
+            "Mentor": "Para Mentores",
+            "Mentores": "Para Mentores",
+            "Para Mentores": "Para Mentores",
+            "Aprendiz": "Para Aprendices",
+            "Aprendices": "Para Aprendices",
+            "Para Aprendices": "Para Aprendices",
+        }
+        etiqueta_val = etiqueta_map.get(rol_dest, "Para Todos")
+        ahora_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         db.execute_query(
-            "INSERT INTO asignacion_material (material_id, organizacion_id, fecha_asignacion) VALUES (?, ?, DATETIME('now', 'localtime'))",
-            (mat_id, datos.organizacion_id),
+            """INSERT INTO asignacion_material (material_id, organizacion_id, destinatario_tipo, etiqueta_destino, fecha_asignacion)
+               VALUES (?, ?, 'Institución', ?, ?)""",
+            (mat_id, org_id_val, etiqueta_val, ahora_str),
+            commit=True
+        )
+        org_row = db.execute_query("SELECT nombre FROM organizaciones WHERE id = ?", (org_id_val,), fetchone=True)
+        org_nom = org_row["nombre"] if org_row else f"Institución #{org_id_val}"
+        db.execute_query(
+            """INSERT INTO historial_envios_colecciones (
+                   material_id, titulo_coleccion, enlace_url, tipo_material, total_modulos,
+                   organizacion_id, organizacion_nombre, destinatario_tipo, destinatario_id,
+                   etiqueta_destino, remitente_rol, fecha_envio
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, 'Institución', 0, ?, 'Super Administrador', ?)""",
+            (mat_id, titulo_limpio, enlace_limpio, datos.tipo_material, t_mod, org_id_val, org_nom, etiqueta_val, ahora_str),
             commit=True
         )
 
     try:
-        replicador_azure.sincronizar_inmediato(["material_capacitacion", "asignacion_material"])
+        VERSION_CAMBIOS["global"] = int(VERSION_CAMBIOS.get("global", 1)) + 1
+        replicador_azure.sincronizar_inmediato(["material_capacitacion", "asignacion_material", "historial_envios_colecciones"])
     except Exception:
         pass
 
-    registrar_movimiento("SuperAdmin", "Material", "Crear_Material", "EXITO", f"Título: {datos.titulo} - ID: {mat_id} - Módulos: {t_mod}")
-    return {"status": "success", "mensaje": "Material o colección agregada al catálogo y sincronizada en Azure SQL con éxito.", "id": mat_id}
+    registrar_movimiento("SuperAdmin", "Material", "Crear_Material", "EXITO", f"Título: {titulo_limpio} - ID: {mat_id} - Módulos: {t_mod}")
+    return {
+        "status": "success",
+        "mensaje": "✓ Colección guardada en el Catálogo Global y sincronizada en tiempo real con Azure SQL.",
+        "id": mat_id
+    }
+
+
+@router.put("/api/superadmin/material/{material_id}")
+@router.put("/api/material/{material_id}")
+def actualizar_material(material_id: int, datos: ActualizarMaterialReq):
+    """Permite editar una colección existente en el catálogo y sincroniza los cambios en tiempo real con Azure SQL"""
+    mat = db.execute_query("SELECT * FROM material_capacitacion WHERE id = ?", (material_id,), fetchone=True)
+    if not mat:
+        raise HTTPException(status_code=404, detail="La colección no existe en el catálogo.")
+
+    titulo_limpio = (datos.titulo or mat.get("titulo") or "").strip()
+    tipo_limpio = (datos.tipo_material or mat.get("tipo_material") or "Colección Microsoft").strip()
+    enlace_limpio = (datos.enlace_url or mat.get("enlace_url") or "").strip()
+    rol_dest = (datos.rol_destino or mat.get("rol_destino") or "Todos").strip()
+    t_mod = int(datos.total_modulos or mat.get("total_modulos") or 3)
+    desc_mod = datos.descripcion_modulos if datos.descripcion_modulos is not None else mat.get("descripcion_modulos")
+
+    db.execute_query(
+        """UPDATE material_capacitacion
+           SET titulo = ?, tipo_material = ?, enlace_url = ?, rol_destino = ?, total_modulos = ?, descripcion_modulos = ?
+           WHERE id = ?""",
+        (titulo_limpio, tipo_limpio, enlace_limpio, rol_dest, t_mod, desc_mod, material_id),
+        commit=True
+    )
+
+    try:
+        db.execute_query(
+            """UPDATE historial_envios_colecciones
+               SET titulo_coleccion = ?, enlace_url = ?, tipo_material = ?, total_modulos = ?
+               WHERE material_id = ?""",
+            (titulo_limpio, enlace_limpio, tipo_limpio, t_mod, material_id),
+            commit=True
+        )
+    except Exception:
+        pass
+
+    try:
+        VERSION_CAMBIOS["global"] = int(VERSION_CAMBIOS.get("global", 1)) + 1
+        replicador_azure.sincronizar_inmediato(["material_capacitacion", "historial_envios_colecciones"])
+    except Exception:
+        pass
+
+    registrar_movimiento("SuperAdmin", "Material", "Editar_Material", "EXITO", f"Colección editada #{material_id}: {titulo_limpio} ({t_mod} módulos)")
+    return {
+        "status": "success",
+        "mensaje": f"✓ Colección '{titulo_limpio}' actualizada y sincronizada en tiempo real con Azure SQL.",
+        "id": material_id
+    }
 
 
 @router.post("/api/superadmin/progreso/actualizar-modulos")
@@ -429,17 +521,25 @@ def actualizar_progreso_modulos(datos: ActualizarProgresoModulosReq):
 
 
 @router.delete("/api/superadmin/material/{material_id}")
-def eliminar_material(material_id: int, request: Request):
-    """Permite al Super Administrador o Administrador eliminar un material o colección del catálogo y de Azure SQL con respaldo en Bóveda Legal"""
+@router.delete("/api/material/{material_id}")
+def eliminar_material(material_id: int, request: Request, eliminar_permanente: Optional[bool] = False):
+    """
+    Limpieza inteligente del Catálogo Global del Superadministrador:
+    - Si la colección YA fue enviada a al menos una institución, la oculta/limpia del entorno global del Superadministrador
+      (oculto_catalogo_global = 1) para ahorrar espacio visual, pero PRESERVA intacta la copia de la institución
+      (asignacion_material y progreso_cursos) y el historial de envío (historial_envios_colecciones) para evitar envíos duplicados futuros.
+    - Si la colección AÚN NO ha sido enviada a ninguna institución, la elimina del catálogo global con respaldo en Bóveda Legal.
+    """
     mat = db.execute_query("SELECT * FROM material_capacitacion WHERE id = ?", (material_id,), fetchone=True)
     if not mat:
         raise HTTPException(status_code=404, detail="El material o colección no existe en el catálogo.")
 
-    asigs = db.execute_query("SELECT * FROM asignacion_material WHERE material_id = ?", (material_id,), fetchall=True) or []
+    asigs = db.execute_query("SELECT * FROM asignacion_material WHERE material_id = ? AND organizacion_id IS NOT NULL", (material_id,), fetchall=True) or []
+    hist_envios = db.execute_query("SELECT * FROM historial_envios_colecciones WHERE material_id = ?", (material_id,), fetchall=True) or []
     progs = db.execute_query("SELECT * FROM progreso_cursos WHERE curso_id = ?", (material_id,), fetchall=True) or []
     ip_cliente = obtener_ip_cliente(request) if request else "127.0.0.1"
     crear_snapshot_boveda_legal(
-        operacion_origen="ELIMINACION_COLECCION_CATALOGO",
+        operacion_origen="LIMPIEZA_COLECCION_CATALOGO_GLOBAL",
         entidad_afectada="material_capacitacion",
         entidad_id=material_id,
         entidad_nombre=mat["titulo"],
@@ -448,18 +548,51 @@ def eliminar_material(material_id: int, request: Request):
         datos_respaldo={
             "coleccion": dict(mat),
             "asignaciones": [dict(a) for a in asigs],
+            "historial_envios": [dict(h) for h in hist_envios],
             "progresos_aprendices": [dict(p) for p in progs]
         }
     )
 
-    # 1. Eliminar asignaciones vinculadas
+    ya_enviada_a_institucion = len(asigs) > 0 or len(hist_envios) > 0
+
+    if ya_enviada_a_institucion and not eliminar_permanente:
+        # Limpiar del catálogo global del Superadministrador manteniendo la colección activa en las instituciones que la recibieron
+        db.execute_query(
+            "UPDATE material_capacitacion SET oculto_catalogo_global = 1 WHERE id = ?",
+            (material_id,),
+            commit=True
+        )
+        try:
+            VERSION_CAMBIOS["global"] = int(VERSION_CAMBIOS.get("global", 1)) + 1
+            replicador_azure.sincronizar_inmediato([
+                "material_capacitacion",
+                "asignacion_material",
+                "historial_envios_colecciones",
+                "boveda_legal_snapshots"
+            ])
+        except Exception:
+            pass
+        registrar_movimiento(
+            "SuperAdmin", "Material", "Limpiar_Catalogo_Global", "EXITO",
+            f"Colección '{mat['titulo']}' (ID {material_id}) retirada del catálogo global (conservada en {len(asigs) or len(hist_envios)} institución(es) y en historial anti-duplicados)"
+        )
+        return {
+            "status": "success",
+            "modo": "limpieza_catalogo_global",
+            "mensaje": f"✓ Colección '{mat['titulo']}' retirada de tu Catálogo Global para liberar espacio. Las instituciones que ya la recibieron conservan su acceso y el registro de fecha de envío se mantiene activo."
+        }
+
+    # Si no había sido enviada a ninguna institución, eliminar del catálogo
     db.execute_query("DELETE FROM asignacion_material WHERE material_id = ?", (material_id,), commit=True)
-    # 2. Eliminar progresos de usuarios vinculados a este curso
     db.execute_query("DELETE FROM progreso_cursos WHERE curso_id = ?", (material_id,), commit=True)
-    # 3. Eliminar el material
+    try:
+        replicador_azure.registrar_borrado("material_capacitacion", material_id)
+    except Exception:
+        pass
     db.execute_query("DELETE FROM material_capacitacion WHERE id = ?", (material_id,), commit=True)
 
     try:
+        VERSION_CAMBIOS["global"] = int(VERSION_CAMBIOS.get("global", 1)) + 1
         replicador_azure.sincronizar_inmediato([
             "progreso_cursos",
             "asignacion_material",
@@ -470,7 +603,11 @@ def eliminar_material(material_id: int, request: Request):
         pass
 
     registrar_movimiento("SuperAdmin", "Material", "Eliminar_Material", "EXITO", f"Colección eliminada: '{mat['titulo']}' (ID {material_id})")
-    return {"status": "success", "mensaje": f"Colección '{mat['titulo']}' eliminada permanentemente del catálogo y de Azure SQL (con respaldo en Bóveda Legal)."}
+    return {
+        "status": "success",
+        "modo": "eliminada_sin_envios",
+        "mensaje": f"✓ Colección '{mat['titulo']}' eliminada del catálogo y sincronizada en Azure SQL."
+    }
 
 
 @router.get("/api/superadmin/aprendiz/{usuario_id}/desglose-cursos")

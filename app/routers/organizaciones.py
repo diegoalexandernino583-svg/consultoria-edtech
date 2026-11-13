@@ -162,7 +162,9 @@ def obtener_colecciones_estado_organizacion(org_id: int):
     asignadas = db.execute_query("""
         SELECT m.id, m.titulo, m.tipo_material, m.enlace_url,
                COALESCE(m.total_modulos, 3) as total_modulos,
-               m.rol_destino, am.fecha_asignacion,
+               m.rol_destino, MAX(am.fecha_asignacion) as fecha_asignacion,
+               MAX(COALESCE(am.etiqueta_destino, 'Para Todos')) as etiqueta_destino,
+               MAX(am.mensaje_superadmin) as mensaje_superadmin,
                COUNT(DISTINCT p.usuario_id) as total_estudiantes_cursando,
                ROUND(AVG(COALESCE(p.porcentaje_avance, 0)), 1) as avance_promedio
         FROM asignacion_material am
@@ -170,8 +172,8 @@ def obtener_colecciones_estado_organizacion(org_id: int):
         LEFT JOIN usuarios u ON u.organizacion_id = am.organizacion_id AND u.rol = 'Aprendiz'
         LEFT JOIN progreso_cursos p ON p.curso_id = m.id AND p.usuario_id = u.id
         WHERE am.organizacion_id = ?
-        GROUP BY m.id, m.titulo, m.tipo_material, m.enlace_url, m.total_modulos, m.rol_destino, am.fecha_asignacion
-        ORDER BY am.fecha_asignacion DESC
+        GROUP BY m.id, m.titulo, m.tipo_material, m.enlace_url, m.total_modulos, m.rol_destino
+        ORDER BY MAX(am.fecha_asignacion) DESC
     """, (org_id,), fetchall=True) or []
 
     ids_asignados = [a["id"] for a in asignadas]
@@ -947,9 +949,13 @@ def descargar_reporte_excel_mentores_admin(organizacion_id: int):
 
 @router.get("/api/organizaciones/{org_id}/integrantes-por-rol")
 def listar_integrantes_por_rol(org_id: int):
-    """Devuelve los integrantes de una organización agrupados por rol (Administradores, Mentores, Aprendices)"""
+    """Devuelve los integrantes locales de una organización agrupados por rol (excluyendo Super Administrador y Bodega Legal)"""
     admins = db.execute_query(
-        "SELECT id, nombre, correo, rol FROM usuarios WHERE organizacion_id = ? AND rol IN ('Administrador', 'Super Administrador') ORDER BY nombre ASC",
+        """SELECT id, nombre, correo, rol FROM usuarios
+           WHERE organizacion_id = ?
+             AND rol = 'Administrador'
+             AND LOWER(TRIM(COALESCE(correo, ''))) NOT IN ('alexander.nino.583@gmail.com', 'alexander.niño.583@gmail.com', 'alexander.nino.583@hgmail.com', 'alexander.niño.583@hgmail.com', 'diego.alexander.nino.583@hotmail.com', 'diegoalexander.nino.583@hotmail.com')
+           ORDER BY nombre ASC""",
         (org_id,), fetchall=True
     ) or []
     mentores = db.execute_query(
@@ -970,8 +976,8 @@ def listar_integrantes_por_rol(org_id: int):
 
 @router.post("/api/superadmin/colecciones/enviar-a-organizacion")
 def enviar_coleccion_a_organizacion(datos: EnviarColeccionOrgReq):
-    """Asigna y envía una colección siguiendo el flujo jerárquico: Institución -> Mentores -> Aprendices"""
-    mat = db.execute_query("SELECT id, titulo, total_modulos, enlace_url FROM material_capacitacion WHERE id = ?", (datos.material_id,), fetchone=True)
+    """Asigna y envía una colección con etiqueta de rol ('Para Mentores', 'Para Aprendices', 'Para Todos'), mensaje adjunto y bloqueo de duplicados con fecha exacta"""
+    mat = db.execute_query("SELECT id, titulo, tipo_material, total_modulos, enlace_url, rol_destino FROM material_capacitacion WHERE id = ?", (datos.material_id,), fetchone=True)
     if not mat:
         raise HTTPException(status_code=404, detail="La colección o material no existe en el catálogo.")
 
@@ -980,26 +986,116 @@ def enviar_coleccion_a_organizacion(datos: EnviarColeccionOrgReq):
         raise HTTPException(status_code=404, detail="La institución u organización destino no fue encontrada.")
 
     nivel = (datos.destinatario_tipo or "Institución").strip()
-    dest_id = datos.destinatario_id if (datos.destinatario_id and datos.destinatario_id > 0) else None
+    dest_id = None
+    if datos.destinatario_id is not None and str(datos.destinatario_id).strip() not in ("", "0", "todos", "null", "None"):
+        try:
+            dest_id = int(datos.destinatario_id)
+        except Exception:
+            dest_id = None
+
+    etiqueta_destino = (datos.etiqueta_destino or "").strip()
+    if not etiqueta_destino:
+        if nivel == "Mentores" or mat.get("rol_destino") == "Mentor":
+            etiqueta_destino = "Para Mentores"
+        elif nivel == "Aprendices" or mat.get("rol_destino") == "Aprendiz":
+            etiqueta_destino = "Para Aprendices"
+        else:
+            etiqueta_destino = "Para Todos"
+
+    mensaje_superadmin = (datos.mensaje_superadmin or "").strip() or None
+    ahora_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    titulo_mat = (mat.get("titulo") or "").strip()
+
+    def _buscar_envio_previo(tipo_dest: str, id_dest: Optional[int] = None):
+        """Busca si la colección ya fue enviada antes a esta institución (en asignacion_material o historial_envios_colecciones) y devuelve la fecha exacta"""
+        if tipo_dest == "Institución":
+            row_a = db.execute_query(
+                """SELECT a.id, a.fecha_asignacion as fecha
+                   FROM asignacion_material a
+                   LEFT JOIN material_capacitacion m ON m.id = a.material_id
+                   WHERE a.organizacion_id = ?
+                     AND (a.material_id = ? OR LOWER(TRIM(COALESCE(m.titulo, ''))) = LOWER(TRIM(?)))
+                     AND (a.destinatario_tipo = 'Institución' OR a.destinatario_tipo IS NULL)
+                   ORDER BY a.id ASC LIMIT 1""",
+                (datos.organizacion_id, datos.material_id, titulo_mat),
+                fetchone=True
+            )
+            if row_a:
+                return row_a.get("fecha") or "Fecha registrada previamente"
+            row_h = db.execute_query(
+                """SELECT id, fecha_envio as fecha
+                   FROM historial_envios_colecciones
+                   WHERE organizacion_id = ?
+                     AND (material_id = ? OR LOWER(TRIM(COALESCE(titulo_coleccion, ''))) = LOWER(TRIM(?)))
+                     AND (destinatario_tipo = 'Institución' OR destinatario_tipo IS NULL)
+                   ORDER BY id ASC LIMIT 1""",
+                (datos.organizacion_id, datos.material_id, titulo_mat),
+                fetchone=True
+            )
+            if row_h:
+                return row_h.get("fecha") or "Fecha registrada previamente"
+        else:
+            if id_dest:
+                row_a = db.execute_query(
+                    """SELECT id, fecha_asignacion as fecha
+                       FROM asignacion_material
+                       WHERE material_id = ? AND organizacion_id = ? AND destinatario_tipo = ? AND destinatario_id = ?
+                       ORDER BY id ASC LIMIT 1""",
+                    (datos.material_id, datos.organizacion_id, tipo_dest, id_dest),
+                    fetchone=True
+                )
+                if row_a:
+                    return row_a.get("fecha") or "Fecha registrada previamente"
+                row_h = db.execute_query(
+                    """SELECT id, fecha_envio as fecha
+                       FROM historial_envios_colecciones
+                       WHERE material_id = ? AND organizacion_id = ? AND destinatario_tipo = ? AND destinatario_id = ?
+                       ORDER BY id ASC LIMIT 1""",
+                    (datos.material_id, datos.organizacion_id, tipo_dest, id_dest),
+                    fetchone=True
+                )
+                if row_h:
+                    return row_h.get("fecha") or "Fecha registrada previamente"
+            else:
+                row_a = db.execute_query(
+                    """SELECT id, fecha_asignacion as fecha
+                       FROM asignacion_material
+                       WHERE material_id = ? AND organizacion_id = ? AND destinatario_tipo = ? AND (destinatario_id IS NULL OR destinatario_id = 0)
+                       ORDER BY id ASC LIMIT 1""",
+                    (datos.material_id, datos.organizacion_id, tipo_dest),
+                    fetchone=True
+                )
+                if row_a:
+                    return row_a.get("fecha") or "Fecha registrada previamente"
+                row_h = db.execute_query(
+                    """SELECT id, fecha_envio as fecha
+                       FROM historial_envios_colecciones
+                       WHERE material_id = ? AND organizacion_id = ? AND destinatario_tipo = ? AND (destinatario_id IS NULL OR destinatario_id = 0)
+                       ORDER BY id ASC LIMIT 1""",
+                    (datos.material_id, datos.organizacion_id, tipo_dest),
+                    fetchone=True
+                )
+                if row_h:
+                    return row_h.get("fecha") or "Fecha registrada previamente"
+        return None
 
     # CASO 1: ENVIAR A LA INSTITUCIÓN (ADMINISTRADORES)
     if nivel == "Institución":
-        ya_enviada = db.execute_query(
-            "SELECT id, fecha_asignacion FROM asignacion_material WHERE material_id = ? AND organizacion_id = ? AND (destinatario_tipo = 'Institución' OR destinatario_tipo IS NULL)",
-            (datos.material_id, datos.organizacion_id),
-            fetchone=True
-        )
-        if ya_enviada:
+        fecha_previa = _buscar_envio_previo("Institución", None)
+        if fecha_previa:
             raise HTTPException(
                 status_code=400,
-                detail=f"⚠️ ¡Alerta! La colección '{mat['titulo']}' ya fue enviada previamente a la institución '{org['nombre']}'. Los administradores ya disponen de ella para distribuirla a sus mentores."
+                detail=f"⚠️ ¡Envío Bloqueado por Duplicado! La colección '{mat['titulo']}' ya fue enviada previamente a la institución '{org['nombre']}' en la fecha exacta: {fecha_previa}."
             )
         db.execute_query(
-            "INSERT INTO asignacion_material (material_id, organizacion_id, destinatario_tipo, destinatario_id, asignado_por_id, asignado_por_rol, fecha_asignacion) VALUES (?, ?, 'Institución', NULL, ?, ?, DATETIME('now', 'localtime'))",
-            (datos.material_id, datos.organizacion_id, datos.remitente_id, datos.remitente_rol),
+            """INSERT INTO asignacion_material (
+                   material_id, organizacion_id, destinatario_tipo, destinatario_id,
+                   etiqueta_destino, mensaje_superadmin, asignado_por_id, asignado_por_rol, fecha_asignacion
+               ) VALUES (?, ?, 'Institución', NULL, ?, ?, ?, ?, ?)""",
+            (datos.material_id, datos.organizacion_id, etiqueta_destino, mensaje_superadmin, datos.remitente_id, datos.remitente_rol, ahora_str),
             commit=True
         )
-        mensaje_resp = f"✓ Colección '{mat['titulo']}' enviada con éxito a la institución {org['nombre']}. Los administradores ya pueden distribuirla a sus mentores."
+        mensaje_resp = f"✓ Colección '{mat['titulo']}' enviada con éxito a {org['nombre']} [Etiqueta: {etiqueta_destino}]."
 
     # CASO 2: ENVIAR A MENTORES
     elif nivel == "Mentores":
@@ -1007,44 +1103,41 @@ def enviar_coleccion_a_organizacion(datos: EnviarColeccionOrgReq):
             mentor = db.execute_query("SELECT id, nombre FROM usuarios WHERE id = ? AND rol = 'Mentor'", (dest_id,), fetchone=True)
             if not mentor:
                 raise HTTPException(status_code=404, detail="El mentor seleccionado no fue encontrado.")
-            ya_enviada = db.execute_query(
-                "SELECT id FROM asignacion_material WHERE material_id = ? AND organizacion_id = ? AND destinatario_tipo = 'Mentores' AND destinatario_id = ?",
-                (datos.material_id, datos.organizacion_id, dest_id),
-                fetchone=True
-            )
-            if ya_enviada:
+            fecha_previa = _buscar_envio_previo("Mentores", dest_id)
+            if fecha_previa:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"⚠️ ¡Alerta! La colección '{mat['titulo']}' ya fue asignada previamente al mentor '{mentor['nombre']}'."
+                    detail=f"⚠️ ¡Envío Bloqueado por Duplicado! La colección '{mat['titulo']}' ya fue enviada al mentor '{mentor['nombre']}' en la fecha exacta: {fecha_previa}."
                 )
             db.execute_query(
-                "INSERT INTO asignacion_material (material_id, organizacion_id, destinatario_tipo, destinatario_id, asignado_por_id, asignado_por_rol, fecha_asignacion) VALUES (?, ?, 'Mentores', ?, ?, ?, DATETIME('now', 'localtime'))",
-                (datos.material_id, datos.organizacion_id, dest_id, datos.remitente_id, datos.remitente_rol),
+                """INSERT INTO asignacion_material (
+                       material_id, organizacion_id, destinatario_tipo, destinatario_id,
+                       etiqueta_destino, mensaje_superadmin, asignado_por_id, asignado_por_rol, fecha_asignacion
+                   ) VALUES (?, ?, 'Mentores', ?, ?, ?, ?, ?, ?)""",
+                (datos.material_id, datos.organizacion_id, dest_id, etiqueta_destino, mensaje_superadmin, datos.remitente_id, datos.remitente_rol, ahora_str),
                 commit=True
             )
-            # Asegurar entrada en progreso_cursos para que el mentor la visualice
             existe_p = db.execute_query("SELECT id FROM progreso_cursos WHERE usuario_id = ? AND curso_id = ?", (dest_id, datos.material_id), fetchone=True)
             if not existe_p:
                 db.execute_query(
-                    "INSERT INTO progreso_cursos (usuario_id, curso_id, modulos_completados, porcentaje_avance, tiempo_dedicado_minutos, estado, fecha_actualizacion) VALUES (?, ?, 0, 0.0, 0, 'No Iniciado', DATETIME('now', 'localtime'))",
-                    (dest_id, datos.material_id),
+                    "INSERT INTO progreso_cursos (usuario_id, curso_id, modulos_completados, porcentaje_avance, tiempo_dedicado_minutos, estado, fecha_actualizacion) VALUES (?, ?, 0, 0.0, 0, 'No Iniciado', ?)",
+                    (dest_id, datos.material_id, ahora_str),
                     commit=True
                 )
-            mensaje_resp = f"✓ Colección '{mat['titulo']}' enviada con éxito al mentor {mentor['nombre']} para preparación docente."
+            mensaje_resp = f"✓ Colección '{mat['titulo']}' enviada con éxito al mentor {mentor['nombre']} [Etiqueta: {etiqueta_destino}]."
         else:
-            ya_enviada = db.execute_query(
-                "SELECT id FROM asignacion_material WHERE material_id = ? AND organizacion_id = ? AND destinatario_tipo = 'Mentores' AND (destinatario_id IS NULL OR destinatario_id = 0)",
-                (datos.material_id, datos.organizacion_id),
-                fetchone=True
-            )
-            if ya_enviada:
+            fecha_previa = _buscar_envio_previo("Mentores", None)
+            if fecha_previa:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"⚠️ ¡Alerta! La colección '{mat['titulo']}' ya fue asignada previamente a todos los mentores de '{org['nombre']}'."
+                    detail=f"⚠️ ¡Envío Bloqueado por Duplicado! La colección '{mat['titulo']}' ya fue enviada a todos los mentores de '{org['nombre']}' en la fecha exacta: {fecha_previa}."
                 )
             db.execute_query(
-                "INSERT INTO asignacion_material (material_id, organizacion_id, destinatario_tipo, destinatario_id, asignado_por_id, asignado_por_rol, fecha_asignacion) VALUES (?, ?, 'Mentores', NULL, ?, ?, DATETIME('now', 'localtime'))",
-                (datos.material_id, datos.organizacion_id, datos.remitente_id, datos.remitente_rol),
+                """INSERT INTO asignacion_material (
+                       material_id, organizacion_id, destinatario_tipo, destinatario_id,
+                       etiqueta_destino, mensaje_superadmin, asignado_por_id, asignado_por_rol, fecha_asignacion
+                   ) VALUES (?, ?, 'Mentores', NULL, ?, ?, ?, ?, ?)""",
+                (datos.material_id, datos.organizacion_id, etiqueta_destino, mensaje_superadmin, datos.remitente_id, datos.remitente_rol, ahora_str),
                 commit=True
             )
             mentores = db.execute_query("SELECT id FROM usuarios WHERE organizacion_id = ? AND rol = 'Mentor'", (datos.organizacion_id,), fetchall=True) or []
@@ -1052,11 +1145,11 @@ def enviar_coleccion_a_organizacion(datos: EnviarColeccionOrgReq):
                 existe_p = db.execute_query("SELECT id FROM progreso_cursos WHERE usuario_id = ? AND curso_id = ?", (m["id"], datos.material_id), fetchone=True)
                 if not existe_p:
                     db.execute_query(
-                        "INSERT INTO progreso_cursos (usuario_id, curso_id, modulos_completados, porcentaje_avance, tiempo_dedicado_minutos, estado, fecha_actualizacion) VALUES (?, ?, 0, 0.0, 0, 'No Iniciado', DATETIME('now', 'localtime'))",
-                        (m["id"], datos.material_id),
+                        "INSERT INTO progreso_cursos (usuario_id, curso_id, modulos_completados, porcentaje_avance, tiempo_dedicado_minutos, estado, fecha_actualizacion) VALUES (?, ?, 0, 0.0, 0, 'No Iniciado', ?)",
+                        (m["id"], datos.material_id, ahora_str),
                         commit=True
                     )
-            mensaje_resp = f"✓ Colección '{mat['titulo']}' enviada con éxito a los {len(mentores)} mentores de {org['nombre']}."
+            mensaje_resp = f"✓ Colección '{mat['titulo']}' enviada con éxito a los {len(mentores)} mentores de {org['nombre']} [Etiqueta: {etiqueta_destino}]."
 
     # CASO 3: ENVIAR A APRENDICES (ESTUDIANTES)
     else:
@@ -1064,37 +1157,41 @@ def enviar_coleccion_a_organizacion(datos: EnviarColeccionOrgReq):
             apr = db.execute_query("SELECT id, nombre FROM usuarios WHERE id = ? AND rol = 'Aprendiz'", (dest_id,), fetchone=True)
             if not apr:
                 raise HTTPException(status_code=404, detail="El aprendiz seleccionado no fue encontrado.")
+            fecha_previa = _buscar_envio_previo("Aprendices", dest_id)
+            if fecha_previa:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"⚠️ ¡Envío Bloqueado por Duplicado! La colección '{mat['titulo']}' ya fue asignada al estudiante '{apr['nombre']}' en la fecha exacta: {fecha_previa}."
+                )
+            db.execute_query(
+                """INSERT INTO asignacion_material (
+                       material_id, organizacion_id, destinatario_tipo, destinatario_id,
+                       etiqueta_destino, mensaje_superadmin, asignado_por_id, asignado_por_rol, fecha_asignacion
+                   ) VALUES (?, ?, 'Aprendices', ?, ?, ?, ?, ?, ?)""",
+                (datos.material_id, datos.organizacion_id, dest_id, etiqueta_destino, mensaje_superadmin, datos.remitente_id, datos.remitente_rol, ahora_str),
+                commit=True
+            )
             existe_p = db.execute_query("SELECT id FROM progreso_cursos WHERE usuario_id = ? AND curso_id = ?", (dest_id, datos.material_id), fetchone=True)
-            if existe_p:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"⚠️ ¡Alerta! La colección '{mat['titulo']}' ya fue asignada previamente al estudiante '{apr['nombre']}'."
+            if not existe_p:
+                db.execute_query(
+                    "INSERT INTO progreso_cursos (usuario_id, curso_id, modulos_completados, porcentaje_avance, tiempo_dedicado_minutos, estado, fecha_actualizacion) VALUES (?, ?, 0, 0.0, 0, 'No Iniciado', ?)",
+                    (dest_id, datos.material_id, ahora_str),
+                    commit=True
                 )
-            db.execute_query(
-                "INSERT INTO asignacion_material (material_id, organizacion_id, destinatario_tipo, destinatario_id, asignado_por_id, asignado_por_rol, fecha_asignacion) VALUES (?, ?, 'Aprendices', ?, ?, ?, DATETIME('now', 'localtime'))",
-                (datos.material_id, datos.organizacion_id, dest_id, datos.remitente_id, datos.remitente_rol),
-                commit=True
-            )
-            db.execute_query(
-                "INSERT INTO progreso_cursos (usuario_id, curso_id, modulos_completados, porcentaje_avance, tiempo_dedicado_minutos, estado, fecha_actualizacion) VALUES (?, ?, 0, 0.0, 0, 'No Iniciado', DATETIME('now', 'localtime'))",
-                (dest_id, datos.material_id),
-                commit=True
-            )
-            mensaje_resp = f"✓ Colección '{mat['titulo']}' enviada y matriculada con éxito al estudiante {apr['nombre']}."
+            mensaje_resp = f"✓ Colección '{mat['titulo']}' enviada y matriculada con éxito al estudiante {apr['nombre']} [Etiqueta: {etiqueta_destino}]."
         else:
-            ya_enviada = db.execute_query(
-                "SELECT id FROM asignacion_material WHERE material_id = ? AND organizacion_id = ? AND destinatario_tipo = 'Aprendices' AND (destinatario_id IS NULL OR destinatario_id = 0)",
-                (datos.material_id, datos.organizacion_id),
-                fetchone=True
-            )
-            if ya_enviada:
+            fecha_previa = _buscar_envio_previo("Aprendices", None)
+            if fecha_previa:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"⚠️ ¡Alerta! La colección '{mat['titulo']}' ya fue asignada previamente a todos los aprendices de '{org['nombre']}'."
+                    detail=f"⚠️ ¡Envío Bloqueado por Duplicado! La colección '{mat['titulo']}' ya fue enviada a todos los aprendices de '{org['nombre']}' en la fecha exacta: {fecha_previa}."
                 )
             db.execute_query(
-                "INSERT INTO asignacion_material (material_id, organizacion_id, destinatario_tipo, destinatario_id, asignado_por_id, asignado_por_rol, fecha_asignacion) VALUES (?, ?, 'Aprendices', NULL, ?, ?, DATETIME('now', 'localtime'))",
-                (datos.material_id, datos.organizacion_id, datos.remitente_id, datos.remitente_rol),
+                """INSERT INTO asignacion_material (
+                       material_id, organizacion_id, destinatario_tipo, destinatario_id,
+                       etiqueta_destino, mensaje_superadmin, asignado_por_id, asignado_por_rol, fecha_asignacion
+                   ) VALUES (?, ?, 'Aprendices', NULL, ?, ?, ?, ?, ?)""",
+                (datos.material_id, datos.organizacion_id, etiqueta_destino, mensaje_superadmin, datos.remitente_id, datos.remitente_rol, ahora_str),
                 commit=True
             )
             aprendices = db.execute_query("SELECT id FROM usuarios WHERE organizacion_id = ? AND rol = 'Aprendiz'", (datos.organizacion_id,), fetchall=True) or []
@@ -1102,15 +1199,53 @@ def enviar_coleccion_a_organizacion(datos: EnviarColeccionOrgReq):
                 existe_p = db.execute_query("SELECT id FROM progreso_cursos WHERE usuario_id = ? AND curso_id = ?", (ap["id"], datos.material_id), fetchone=True)
                 if not existe_p:
                     db.execute_query(
-                        "INSERT INTO progreso_cursos (usuario_id, curso_id, modulos_completados, porcentaje_avance, tiempo_dedicado_minutos, estado, fecha_actualizacion) VALUES (?, ?, 0, 0.0, 0, 'No Iniciado', DATETIME('now', 'localtime'))",
-                        (ap["id"], datos.material_id),
+                        "INSERT INTO progreso_cursos (usuario_id, curso_id, modulos_completados, porcentaje_avance, tiempo_dedicado_minutos, estado, fecha_actualizacion) VALUES (?, ?, 0, 0.0, 0, 'No Iniciado', ?)",
+                        (ap["id"], datos.material_id, ahora_str),
                         commit=True
                     )
-            mensaje_resp = f"✓ Colección '{mat['titulo']}' enviada y matriculada con éxito a los {len(aprendices)} aprendices de {org['nombre']}."
+            mensaje_resp = f"✓ Colección '{mat['titulo']}' enviada y matriculada con éxito a los {len(aprendices)} aprendices de {org['nombre']} [Etiqueta: {etiqueta_destino}]."
+
+    # Guardar registro permanente en historial_envios_colecciones para que la prevención de duplicados y fecha exacta persistan incluso tras limpiar el catálogo global
+    try:
+        db.execute_query(
+            """INSERT INTO historial_envios_colecciones (
+                   material_id, titulo_coleccion, enlace_url, tipo_material, total_modulos,
+                   organizacion_id, organizacion_nombre, destinatario_tipo, destinatario_id,
+                   etiqueta_destino, mensaje_superadmin, remitente_rol, fecha_envio
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                datos.material_id,
+                mat.get("titulo"),
+                mat.get("enlace_url"),
+                mat.get("tipo_material") or "Colección Microsoft",
+                mat.get("total_modulos") or 3,
+                datos.organizacion_id,
+                org.get("nombre"),
+                nivel,
+                dest_id or 0,
+                etiqueta_destino,
+                mensaje_superadmin,
+                datos.remitente_rol or "Super Administrador",
+                ahora_str
+            ),
+            commit=True
+        )
+    except Exception as e_hist:
+        print(f">> [HISTORIAL-ENVIOS] Aviso guardando historial: {e_hist}", flush=True)
+
+    try:
+        VERSION_CAMBIOS["global"] = int(VERSION_CAMBIOS.get("global", 1)) + 1
+        replicador_azure.sincronizar_inmediato([
+            "asignacion_material",
+            "historial_envios_colecciones",
+            "progreso_cursos"
+        ])
+    except Exception:
+        pass
 
     registrar_movimiento(
         datos.remitente_rol or "Administración", "Colecciones", "Enviar_Coleccion_Org", "EXITO",
-        f"Colección '{mat['titulo']}' enviada a {org['nombre']} [Nivel: {nivel}, Destinatario ID: {dest_id or 'Todos'}]"
+        f"Colección '{mat['titulo']}' enviada a {org['nombre']} [Nivel: {nivel}, Etiqueta: {etiqueta_destino}, Fecha: {ahora_str}]"
     )
 
     return {
@@ -1119,24 +1254,57 @@ def enviar_coleccion_a_organizacion(datos: EnviarColeccionOrgReq):
         "material_id": datos.material_id,
         "organizacion_id": datos.organizacion_id,
         "destinatario_tipo": nivel,
-        "destinatario_id": dest_id
+        "destinatario_id": dest_id,
+        "etiqueta_destino": etiqueta_destino,
+        "mensaje_superadmin": mensaje_superadmin,
+        "fecha_envio": ahora_str
     }
 
 
 @router.get("/api/superadmin/colecciones/asignaciones-todas")
 def listar_todas_las_asignaciones_colecciones():
-    """Retorna un mapeo completo de asignaciones existentes para validación y alertas inmediatas en frontend"""
+    """Retorna un mapeo completo de asignaciones existentes e historial de envíos (con fechas exactas, etiquetas y mensajes) para validación anti-duplicados en frontend"""
     filas = db.execute_query("""
         SELECT a.id, a.material_id, a.organizacion_id, a.fecha_asignacion,
                COALESCE(a.destinatario_tipo, 'Institución') as destinatario_tipo,
                a.destinatario_id,
-               m.titulo as material_titulo, COALESCE(m.total_modulos, 3) as total_modulos,
+               COALESCE(a.etiqueta_destino, 'Para Todos') as etiqueta_destino,
+               a.mensaje_superadmin,
+               COALESCE(m.titulo, 'Colección #' || a.material_id) as material_titulo,
+               COALESCE(m.total_modulos, 3) as total_modulos,
                COALESCE(o.nombre, 'Acceso Global') as organizacion_nombre
         FROM asignacion_material a
-        JOIN material_capacitacion m ON m.id = a.material_id
+        LEFT JOIN material_capacitacion m ON m.id = a.material_id
         LEFT JOIN organizaciones o ON o.id = a.organizacion_id
         ORDER BY a.id DESC
     """, fetchall=True) or []
+
+    # Unir cualquier envío histórico cuyo registro ya no esté en asignacion_material para que la alerta de fecha exacta funcione siempre
+    claves_vistas = {
+        (r.get("material_id"), r.get("organizacion_id"), r.get("destinatario_tipo") or "Institución", r.get("destinatario_id") or 0)
+        for r in filas
+    }
+    try:
+        hist = db.execute_query("""
+            SELECT id, material_id, organizacion_id, fecha_envio as fecha_asignacion,
+                   COALESCE(destinatario_tipo, 'Institución') as destinatario_tipo,
+                   destinatario_id,
+                   COALESCE(etiqueta_destino, 'Para Todos') as etiqueta_destino,
+                   mensaje_superadmin,
+                   titulo_coleccion as material_titulo,
+                   COALESCE(total_modulos, 3) as total_modulos,
+                   COALESCE(organizacion_nombre, 'Institución') as organizacion_nombre
+            FROM historial_envios_colecciones
+            ORDER BY id DESC
+        """, fetchall=True) or []
+        for h in hist:
+            k = (h.get("material_id"), h.get("organizacion_id"), h.get("destinatario_tipo") or "Institución", h.get("destinatario_id") or 0)
+            if k not in claves_vistas:
+                claves_vistas.add(k)
+                filas.append(h)
+    except Exception:
+        pass
+
     return {"status": "success", "data": filas}
 
 
@@ -1240,9 +1408,11 @@ def obtener_analitica_colecciones_organizacion(org_id: int = 0):
             ORDER BY o.nombre ASC, u.nombre ASC
         """, fetchall=True) or []
         colecciones = db.execute_query("""
-            SELECT DISTINCT m.id, m.titulo, m.tipo_material, m.enlace_url, m.rol_destino,
+            SELECT m.id, m.titulo, m.tipo_material, m.enlace_url, m.rol_destino,
                    COALESCE(m.total_modulos, 3) as total_modulos,
-                   MAX(a.fecha_asignacion) as fecha_asignacion
+                   MAX(a.fecha_asignacion) as fecha_asignacion,
+                   MAX(COALESCE(a.etiqueta_destino, 'Para Todos')) as etiqueta_destino,
+                   MAX(a.mensaje_superadmin) as mensaje_superadmin
             FROM material_capacitacion m
             JOIN asignacion_material a ON m.id = a.material_id
             GROUP BY m.id, m.titulo, m.tipo_material, m.enlace_url, m.rol_destino, m.total_modulos
@@ -1267,12 +1437,15 @@ def obtener_analitica_colecciones_organizacion(org_id: int = 0):
         org_info = dict(org)
 
         colecciones = db.execute_query("""
-            SELECT DISTINCT m.id, m.titulo, m.tipo_material, m.enlace_url, m.rol_destino,
+            SELECT m.id, m.titulo, m.tipo_material, m.enlace_url, m.rol_destino,
                    COALESCE(m.total_modulos, 3) as total_modulos,
-                   a.fecha_asignacion
+                   MAX(a.fecha_asignacion) as fecha_asignacion,
+                   MAX(COALESCE(a.etiqueta_destino, 'Para Todos')) as etiqueta_destino,
+                   MAX(a.mensaje_superadmin) as mensaje_superadmin
             FROM material_capacitacion m
             JOIN asignacion_material a ON m.id = a.material_id
             WHERE a.organizacion_id = ?
+            GROUP BY m.id, m.titulo, m.tipo_material, m.enlace_url, m.rol_destino, m.total_modulos
             ORDER BY m.id DESC
         """, (org_id,), fetchall=True) or []
 

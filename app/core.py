@@ -421,6 +421,7 @@ class ReplicadorAzure:
             "progreso_cursos",
             "progreso_quizzes",
             "asignacion_material",
+            "historial_envios_colecciones",
             "quizzes_evaluaciones",
             "registro_actividades_tiempo",
             "historial_nuevos_integrantes",
@@ -1171,21 +1172,96 @@ class DatabaseManager:
         except Exception:
             pass
 
-        # Garantizar las cuentas maestras de Superadministrador (sin organizaciones fijas)
+        # Garantizar la cuenta maestra canónica de Superadministrador (sin duplicados de alias)
         try:
-            for s_mail in ('alexander.niño.583@hgmail.com', 'alexander.nino.583@hgmail.com', 'alexander.nino.583@gmail.com'):
-                cursor.execute("""
-                    INSERT OR IGNORE INTO usuarios (organizacion_id, mentor_id, nombre, correo, rol, password_hash)
-                    VALUES (NULL, NULL, 'Diego Alexander Niño Niño', ?, 'Super Administrador', '$2b$12$Nh5npfN6/cCS8MBclXRVNueVPr.MzcVGn4hq58M4ZfDNzndP3MzOu')
-                """, (s_mail,))
-                cursor.execute("""
-                    UPDATE usuarios
-                    SET rol = 'Super Administrador', organizacion_id = NULL, mentor_id = NULL
-                    WHERE LOWER(TRIM(correo)) = ?
-                """, (s_mail,))
+            cursor.execute("""
+                DELETE FROM usuarios
+                WHERE LOWER(TRIM(correo)) IN ('alexander.niño.583@hgmail.com', 'alexander.nino.583@hgmail.com', 'alexander.niño.583@gmail.com', 'diegoalexander.nino.583@hotmail.com')
+            """)
+            cursor.execute("""
+                INSERT OR IGNORE INTO usuarios (organizacion_id, mentor_id, nombre, correo, rol, password_hash)
+                VALUES (NULL, NULL, 'Diego Alexander Niño Niño', 'alexander.nino.583@gmail.com', 'Super Administrador', '$2b$12$Nh5npfN6/cCS8MBclXRVNueVPr.MzcVGn4hq58M4ZfDNzndP3MzOu')
+            """)
+            cursor.execute("""
+                UPDATE usuarios
+                SET rol = 'Super Administrador', organizacion_id = NULL, mentor_id = NULL
+                WHERE LOWER(TRIM(correo)) = 'alexander.nino.583@gmail.com'
+            """)
             conn.commit()
         except Exception as e_super:
             print(f">> [SUPERADMIN INIT] Aviso: {e_super}")
+
+        # Migraciones seguras de catálogo y colecciones (Edición, Etiquetas de Rol, Mensajería, Prevención de Duplicados y Limpieza Global)
+        try:
+            for col_mat, def_mat in [
+                ("oculto_catalogo_global", "INTEGER DEFAULT 0"),
+                ("descripcion_modulos", "TEXT NULL"),
+            ]:
+                try:
+                    cursor.execute(f"ALTER TABLE material_capacitacion ADD COLUMN {col_mat} {def_mat}")
+                except Exception:
+                    pass
+            for col_asig, def_asig in [
+                ("etiqueta_destino", "TEXT DEFAULT 'Para Todos'"),
+                ("mensaje_superadmin", "TEXT NULL"),
+            ]:
+                try:
+                    cursor.execute(f"ALTER TABLE asignacion_material ADD COLUMN {col_asig} {def_asig}")
+                except Exception:
+                    pass
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS historial_envios_colecciones (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    material_id INTEGER NOT NULL,
+                    titulo_coleccion TEXT NOT NULL,
+                    enlace_url TEXT NULL,
+                    tipo_material TEXT DEFAULT 'Colección Microsoft',
+                    total_modulos INTEGER DEFAULT 3,
+                    organizacion_id INTEGER NOT NULL,
+                    organizacion_nombre TEXT NULL,
+                    destinatario_tipo TEXT DEFAULT 'Institución',
+                    destinatario_id INTEGER DEFAULT 0,
+                    etiqueta_destino TEXT DEFAULT 'Para Todos',
+                    mensaje_superadmin TEXT NULL,
+                    remitente_rol TEXT DEFAULT 'Super Administrador',
+                    fecha_envio TEXT DEFAULT (DATETIME('now', 'localtime'))
+                );
+            """)
+            # Poblar historial_envios_colecciones con las asignaciones existentes para preservar fechas exactas de envío previas
+            cursor.execute("""
+                INSERT INTO historial_envios_colecciones (
+                    material_id, titulo_coleccion, enlace_url, tipo_material, total_modulos,
+                    organizacion_id, organizacion_nombre, destinatario_tipo, destinatario_id,
+                    etiqueta_destino, mensaje_superadmin, fecha_envio
+                )
+                SELECT
+                    a.material_id,
+                    COALESCE(m.titulo, 'Colección #' || a.material_id),
+                    m.enlace_url,
+                    COALESCE(m.tipo_material, 'Colección Microsoft'),
+                    COALESCE(m.total_modulos, 3),
+                    a.organizacion_id,
+                    o.nombre,
+                    COALESCE(a.destinatario_tipo, 'Institución'),
+                    COALESCE(a.destinatario_id, 0),
+                    COALESCE(a.etiqueta_destino, 'Para Todos'),
+                    a.mensaje_superadmin,
+                    COALESCE(a.fecha_asignacion, DATETIME('now', 'localtime'))
+                FROM asignacion_material a
+                LEFT JOIN material_capacitacion m ON m.id = a.material_id
+                LEFT JOIN organizaciones o ON o.id = a.organizacion_id
+                WHERE a.organizacion_id IS NOT NULL
+                  AND NOT EXISTS (
+                      SELECT 1 FROM historial_envios_colecciones h
+                      WHERE h.material_id = a.material_id
+                        AND h.organizacion_id = a.organizacion_id
+                        AND COALESCE(h.destinatario_tipo, 'Institución') = COALESCE(a.destinatario_tipo, 'Institución')
+                        AND COALESCE(h.destinatario_id, 0) = COALESCE(a.destinatario_id, 0)
+                  )
+            """)
+            conn.commit()
+        except Exception as e_mig_col:
+            print(f">> [MIGRACION COLECCIONES] Aviso: {e_mig_col}")
 
         # Asegurar enlaces oficiales 100% válidos (sin 404) en el catálogo si existen colecciones
         try:
@@ -1353,26 +1429,27 @@ class DatabaseManager:
             );
         """)
 
-        # Asegurar credenciales y rol exclusivo oficial de la Bodega Legal
+        # Asegurar credenciales y rol exclusivo oficial de la Bodega Legal (una sola cuenta canónica)
         try:
             pwd_hash_bodega = bcrypt.hashpw("123456".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            # 1. Asegurar en usuarios
+            cursor.execute("""
+                DELETE FROM usuarios
+                WHERE LOWER(TRIM(correo)) = 'diegoalexander.nino.583@hotmail.com'
+            """)
             cursor.execute("""
                 INSERT OR IGNORE INTO usuarios (organizacion_id, mentor_id, nombre, correo, rol, password_hash)
-                VALUES (NULL, NULL, 'Diego Alexander Niño', 'diegoalexander.nino.583@hotmail.com', 'BODEGA_LEGAL', ?)
+                VALUES (NULL, NULL, 'Diego Alexander Niño', 'diego.alexander.nino.583@hotmail.com', 'BODEGA_LEGAL', ?)
             """, (pwd_hash_bodega,))
             cursor.execute("""
                 UPDATE usuarios
-                SET rol = 'BODEGA_LEGAL'
-                WHERE LOWER(TRIM(correo)) = 'diegoalexander.nino.583@hotmail.com'
-            """)
-            # Si existía el correo con punto diego.alexander.nino.583@hotmail.com, también actualizarlo para compatibilidad
-            cursor.execute("""
-                UPDATE usuarios
-                SET rol = 'BODEGA_LEGAL'
+                SET rol = 'BODEGA_LEGAL', organizacion_id = NULL, mentor_id = NULL
                 WHERE LOWER(TRIM(correo)) = 'diego.alexander.nino.583@hotmail.com'
             """)
             # 2. Asegurar en configuracion_boveda_legal
+            cursor.execute("""
+                INSERT OR IGNORE INTO configuracion_boveda_legal (correo_autorizado, nombre_responsable, cargo, activo, asignado_por)
+                VALUES ('diego.alexander.nino.583@hotmail.com', 'Diego Alexander Niño', 'Oficial de Cumplimiento & Bodega Legal', 1, 'alexander.nino.583@gmail.com')
+            """)
             cursor.execute("""
                 INSERT OR IGNORE INTO configuracion_boveda_legal (correo_autorizado, nombre_responsable, cargo, activo, asignado_por)
                 VALUES ('diegoalexander.nino.583@hotmail.com', 'Diego Alexander Niño', 'Oficial de Cumplimiento & Bodega Legal', 1, 'alexander.nino.583@gmail.com')
@@ -1380,7 +1457,7 @@ class DatabaseManager:
             cursor.execute("""
                 UPDATE configuracion_boveda_legal
                 SET activo = 1, nombre_responsable = 'Diego Alexander Niño', cargo = 'Oficial de Cumplimiento & Bodega Legal'
-                WHERE LOWER(TRIM(correo_autorizado)) = 'diegoalexander.nino.583@hotmail.com'
+                WHERE LOWER(TRIM(correo_autorizado)) IN ('diego.alexander.nino.583@hotmail.com', 'diegoalexander.nino.583@hotmail.com')
             """)
         except Exception as e_bl:
             print(f">> [BODEGA_LEGAL INIT] Aviso: {e_bl}")
@@ -1760,31 +1837,49 @@ class DatabaseManager:
 db = DatabaseManager()
 try:
     replicador_azure.hidratar_desde_azure()
-    # Garantizar siempre al Superadministrador sin organización fija tras hidratar
-    for s_mail in ('alexander.niño.583@hgmail.com', 'alexander.nino.583@hgmail.com', 'alexander.nino.583@gmail.com'):
-        db.execute_query(
-            """INSERT OR IGNORE INTO usuarios (organizacion_id, mentor_id, nombre, correo, rol, password_hash)
-               VALUES (NULL, NULL, 'Diego Alexander Niño Niño', ?, 'Super Administrador', '$2b$12$Nh5npfN6/cCS8MBclXRVNueVPr.MzcVGn4hq58M4ZfDNzndP3MzOu')""",
-            (s_mail,),
-            commit=True
-        )
-        db.execute_query(
-            "UPDATE usuarios SET rol = 'Super Administrador', organizacion_id = NULL, mentor_id = NULL WHERE LOWER(TRIM(correo)) = ?",
-            (s_mail,),
-            commit=True
-        )
-    for b_mail in ('diego.alexander.nino.583@hotmail.com', 'diegoalexander.nino.583@hotmail.com'):
-        db.execute_query(
-            """INSERT OR IGNORE INTO usuarios (organizacion_id, mentor_id, nombre, correo, rol, password_hash)
-               VALUES (NULL, NULL, 'Diego Alexander Niño', ?, 'BODEGA_LEGAL', '$2b$12$Nh5npfN6/cCS8MBclXRVNueVPr.MzcVGn4hq58M4ZfDNzndP3MzOu')""",
-            (b_mail,),
-            commit=True
-        )
-        db.execute_query(
-            "UPDATE usuarios SET rol = 'BODEGA_LEGAL', organizacion_id = NULL, mentor_id = NULL WHERE LOWER(TRIM(correo)) = ?",
-            (b_mail,),
-            commit=True
-        )
+    # Garantizar siempre al Superadministrador y Bodega Legal canónicos sin duplicados de alias tras hidratar
+    dups_alias = db.execute_query(
+        """SELECT id, correo FROM usuarios
+           WHERE LOWER(TRIM(correo)) IN ('alexander.niño.583@hgmail.com', 'alexander.nino.583@hgmail.com', 'alexander.niño.583@gmail.com', 'diegoalexander.nino.583@hotmail.com')""",
+        fetchall=True
+    ) or []
+    for d_row in dups_alias:
+        try:
+            replicador_azure.registrar_borrado("usuarios", d_row["id"])
+        except Exception:
+            pass
+        db.execute_query("DELETE FROM usuarios WHERE id = ?", (d_row["id"],), commit=True)
+
+    # También eliminar duplicados exactos de alexander.nino.583@gmail.com o diego.alexander.nino.583@hotmail.com si hubiera más de uno
+    for canonical_mail, canonical_rol, canonical_name in [
+        ("alexander.nino.583@gmail.com", "Super Administrador", "Diego Alexander Niño Niño"),
+        ("diego.alexander.nino.583@hotmail.com", "BODEGA_LEGAL", "Diego Alexander Niño"),
+    ]:
+        rows_c = db.execute_query(
+            "SELECT id FROM usuarios WHERE LOWER(TRIM(correo)) = ? ORDER BY id ASC",
+            (canonical_mail,),
+            fetchall=True
+        ) or []
+        if not rows_c:
+            db.execute_query(
+                """INSERT INTO usuarios (organizacion_id, mentor_id, nombre, correo, rol, password_hash)
+                   VALUES (NULL, NULL, ?, ?, ?, '$2b$12$Nh5npfN6/cCS8MBclXRVNueVPr.MzcVGn4hq58M4ZfDNzndP3MzOu')""",
+                (canonical_name, canonical_mail, canonical_rol),
+                commit=True
+            )
+        else:
+            keep_id = rows_c[0]["id"]
+            db.execute_query(
+                "UPDATE usuarios SET rol = ?, organizacion_id = NULL, mentor_id = NULL WHERE id = ?",
+                (canonical_rol, keep_id),
+                commit=True
+            )
+            for extra_r in rows_c[1:]:
+                try:
+                    replicador_azure.registrar_borrado("usuarios", extra_r["id"])
+                except Exception:
+                    pass
+                db.execute_query("DELETE FROM usuarios WHERE id = ?", (extra_r["id"],), commit=True)
 except Exception as _e_hid:
     print(f">> [INIT] Aviso hidratando desde Azure SQL: {_e_hid}")
 replicador_azure.iniciar()
@@ -2505,20 +2600,29 @@ def esta_correo_registrado_en_programa(correo: str) -> Optional[Dict[str, Any]]:
         return None
     try:
         correo_l = str(correo).strip().lower()
+        alias_map = {
+            "alexander.niño.583@hgmail.com": "alexander.nino.583@gmail.com",
+            "alexander.nino.583@hgmail.com": "alexander.nino.583@gmail.com",
+            "alexander.niño.583@gmail.com": "alexander.nino.583@gmail.com",
+            "diegoalexander.nino.583@hotmail.com": "diego.alexander.nino.583@hotmail.com",
+            "diego.alexander.niño.583@hotmail.com": "diego.alexander.nino.583@hotmail.com",
+            "diegoalexander.niño.583@hotmail.com": "diego.alexander.nino.583@hotmail.com",
+        }
+        correo_busqueda = alias_map.get(correo_l, correo_l)
         u = db.execute_query(
             """SELECT u.id, u.nombre, u.correo, u.rol, u.organizacion_id, u.mentor_id,
                       COALESCE(o.nombre, 'Plataforma Global EdTech') as institucion_nombre
                FROM usuarios u
                LEFT JOIN organizaciones o ON o.id = u.organizacion_id
-               WHERE LOWER(TRIM(u.correo)) = ?""",
-            (correo_l,),
+               WHERE LOWER(TRIM(u.correo)) IN (?, ?)""",
+            (correo_l, correo_busqueda),
             fetchone=True
         )
         if u:
             return dict(u)
         return None
     except Exception as e:
-        print(f">> [DB-ERROR] Error en esta_correo_registrado_en_programa para {correo}: {e}")
+        print(f">> [DB-ERROR] Error en esta_correo_registrado_en_programa para {correo}: {e}", flush=True)
         return None
 
 def _obtener_urls_puente_https() -> List[str]:
@@ -2753,6 +2857,7 @@ def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo
                 ultimo_error_smtp = f"Webhook HTTPS: {e_wh}"
 
         enviado = False
+        print(f">> [SMTP-DEBUG] Iniciando envío SMTP desde {CORREO_APP} hacia {destinatario_smtp} (Asunto: {asunto[:60]})...", flush=True)
         # Intento 1 y 2: Puerto 465 SSL con reintento automático ante micro-cortes de red
         for intento_ssl in range(2):
             try:
@@ -2761,10 +2866,11 @@ def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo
                     smtp.send_message(msg)
                     enviado = True
                     ultimo_error_smtp = ""
-                    print(f">> [SMTP-465] Correo entregado exitosamente a {destinatario_limpio}", flush=True)
+                    print(f">> [SMTP-465] Correo entregado exitosamente a {destinatario_smtp} (intento {intento_ssl + 1})", flush=True)
                     break
             except Exception as e_ssl:
                 ultimo_error_smtp = f"SSL 465: {e_ssl}"
+                print(f">> [SMTP-465-WARN] Fallo en puerto 465 (intento {intento_ssl + 1}) para {destinatario_smtp}: {e_ssl}", flush=True)
                 if ("101" in str(e_ssl) or "unreachable" in str(e_ssl).lower()):
                     break
                 time.sleep(0.3)
@@ -2779,21 +2885,23 @@ def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo
                     smtp.send_message(msg)
                     enviado = True
                     ultimo_error_smtp = ""
-                    print(f">> [SMTP-587] Correo entregado exitosamente a {destinatario_limpio} vía STARTTLS", flush=True)
+                    print(f">> [SMTP-587] Correo entregado exitosamente a {destinatario_smtp} vía STARTTLS", flush=True)
             except Exception as e_tls:
                 ultimo_error_smtp = f"STARTTLS 587: {e_tls}"
-                print(f">> [SMTP-587-ERROR] Falló STARTTLS 587 para {destinatario_limpio}: {e_tls}")
+                print(f">> [SMTP-587-ERROR] Falló STARTTLS 587 para {destinatario_smtp}: {e_tls}", flush=True)
 
         if not enviado and not evitar_relay:
             try:
-                if _enviar_via_puente_https(destinatario_limpio, asunto, cuerpo_texto, cuerpo_html, codigo_otp):
+                if _enviar_via_puente_https(destinatario_smtp, asunto, cuerpo_texto, cuerpo_html, codigo_otp):
                     enviado = True
                     ultimo_error_smtp = ""
-                    print(f">> [PUENTE-HTTPS] Correo entregado exitosamente a {destinatario_limpio} vía puente Cloudflare", flush=True)
+                    print(f">> [PUENTE-HTTPS] Correo entregado exitosamente a {destinatario_smtp} vía puente Cloudflare", flush=True)
             except Exception as e_bridge:
                 ultimo_error_smtp = f"Puente HTTPS: {e_bridge}"
-                print(f">> [PUENTE-HTTPS-ERROR] Falló puente HTTPS para {destinatario_limpio}: {e_bridge}")
+                print(f">> [PUENTE-HTTPS-ERROR] Falló puente HTTPS para {destinatario_smtp}: {e_bridge}", flush=True)
 
+        if not enviado:
+            print(f">> [SMTP-ERROR-FINAL] No se pudo enviar el correo a {destinatario_smtp}. Último error: {ultimo_error_smtp}", flush=True)
         return enviado
     except Exception as e:
         ultimo_error_smtp = f"Error general: {e}"
@@ -3169,11 +3277,11 @@ class SubirLogoOrgRequest(BaseModel):
     logo_url: str
 
 class ActualizarUsuarioRequest(BaseModel):
-    nombre: str
-    correo: str
-    rol: str
-    organizacion_id: Optional[int] = None
-    mentor_id: Optional[int] = None
+    nombre: Optional[str] = None
+    correo: Optional[str] = None
+    rol: Optional[str] = None
+    organizacion_id: Optional[Any] = None
+    mentor_id: Optional[Any] = None
 
 class EliminarLoteReq(BaseModel):
     ids: List[int]
@@ -3240,13 +3348,24 @@ class CrearMaterialReq(BaseModel):
     rol_destino: Optional[str] = "General"
     total_modulos: Optional[int] = 3
     descripcion_modulos: Optional[str] = None
-    organizacion_id: Optional[int] = None
+    organizacion_id: Optional[Any] = None
+
+class ActualizarMaterialReq(BaseModel):
+    titulo: str
+    tipo_material: str
+    enlace_url: str
+    rol_destino: Optional[str] = "General"
+    total_modulos: Optional[int] = 3
+    descripcion_modulos: Optional[str] = None
+    organizacion_id: Optional[Any] = None
 
 class EnviarColeccionOrgReq(BaseModel):
     material_id: int
     organizacion_id: int
     destinatario_tipo: Optional[str] = "Institución"  # 'Institución', 'Mentores', 'Aprendices'
-    destinatario_id: Optional[int] = None             # ID de usuario si es individual, None/0 si es todos
+    destinatario_id: Optional[Any] = None             # ID de usuario si es individual, None/0 si es todos
+    etiqueta_destino: Optional[str] = "Para Todos"    # 'Para Mentores', 'Para Aprendices', 'Para Todos'
+    mensaje_superadmin: Optional[str] = None          # Mensaje directo del Superadministrador para la institución
     remitente_id: Optional[int] = None
     remitente_rol: Optional[str] = None
 

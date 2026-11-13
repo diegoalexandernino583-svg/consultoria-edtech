@@ -1332,3 +1332,14 @@ Fecha_Hora,Correo_Usuario,Modulo,Operacion,Estado,Detalles_Error
 2026-11-12 20:47:51,alejandro.mejia-a@uniminuto.edu.co,Seguridad,Cambio_Contraseña,EXITO,Ninguno
 2026-11-12 20:49:16,alejandro.mejia-a@uniminuto.edu.co,Seguridad,Cambio_Contraseña,EXITO,Ninguno
 2026-11-12 20:49:58,alejandro.mejia-a@uniminuto.edu.co,Seguridad,Cambio_Contraseña,EXITO,Ninguno
+2026-11-13 09:40:21,alexander.nino.583@gmail.com,Seguridad,Solicitar_Recuperacion,EXITO,Código enviado a alexander.nino.583@gmail.com
+2026-11-13 09:40:44,alexander.nino.583@gmail.com,Seguridad,Solicitar_Recuperacion,EXITO,Código enviado a alexander.nino.583@gmail.com
+2026-11-13 09:41:50,alexander.nino.583@gmail.com,Seguridad,Solicitar_Recuperacion,EXITO,Código enviado a alexander.nino.583@gmail.com
+2026-11-13 09:42:18,alexander.nino.583@gmail.com,Seguridad,Solicitar_Recuperacion,EXITO,Código enviado a alexander.nino.583@gmail.com
+2026-11-13 09:42:43,alexander.nino.583@gmail.com,Seguridad,Solicitar_Recuperacion,EXITO,Código enviado a alexander.nino.583@gmail.com
+2026-11-13 09:42:44,test.edicion.temp@uniminuto.edu.co,Registro,Registro_Usuario,EXITO,Rol: Aprendiz · Org: Corporación Universitaria Minuto de Dios
+2026-11-13 09:42:44,Administrador,Usuarios,Modificar_Usuario,EXITO,Usuario #2768: Usuario Test Editado OK (test.editado.ok@uniminuto.edu.co) -> Rol: Mentor
+2026-11-13 09:42:44,SuperAdmin,Material,Crear_Material,EXITO,Título: Coleccion Test Integral Azure IA 2026 - ID: 22 - Módulos: 4
+2026-11-13 09:42:44,SuperAdmin,Material,Editar_Material,EXITO,Colección editada #22: Coleccion Test Integral Azure IA 2026 (Editada) (5 módulos)
+2026-11-13 09:42:44,Super Administrador,Colecciones,Enviar_Coleccion_Org,EXITO,"Colección 'Coleccion Test Integral Azure IA 2026 (Editada)' enviada a Corporación Universitaria Minuto de Dios [Nivel: Institución, Etiqueta: Para Mentores, Fecha: 2026-11-13 09:42:44]"
+2026-11-13 09:42:44,SuperAdmin,Material,Limpiar_Catalogo_Global,EXITO,Colección 'Coleccion Test Integral Azure IA 2026 (Editada)' (ID 22) retirada del catálogo global (conservada en 1 institución(es) y en historial anti-duplicados)
