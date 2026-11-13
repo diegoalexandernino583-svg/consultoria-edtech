@@ -1503,22 +1503,6 @@ function configurarVistasSegunRol(forzarNavegacionInicial = false) {
 
   let linksHtml = '';
 
-  const tieneAccesoBovedaLegal = Boolean(
-    currentUser && (
-      rol === 'super administrador' ||
-      rol === 'superadmin' ||
-      rol === 'bodega_legal' ||
-      (rol.includes('super') && ['alexander.nino.583@gmail.com', 'diegoalexander.nino.583@hotmail.com', 'diego.alexander.nino.583@hotmail.com'].includes(String(currentUser.correo || '').toLowerCase().trim()))
-    )
-  );
-
-  const linkBovedaHtml = tieneAccesoBovedaLegal ? `
-      <a id="nav-item-boveda-legal" onclick="navegarVista('boveda-legal')" class="sidebar-link btn-sidebar-bodega-legal">
-        <i data-lucide="scale" class="w-4 h-4 shrink-0"></i>
-        <span>📁 Bodega Legal</span>
-      </a>
-  ` : '';
-
   if (rol.includes('super')) {
     linksHtml = `
       <div class="px-3 pt-1 pb-1">
@@ -1548,7 +1532,6 @@ function configurarVistasSegunRol(forzarNavegacionInicial = false) {
       <div class="px-3 pt-3 pb-1">
         <span class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">${t('side_sec_seguridad', 'Seguridad & Ajustes')}</span>
       </div>
-      ${linkBovedaHtml}
       <a id="nav-item-celador" onclick="navegarVista('celador')" class="sidebar-link">
         <i data-lucide="clipboard-list" class="w-4 h-4 shrink-0 text-cyan-400"></i>
         <span>${t('side_registro_actividad', 'Registro de Actividad')}</span>
@@ -2042,6 +2025,7 @@ function validarCoincidenciaPasswordRecuperar() {
 }
 
 let correoEnRecuperacion = '';
+let currentCodigoAuxiliarRecuperar = '';
 
 async function solicitarCodigoRecuperacion(event) {
   event.preventDefault();

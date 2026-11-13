@@ -32,7 +32,6 @@ if SERVER and DATABASE and USERNAME and PASSWORD and os.getenv("MODO_ALTA_VELOCI
     params = urllib.parse.quote_plus(
         f"Driver={DRIVER};Server=tcp:{SERVER},1433;Database={DATABASE};"
         f"Uid={USERNAME};Pwd={PASSWORD};Encrypt=yes;TrustServerCertificate=yes;"
-        f"LoginTimeout=5;"
     )
     SQLALCHEMY_DATABASE_URL = f"mssql+pyodbc:///?odbc_connect={params}"
     try:
@@ -112,9 +111,8 @@ def ejecutar_migraciones_automaticas():
             azure_cs = (
                 f"Driver={DRIVER};Server=tcp:{SERVER},1433;Database={DATABASE};"
                 f"Uid={USERNAME};Pwd={PASSWORD};Encrypt=yes;TrustServerCertificate=yes;"
-                f"LoginTimeout=8;"
             )
-            az_conn = pyodbc.connect(azure_cs)
+            az_conn = pyodbc.connect(azure_cs, timeout=8)
             az_cur = az_conn.cursor()
 
             # Ampliar columnas numéricas a BIGINT en Azure SQL

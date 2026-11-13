@@ -1329,3 +1329,6 @@ Fecha_Hora,Correo_Usuario,Modulo,Operacion,Estado,Detalles_Error
 2026-11-09 22:40:43,test@bot.com,Autenticacion,Validacion_Credenciales,FALLO,Correo no registrado o no provisionado
 2026-11-09 22:40:44,test@bot.com,Autenticacion,Validacion_Credenciales,FALLO,Correo no registrado o no provisionado
 2026-11-09 22:40:44,test@bot.com,Autenticacion,Validacion_Credenciales,FALLO,Correo no registrado o no provisionado
+2026-11-12 20:47:51,alejandro.mejia-a@uniminuto.edu.co,Seguridad,Cambio_Contraseña,EXITO,Ninguno
+2026-11-12 20:49:16,alejandro.mejia-a@uniminuto.edu.co,Seguridad,Cambio_Contraseña,EXITO,Ninguno
+2026-11-12 20:49:58,alejandro.mejia-a@uniminuto.edu.co,Seguridad,Cambio_Contraseña,EXITO,Ninguno

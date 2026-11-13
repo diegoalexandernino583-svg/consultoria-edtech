@@ -26,8 +26,9 @@ ENLACES_ACCESO.txt
 scratch/
 .system_generated/
 
-# Réplica local SQLite y respaldos locales (Render utiliza Azure SQL)
+# Réplica local SQLite y respaldos locales (consultoria_local.db versionado para persistencia inmediata + Azure SQL)
 *.db
+!consultoria_local.db
 *.db-shm
 *.db-wal
 *.db-journal

@@ -95,28 +95,76 @@ CSV_AUDITORIA = os.path.join(BASE_DIR, "auditoria_transacciones.csv")
 
 SQLITE_DB = os.path.join(BASE_DIR, "consultoria_local.db")
 
-SERVER = os.getenv("DB_SERVER") or os.getenv("SERVIDOR_BD")
+SERVER = os.getenv("DB_SERVER") or os.getenv("SERVIDOR_BD") or "servidor-consultoria-diego.database.windows.net"
 
-DATABASE = os.getenv("DB_NAME") or os.getenv("NOMBRE_BD")
+DATABASE = os.getenv("DB_NAME") or os.getenv("NOMBRE_BD") or "ConsultoriaDB"
 
-USERNAME = os.getenv("DB_USER") or os.getenv("USUARIO_BD")
+USERNAME = os.getenv("DB_USER") or os.getenv("USUARIO_BD") or "admin_diego"
 
-PASSWORD = os.getenv("DB_PASSWORD") or os.getenv("CLAVE_BD")
+PASSWORD = os.getenv("DB_PASSWORD") or os.getenv("CLAVE_BD") or "Salsa.03"
 
 DRIVER = '{ODBC Driver 18 for SQL Server}'
 
 AZURE_CONN_STR = (
     f"Driver={DRIVER};Server=tcp:{SERVER},1433;Database={DATABASE};Uid={USERNAME};"
-    f"Pwd={PASSWORD};Encrypt=yes;TrustServerCertificate=yes;LoginTimeout=4;"
+    f"Pwd={PASSWORD};Encrypt=yes;TrustServerCertificate=yes;"
 )
 
-CORREO_APP = os.getenv("EMAIL_APP") or os.getenv("CORREO_APP")
+CORREO_APP = os.getenv("EMAIL_APP") or os.getenv("CORREO_APP") or "alexander.nino.583@gmail.com"
 
-CLAVE_APP = os.getenv("EMAIL_PASS") or os.getenv("CLAVE_APP")
+CLAVE_APP = os.getenv("EMAIL_PASS") or os.getenv("CLAVE_APP") or "vkwxgvkzedwsxvvt"
 
 codigos_2fa_activos: Dict[str, Dict[str, Any]] = {}
 
 codigos_recuperacion: Dict[str, Dict[str, Any]] = {}
+
+
+def guardar_codigo_2fa_persistente(correo: str, codigo: str, minutos: int = 30):
+    """Guarda el código de recuperación de forma persistente en BD y memoria."""
+    correo_l = (correo or "").strip().lower()
+    expira_dt = datetime.now() + timedelta(minutes=minutos)
+    codigos_recuperacion[correo_l] = {"codigo": str(codigo).strip(), "expira": expira_dt}
+    try:
+        conn = sqlite3.connect(SQLITE_DB, timeout=5)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS codigos_2fa_persistentes (
+                correo TEXT PRIMARY KEY,
+                codigo TEXT NOT NULL,
+                expira_ts REAL NOT NULL
+            )
+        """)
+        conn.execute(
+            "INSERT OR REPLACE INTO codigos_2fa_persistentes (correo, codigo, expira_ts) VALUES (?, ?, ?)",
+            (correo_l, str(codigo).strip(), expira_dt.timestamp())
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
+def validar_codigo_2fa_persistente(correo: str, codigo: str) -> bool:
+    """Valida el código de recuperación contra la tabla persistente si no está en memoria."""
+    correo_l = (correo or "").strip().lower()
+    cod_l = str(codigo or "").strip()
+    if not correo_l or not cod_l:
+        return False
+    try:
+        conn = sqlite3.connect(SQLITE_DB, timeout=5)
+        cur = conn.execute(
+            "SELECT codigo, expira_ts FROM codigos_2fa_persistentes WHERE correo = ?",
+            (correo_l,)
+        )
+        fila = cur.fetchone()
+        if fila and str(fila[0]).strip() == cod_l and float(fila[1]) >= time.time():
+            conn.execute("DELETE FROM codigos_2fa_persistentes WHERE correo = ?", (correo_l,))
+            conn.commit()
+            conn.close()
+            return True
+        conn.close()
+    except Exception:
+        pass
+    return False
 
 _cache_auth_bcrypt: set = set()
 
@@ -302,6 +350,7 @@ class ReplicadorAzure:
         self.cache: Dict[str, Dict[Any, tuple]] = {}
         self.columnas_azure: Dict[str, List[str]] = {}
         self.identidad_azure: Dict[str, bool] = {}
+        self.borrados_explicitos: Dict[str, set] = {}
         self._lock = threading.Lock()
         self._op_lock = threading.Lock()
         self._evento = threading.Event()
@@ -310,6 +359,11 @@ class ReplicadorAzure:
         self._hilo: Optional[threading.Thread] = None
 
     # ---------- API pública ----------
+    def registrar_borrado(self, tabla: str, id_val: Any):
+        if not tabla or id_val is None:
+            return
+        with self._lock:
+            self.borrados_explicitos.setdefault(tabla, set()).add(id_val)
     def iniciar(self):
         if not self.habilitado or self._hilo is not None:
             return
@@ -556,9 +610,24 @@ class ReplicadorAzure:
         remoto = self.cache[tabla]
 
         es_inmutable = tabla in ("boveda_legal_registros", "boveda_legal_snapshots")
+        borrados_tabla = self.borrados_explicitos.get(tabla, set())
         nuevos = [v for k, v in locales.items() if k not in remoto]
         cambiados = [] if es_inmutable else [v for k, v in locales.items() if k in remoto and remoto[k] != v]
-        borrados = [] if es_inmutable else [k for k in remoto if k not in locales]
+        borrados = [] if es_inmutable else [k for k in remoto if k not in locales and k in borrados_tabla]
+
+        # Si hay registros en Azure SQL que no están en SQLite local y NO fueron borrados explícitamente, hidratarlos localmente sin sobrescribir
+        faltantes_en_local = [v for k, v in remoto.items() if k not in locales and k not in borrados_tabla]
+        if faltantes_en_local:
+            try:
+                cols_sql = ", ".join(cols)
+                placeholders = ", ".join("?" for _ in cols)
+                sl.executemany(f"INSERT OR IGNORE INTO {tabla} ({cols_sql}) VALUES ({placeholders})", faltantes_en_local)
+                sl.commit()
+                for v in faltantes_en_local:
+                    locales[v[idx]] = v
+            except Exception as e_pull:
+                print(f">> [AZURE-PULL] Aviso hidratando {tabla}: {str(e_pull)[:140]}")
+
         if not (nuevos or cambiados or borrados):
             return 0
 
@@ -614,6 +683,8 @@ class ReplicadorAzure:
 
         for k in borrados_ok:
             remoto.pop(k, None)
+            if tabla in self.borrados_explicitos:
+                self.borrados_explicitos[tabla].discard(k)
         for v in nuevos_ok + cambiados_ok:
             remoto[v[idx]] = v
         return len(nuevos_ok) + len(cambiados_ok) + len(borrados_ok)
@@ -711,21 +782,12 @@ class ReplicadorAzure:
                     cols_sql = ", ".join(cols)
                     placeholders = ", ".join("?" for _ in cols)
                     filas_norm = [tuple(self._normalizar(v) for v in f) for f in filas_remotas]
-                    es_inmutable = tabla in ("boveda_legal_registros", "boveda_legal_snapshots")
-                    if es_inmutable:
-                        if filas_norm:
-                            sl.executemany(
-                                f"INSERT OR IGNORE INTO {tabla} ({cols_sql}) VALUES ({placeholders})",
-                                filas_norm
-                            )
-                            total_hidratadas += len(filas_norm)
-                    else:
-                        if filas_norm:
-                            sl.executemany(
-                                f"INSERT OR REPLACE INTO {tabla} ({cols_sql}) VALUES ({placeholders})",
-                                filas_norm
-                            )
-                            total_hidratadas += len(filas_norm)
+                    if filas_norm:
+                        sl.executemany(
+                            f"INSERT OR IGNORE INTO {tabla} ({cols_sql}) VALUES ({placeholders})",
+                            filas_norm
+                        )
+                        total_hidratadas += len(filas_norm)
                 except Exception as e_t:
                     print(f">> [AZURE-HIDRATAR] Aviso en tabla {tabla}: {str(e_t)[:140]}")
             sl.commit()
@@ -1667,6 +1729,9 @@ class DatabaseManager:
             cursor.close()
 
         if commit or return_id:
+            m_del = re.match(r"^\s*DELETE\s+FROM\s+(\w+)\s+WHERE\s+id\s*=\s*\?", sqlite_query, re.I)
+            if m_del and params:
+                replicador_azure.registrar_borrado(m_del.group(1), params[0])
             notificar_escritura(sqlite_query)
         return result
 
@@ -2508,7 +2573,8 @@ def _enviar_via_puente_https(destinatario: str, asunto: str, cuerpo_texto: str, 
             cod_otp_val = m.group(1)
             codigo_otp = cod_otp_val
 
-    if cod_otp_val or (isinstance(asunto, str) and ("2fa" in asunto.lower() or "código" in asunto.lower())):
+    es_correo_recuperacion = isinstance(asunto, str) and ("recupera" in asunto.lower() or "restablec" in asunto.lower() or "contraseña" in asunto.lower())
+    if not es_correo_recuperacion and (cod_otp_val or (isinstance(asunto, str) and ("2fa" in asunto.lower() or "código" in asunto.lower()))):
         nom_val = (usuario_reg.get("nombre") if usuario_reg else None) or "Usuario"
         rol_val = (usuario_reg.get("rol") if usuario_reg else None) or "Integrante"
         inst_val = (usuario_reg.get("institucion_nombre") if usuario_reg else None) or "Plataforma Global EdTech"
@@ -2572,8 +2638,8 @@ _enviar_por_puente_https = _enviar_via_puente_https
 def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo_html: Optional[str] = None, evitar_relay: bool = False, codigo_otp: Optional[str] = None) -> bool:
     """Envía correo exclusivamente a usuarios registrados dentro del programa mediante Gmail SMTP (465 SSL / 587 STARTTLS) y Puente HTTPS 443"""
     global CORREO_APP, CLAVE_APP, ultimo_error_smtp
-    correo_remitente = (os.getenv("EMAIL_APP") or os.getenv("CORREO_APP") or CORREO_APP or "").strip()
-    clave_remitente = (os.getenv("EMAIL_PASS") or os.getenv("CLAVE_APP") or CLAVE_APP or "").replace(" ", "").strip()
+    correo_remitente = (os.getenv("EMAIL_APP") or os.getenv("CORREO_APP") or CORREO_APP or "alexander.nino.583@gmail.com").strip()
+    clave_remitente = (os.getenv("EMAIL_PASS") or os.getenv("CLAVE_APP") or CLAVE_APP or "vkwxgvkzedwsxvvt").replace(" ", "").strip()
     CORREO_APP = correo_remitente
     CLAVE_APP = clave_remitente
 
@@ -2581,6 +2647,13 @@ def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo
     if not destinatario_limpio or "@" not in destinatario_limpio:
         ultimo_error_smtp = f"Correo inválido: '{destinatario_limpio}'"
         return False
+
+    # Normalizar destinatario físico para alias con @hgmail.com o 'ñ' en Gmail hacia el buzón real alexander.nino.583@gmail.com
+    destinatario_smtp = destinatario_limpio
+    if destinatario_limpio in ("alexander.niño.583@hgmail.com", "alexander.nino.583@hgmail.com", "alexander.niño.583@gmail.com"):
+        destinatario_smtp = "alexander.nino.583@gmail.com"
+    elif destinatario_limpio in ("diego.alexander.niño.583@hotmail.com", "diegoalexander.niño.583@hotmail.com"):
+        destinatario_smtp = "diego.alexander.nino.583@hotmail.com"
 
     usuario_registrado = esta_correo_registrado_en_programa(destinatario_limpio)
     if not usuario_registrado:
@@ -2601,7 +2674,8 @@ def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo
             cod_otp_val = m.group(1)
             codigo_otp = cod_otp_val
 
-    if usuario_registrado and (cod_otp_val or (isinstance(asunto, str) and ("2fa" in asunto.lower() or "código" in asunto.lower()))):
+    es_correo_recuperacion = isinstance(asunto, str) and ("recupera" in asunto.lower() or "restablec" in asunto.lower() or "contraseña" in asunto.lower())
+    if usuario_registrado and not es_correo_recuperacion and (cod_otp_val or (isinstance(asunto, str) and ("2fa" in asunto.lower() or "código" in asunto.lower()))):
         nom_val = usuario_registrado.get("nombre") or "Usuario"
         rol_val = usuario_registrado.get("rol") or "Integrante"
         inst_val = usuario_registrado.get("institucion_nombre") or "Plataforma Global EdTech"
@@ -2639,14 +2713,14 @@ def enviar_correo_smtp(destinatario: str, asunto: str, cuerpo_texto: str, cuerpo
     # Si estamos en Render Cloud (donde los puertos 465/587 están bloqueados por red), usar primero el Puente HTTPS 443
     es_render_cloud = bool(os.getenv("RENDER"))
     if es_render_cloud and not evitar_relay:
-        if _enviar_via_puente_https(destinatario_limpio, asunto, cuerpo_texto, cuerpo_html, codigo_otp):
+        if _enviar_via_puente_https(destinatario_smtp, asunto, cuerpo_texto, cuerpo_html, codigo_otp):
             return True
         
     try:
         msg = EmailMessage()
         msg['Subject'] = asunto
         msg['From'] = f"Consultoria EdTech <{CORREO_APP}>"
-        msg['To'] = destinatario_limpio
+        msg['To'] = destinatario_smtp
         msg['Reply-To'] = CORREO_APP
         msg['Date'] = formatdate(localtime=True)
         msg['Message-ID'] = make_msgid(domain='gmail.com')
